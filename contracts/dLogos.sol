@@ -320,8 +320,7 @@ contract dLogos is ReentrancyGuard {
             if (!backers[i].isDistributed) {
                 // Only add if not distributed
                 totalRewards += backers[i].amount;
-                backers[i]
-                    .isDistributed = true; /* TODO: Move this as clean up after the payable tx */
+                backers[i].isDistributed = true; /* TODO: Move this as clean up after the payable tx */
             }
         }
         (bool success, ) = payable(l.splits).call{value: totalRewards}("");
