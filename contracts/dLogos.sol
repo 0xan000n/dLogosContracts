@@ -25,6 +25,8 @@ contract dLogos is ReentrancyGuard {
     struct Speaker {
         address addr;
         uint16 fee; // Speaker reward BPS
+        string provider; // e.g. X, Discord etc.
+        string handle;
     }
 
     struct Host {
@@ -102,7 +104,9 @@ contract dLogos is ReentrancyGuard {
     event SpeakersSet(
         address indexed _owner,
         address[] _speakers,
-        uint16[] _fees
+        uint16[] _fees,
+        string[] _providers,
+        string[] _handles
     );
     event DateSet(address indexed _owner, uint indexed _scheduledAt);
     event MediaAssetSet(address indexed _owner, string indexed _mediaAssetURL);
@@ -247,7 +251,9 @@ contract dLogos is ReentrancyGuard {
     function setSpeakers(
         uint256 _logoID,
         address[] calldata _speakers,
-        uint16[] calldata _fees
+        uint16[] calldata _fees,
+        string[] calldata _providers,
+        string[] calldata _handles
     ) external {
         Logo memory l = logos[_logoID];
         require(l.creator == msg.sender); // Require msg sender to be the creator
@@ -256,10 +262,15 @@ contract dLogos is ReentrancyGuard {
         delete logoSpeakers[_logoID]; // Reset to default (no speakers)
 
         for (uint i = 0; i < _speakers.length; i++) {
-            Speaker memory s = Speaker({addr: _speakers[i], fee: _fees[i]});
+            Speaker memory s = Speaker({
+                addr: _speakers[i],
+                fee: _fees[i],
+                provider: _providers[i],
+                handle: _handles[i]
+            });
             logoSpeakers[_logoID].push(s);
         }
-        emit SpeakersSet(msg.sender, _speakers, _fees);
+        emit SpeakersSet(msg.sender, _speakers, _fees, _providers, _handles);
     }
 
     /**
