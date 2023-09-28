@@ -27,6 +27,7 @@ contract dLogos is ReentrancyGuard {
         uint16 fee; // Speaker reward BPS
         string provider; // e.g. X, Discord etc.
         string handle;
+        bool isConfirmed;
     }
 
     struct Host {
@@ -115,6 +116,7 @@ contract dLogos is ReentrancyGuard {
         address indexed _splitsAddress,
         uint256 indexed _totalRewards
     );
+    event SpeakerToggle(address indexed _speaker, bool indexed _isConfirmed);
 
     function setServiceFee(uint16 _dLogosServiceFee) external {
         /* TODO: (1) onlyOwner */
@@ -260,17 +262,36 @@ contract dLogos is ReentrancyGuard {
         require(_speakers.length == _fees.length); // Equal speakers and fees
 
         delete logoSpeakers[_logoID]; // Reset to default (no speakers)
-
+        
         for (uint i = 0; i < _speakers.length; i++) {
             Speaker memory s = Speaker({
                 addr: _speakers[i],
                 fee: _fees[i],
                 provider: _providers[i],
-                handle: _handles[i]
+                handle: _handles[i],
+                isConfirmed: false
             });
             logoSpeakers[_logoID].push(s);
         }
         emit SpeakersSet(msg.sender, _speakers, _fees, _providers, _handles);
+    }
+
+    /**
+     * @dev Toggle confirmation of a conversation as a speaker.
+     */
+    function toggleConfirmation(uint256 _logoID) external returns (bool) {
+        
+        Speaker[] memory speakers = logoSpeakers[_logoID];
+        
+        for (uint i = 0; i < speakers.length; i++) {
+            if (address(speakers[i].addr) == msg.sender) { 
+                logoSpeakers[_logoID][i].isConfirmed = !speakers[i].isConfirmed;
+                emit SpeakerToggle(msg.sender, logoSpeakers[_logoID][i].isConfirmed);
+                break;
+            }
+        }
+
+        return true;
     }
 
     /**
