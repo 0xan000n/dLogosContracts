@@ -22,12 +22,18 @@ contract dLogos is ReentrancyGuard {
         bool isDistributed; // Funds have been distributed
     }
 
+    enum SpeakerStatus {
+        Pending,
+        Accepted,
+        Declined
+    }
+
     struct Speaker {
         address addr;
         uint16 fee; // Speaker reward BPS
         string provider; // e.g. X, Discord etc.
         string handle;
-        bool isConfirmed;
+        SpeakerStatus status; // Status of the speaker 0 = pending, 1 = accepted, 2 = declined
     }
 
     struct Host {
@@ -116,7 +122,7 @@ contract dLogos is ReentrancyGuard {
         address indexed _splitsAddress,
         uint256 indexed _totalRewards
     );
-    event SpeakerToggle(address indexed _speaker, bool indexed _isConfirmed);
+    event SpeakerStatusSet(address indexed _speaker, uint indexed _status);
 
     function setServiceFee(uint16 _dLogosServiceFee) external {
         /* TODO: (1) onlyOwner */
@@ -269,7 +275,7 @@ contract dLogos is ReentrancyGuard {
                 fee: _fees[i],
                 provider: _providers[i],
                 handle: _handles[i],
-                isConfirmed: false
+                status: SpeakerStatus.Pending
             });
             logoSpeakers[_logoID].push(s);
         }
@@ -277,16 +283,16 @@ contract dLogos is ReentrancyGuard {
     }
 
     /**
-     * @dev Toggle confirmation of a conversation as a speaker.
+     * @dev Set status of a speaker.
      */
-    function toggleConfirmation(uint256 _logoID) external returns (bool) {
+    function setSpeakerStatus(uint256 _logoID, uint _status) external returns (bool) {
         
         Speaker[] memory speakers = logoSpeakers[_logoID];
         
         for (uint i = 0; i < speakers.length; i++) {
             if (address(speakers[i].addr) == msg.sender) { 
-                logoSpeakers[_logoID][i].isConfirmed = !speakers[i].isConfirmed;
-                emit SpeakerToggle(msg.sender, logoSpeakers[_logoID][i].isConfirmed);
+                logoSpeakers[_logoID][i].status = SpeakerStatus(_status);
+                emit SpeakerStatusSet(msg.sender, _status);
                 break;
             }
         }
