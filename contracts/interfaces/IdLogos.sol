@@ -61,6 +61,7 @@ interface IdLogos {
         bool isUploaded;
         // Logo Split Address
         address splits;
+        bool isAccepted;
     }
 
 }

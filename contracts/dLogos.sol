@@ -92,7 +92,8 @@ contract dLogos is IdLogos, ReentrancyGuard {
             isCrowdfunding: true,
             crowdfundStartAt: block.timestamp,
             crowdfundEndAt: block.timestamp + _crowdfundNumberOfDays * 1 days,
-            splits: address(0)
+            splits: address(0),
+            isAccepted: false
         });
 
         emit LogoCreated(msg.sender, logoID, block.timestamp);
@@ -181,9 +182,8 @@ contract dLogos is IdLogos, ReentrancyGuard {
         Logo memory l = logos[_logoID];
         
         bool c1 = l.creator == msg.sender; // Case 1: Logo admin can refund whenever.
-        bool c2 = block.timestamp > l.crowdfundEndAt; // Case 2: Crowdfund has not been completed by the due date.
+        bool c2 = (block.timestamp > l.crowdfundEndAt) && !l.isAccepted; // Case 2: Crowdfund due date reached and not accepted by backers
         bool c3 = l.scheduledAt != 0 && (block.timestamp > l.scheduledAt + 7 * 1 days) && !l.isUploaded; // Case 3: >7 days have passed since schedule date and no asset uploaded.
-        //TODO: Replace mediaAssetURL string length with isAccepted bool
         //bool c4 = false; TODO: Case 3: >50% of backers reject upload.
         require(c1 || c2 || c3, "No conditions met for refund.");
         
@@ -295,6 +295,7 @@ contract dLogos is IdLogos, ReentrancyGuard {
 
         l.mediaAssetURL = _mediaAssetURL;
         l.isUploaded = true;
+        l.isAccepted = true; // TODO: separate function
         logos[_logoID] = l; // add check prior to this
 
         emit MediaAssetSet(msg.sender, _mediaAssetURL);
