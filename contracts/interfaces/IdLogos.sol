@@ -6,6 +6,7 @@ interface IdLogos {
     struct Backer {
         address addr;
         uint256 amount; // ETH Contribution
+        bool votesToReject;
         bool isDistributed; // Funds have been distributed
     }
 
@@ -23,9 +24,10 @@ interface IdLogos {
         SpeakerStatus status; // Status of the speaker 0 = pending, 1 = accepted, 2 = declined
     }
 
-    struct Host {
-        address addr;
-        uint16 fee; // Host reward BPS
+    struct Status {
+        bool isCrowdfunding;
+        bool isUploaded;
+        bool isAccepted;
     }
 
     /// @notice All onchain information for a Logo.
@@ -41,7 +43,7 @@ interface IdLogos {
         // Crowdfunding Attributes
         uint crowdfundStartAt;
         uint crowdfundEndAt;
-        bool isCrowdfunding;
+        //bool isCrowdfunding;
         /*
         address[] speakers;
         address[] backers;      // BackerInfo[] backers;
@@ -58,10 +60,12 @@ interface IdLogos {
         
         */
         string mediaAssetURL;
-        bool isUploaded;
+        //bool isUploaded;
+        uint rejectionDeadline;
         // Logo Split Address
         address splits;
-        bool isAccepted;
+        //bool isAccepted;
+        Status status;
     }
 
 }

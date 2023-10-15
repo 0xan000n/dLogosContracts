@@ -4,16 +4,6 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IdLogos.sol";
 
-/* OPEN QUESTIONS 
-    1. Does there need to be a dedicated contribution address for each conversation?
-    2. May be useful to have a mapping from conversation ID to convo metadata.
-    3. Does all the conversatio metadata need to be stored in SC?
-    4. Convo Array vs mapping (looks like best practice is separate for metadata)
-    5. createDelegatedConvo (onlyOwner can create on behalf of an address)
-    6. Separate gov address from revenue address
-    7. Only allow txs if crowdfund enabled
-*/
-
 /// @title Core dLogos contract
 /// @author 0xan000n
 contract dLogos is IdLogos, ReentrancyGuard {
@@ -21,9 +11,10 @@ contract dLogos is IdLogos, ReentrancyGuard {
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => Backer[]) public logoBackers;  // Mapping of Logo ID to list of Backers
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
-    mapping(uint256 => Host[]) public logoHosts; // Mapping of Logo ID to list of Hosts
     uint16 public dLogosServiceFee = 300; // dLogos fees in BPS (3%)
-
+    uint16 public rejectThreshold = 5000; // backer rejection threshold in BPS (50%)
+    
+    /// EVENTS
     event LogUpdateFee(uint16 indexed _fee);
     event LogoCreated(
         address indexed _owner,
@@ -57,10 +48,13 @@ contract dLogos is IdLogos, ReentrancyGuard {
         uint indexed _amount,
         bool _case1,
         bool _case2,
-        bool _case3
+        bool _case3,
+        bool _case4
     );
-
-
+    
+    /**
+     * @dev Set service fee for dLogos.
+     */
     function setServiceFee(uint16 _dLogosServiceFee) external nonReentrant {
         /* TODO: (1) onlyOwner */
         require(
@@ -71,7 +65,9 @@ contract dLogos is IdLogos, ReentrancyGuard {
         emit LogUpdateFee(dLogosServiceFee);
     }
 
-    // Returns logoID
+    /**
+     * @dev Create new Logo onchain.
+     */
     function createLogo(
         string calldata _title,
         string calldata _description,
@@ -86,14 +82,13 @@ contract dLogos is IdLogos, ReentrancyGuard {
             description: _description,
             discussion: _discussion,
             creator: msg.sender,
-            scheduledAt: 0, // TODO: Correct default
+            scheduledAt: 0,
             mediaAssetURL: _mediaAssetURL, // TODO: remove this from calldata
-            isUploaded: false,
-            isCrowdfunding: true,
             crowdfundStartAt: block.timestamp,
             crowdfundEndAt: block.timestamp + _crowdfundNumberOfDays * 1 days,
             splits: address(0),
-            isAccepted: false
+            rejectionDeadline: 0,
+            status: Status({isUploaded: false, isCrowdfunding: true, isAccepted: false})
         });
 
         emit LogoCreated(msg.sender, logoID, block.timestamp);
@@ -103,21 +98,24 @@ contract dLogos is IdLogos, ReentrancyGuard {
     }
 
     /**
-     * @dev Open crowdfund for Logo. Only the owner of the Logo is allowed to open a crowdfund.
+     * @dev Toggle crowdfund for Logo. Only the owner of the Logo is allowed to toggle a crowdfund.
      * returns if successful.
      */
     function toggleCrowdfund(uint256 _logoID) external nonReentrant {
         Logo memory l = logos[_logoID];
-        l.isCrowdfunding = !l.isCrowdfunding;
+        l.status.isCrowdfunding = !l.status.isCrowdfunding;
         logos[_logoID] = l;
 
-        emit CrowdfundToggle(msg.sender, l.isCrowdfunding);
+        emit CrowdfundToggle(msg.sender, l.status.isCrowdfunding);
     }
 
+    /**
+     * @dev Payable function to add crowdfund.
+     */
     function crowdfund(uint256 _logoID) external payable nonReentrant {
         // TODO: Requires and Roles
         Logo memory l = logos[_logoID];
-        require(l.isCrowdfunding == true, "Crowdfund is not open.");
+        require(l.status.isCrowdfunding == true, "Crowdfund is not open.");
 
         bool isBacker = false;
         Backer[] storage backers = logoBackers[_logoID];
@@ -133,6 +131,7 @@ contract dLogos is IdLogos, ReentrancyGuard {
             Backer memory b = Backer({
                 addr: msg.sender,
                 amount: msg.value,
+                votesToReject: false,
                 isDistributed: false
             });
             logoBackers[_logoID].push(b);
@@ -151,7 +150,7 @@ contract dLogos is IdLogos, ReentrancyGuard {
         // Can only withdraw while crowdfund is open.
         Logo memory l = logos[_logoID];
         require(
-            l.isCrowdfunding == true,
+            l.status.isCrowdfunding == true,
             "Cannot withdraw after crowdfund is closed."
         );
 
@@ -172,6 +171,47 @@ contract dLogos is IdLogos, ReentrancyGuard {
             }
         }
     }
+    
+    /**
+     * @dev Allows a backer to reject an uploaded asset.
+     */
+    function reject(
+        uint256 _logoID
+    ) external nonReentrant {
+        Logo memory l = logos[_logoID];
+        require(block.timestamp < l.rejectionDeadline, "Rejection deadline has passed.");
+
+        Backer[] storage backers = logoBackers[_logoID];
+        
+        for (uint i = 0; i < backers.length; i++) {
+            if (backers[i].addr == msg.sender){
+                backers[i].votesToReject = true;
+                return;
+            }
+        }
+        require(false, "msg.sender is not a backer.");
+    }
+
+    /**
+     * @dev Internal function for polling backers.
+     */
+    function _pollBackersForRefund(
+        uint256 _logoID
+    ) private view returns (bool) {
+        Logo memory l = logos[_logoID];
+        require(block.timestamp < l.rejectionDeadline, "Rejection deadline has passed.");
+        
+        Backer[] storage backers = logoBackers[_logoID];
+        uint total = backers.length;
+        uint rejected = 0;
+        for (uint i = 0; i < backers.length; i++) {
+            if (backers[i].votesToReject){
+                rejected += 1;
+            }
+        }
+        uint threshold = rejected * 10_000 / total; // BPS
+        return threshold >= rejectThreshold;
+    }
 
     /**
      * @dev Issue refund of the Logo.
@@ -182,10 +222,10 @@ contract dLogos is IdLogos, ReentrancyGuard {
         Logo memory l = logos[_logoID];
         
         bool c1 = l.creator == msg.sender; // Case 1: Logo admin can refund whenever.
-        bool c2 = (block.timestamp > l.crowdfundEndAt) && !l.isAccepted; // Case 2: Crowdfund due date reached and not accepted by backers
-        bool c3 = l.scheduledAt != 0 && (block.timestamp > l.scheduledAt + 7 * 1 days) && !l.isUploaded; // Case 3: >7 days have passed since schedule date and no asset uploaded.
-        //bool c4 = false; TODO: Case 3: >50% of backers reject upload.
-        require(c1 || c2 || c3, "No conditions met for refund.");
+        bool c2 = (block.timestamp > l.crowdfundEndAt) && !l.status.isAccepted; // Case 2: Crowdfund due date reached and not accepted by backers
+        bool c3 = l.scheduledAt != 0 && (block.timestamp > l.scheduledAt + 7 * 1 days) && !l.status.isUploaded; // Case 3: >7 days have passed since schedule date and no asset uploaded.
+        bool c4 = _pollBackersForRefund(_logoID); // Case 4: >50% of backers reject upload.
+        require(c1 || c2 || c3 || c4, "No conditions met for refund.");
         
         Backer[] storage backers = logoBackers[_logoID];
         
@@ -200,7 +240,7 @@ contract dLogos is IdLogos, ReentrancyGuard {
             (bool success, ) = payable(addr).call{value: amount}("");
             require(success, "Refund failed.");
             delete backers[i];
-            emit RefundIssued(_logoID, addr, amount, c1, c2, c3);
+            emit RefundIssued(_logoID, addr, amount, c1, c2, c3, c4);
         }
     }
 
@@ -224,7 +264,7 @@ contract dLogos is IdLogos, ReentrancyGuard {
         string[] calldata _handles
     ) external nonReentrant {
         Logo memory l = logos[_logoID];
-        require(l.creator == msg.sender); // Require msg sender to be the creator
+        require(l.creator == msg.sender, "msg.sender is not owner"); // Require msg sender to be the creator
         require(_speakers.length == _fees.length); // Equal speakers and fees
 
         delete logoSpeakers[_logoID]; // Reset to default (no speakers)
@@ -274,9 +314,10 @@ contract dLogos is IdLogos, ReentrancyGuard {
         Logo memory l = logos[_logoID];
         // TODO: prevent admin from continually pushing back date.
         // TODO: make sure this is a future date
-        require(l.creator == msg.sender); // Require msg sender to be the creator
+        require(l.creator == msg.sender, "msg.sender is not owner"); // Require msg sender to be the creator
 
         l.scheduledAt = _scheduledAt;
+        l.status.isCrowdfunding = false; // Close crowdfund
         logos[_logoID] = l;
 
         emit DateSet(msg.sender, _scheduledAt);
@@ -291,11 +332,12 @@ contract dLogos is IdLogos, ReentrancyGuard {
     ) external nonReentrant {
         Logo memory l = logos[_logoID];
 
-        require(l.creator == msg.sender); // Require msg sender to be the creator
+        require(l.creator == msg.sender, "msg.sender is not owner"); // Require msg sender to be the creator
 
         l.mediaAssetURL = _mediaAssetURL;
-        l.isUploaded = true;
-        l.isAccepted = true; // TODO: separate function
+        l.status.isUploaded = true;
+        l.rejectionDeadline = block.timestamp + 7 * 1 days;
+        l.status.isAccepted = true; // TODO: separate function
         logos[_logoID] = l; // add check prior to this
 
         emit MediaAssetSet(msg.sender, _mediaAssetURL);
@@ -306,9 +348,8 @@ contract dLogos is IdLogos, ReentrancyGuard {
         address _splitsAddress
     ) external nonReentrant {
         Logo memory l = logos[_logoID];
-        require(l.creator == msg.sender); // Require msg sender to be the creator
-        require(_splitsAddress != address(0)); // Require splits address to be non zero
-
+        require(l.creator == msg.sender, "msg.sender is not owner"); // Require msg sender to be the creator
+        // TODO: consider adding final check to 
         // Save Splits address
         l.splits = _splitsAddress;
 
@@ -326,7 +367,7 @@ contract dLogos is IdLogos, ReentrancyGuard {
         require(success, "Distribute failed.");
 
         // Close crowdfund.
-        l.isCrowdfunding = false;
+        l.status.isCrowdfunding = false;
         logos[_logoID] = l;
 
         emit SplitsSetAndRewardsDistributed(msg.sender, l.splits, totalRewards);
