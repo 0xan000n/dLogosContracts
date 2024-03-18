@@ -5,3 +5,7 @@ node_modules
 multisol-logo/
 multisol-dlogos/
 hardhat.config.js
+cache_forge/
+contracts/dlogos.code-workspace
+foundry.toml
+out/
