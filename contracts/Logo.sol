@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -26,7 +26,7 @@ contract Logo is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         _setTokenURI(tokenId, uri);
     }
 
-    // The following functions are overrides required by Solidity.
+    // The follong functions are overrides required by Solidity.
 
     function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
         internal

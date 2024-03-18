@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.24;
 
 interface IdLogos {
 
@@ -21,7 +21,7 @@ interface IdLogos {
         uint16 fee; // Speaker reward BPS
         string provider; // e.g. X, Discord etc.
         string handle;
-        SpeakerStatus status; // Status of the speaker 0 = pending, 1 = accepted, 2 = declined
+        SpeakerStatus status; // Status of the speaker 0 = pending, 1 = accepted, 2 = declined, 4 = rejected
     }
 
     struct Status {
