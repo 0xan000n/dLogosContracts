@@ -2,15 +2,20 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "./interfaces/IdLogos.sol";
 
 /// @title Core dLogos contract
 /// @author 0xan000n
 contract dLogos is IdLogos, ReentrancyGuard {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     uint256 public logoID = 1; // Global Logo ID starting from 1
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => Backer[]) public logoBackers;  // Mapping of Logo ID to list of Backers
+    mapping(uint256 => mapping(address => Backer)) public logoBackersUpdated;
+    mapping(uint256 => EnumerableSet.AddressSet) private logoBackerAddresses;
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
     uint16 public dLogosServiceFee = 300; // dLogos fees in BPS (3%)
     uint16 public rejectThreshold = 5000; // backer rejection threshold in BPS (50%)
@@ -43,10 +48,9 @@ contract dLogos is IdLogos, ReentrancyGuard {
         uint256 indexed _totalRewards
     );
     event SpeakerStatusSet(uint indexed _logoID, address indexed _speaker, uint indexed _status);
-    event RefundIssued(
+    event RejectionSubmitted(uint indexed _logoID, address indexed _backer);
+    event RefundInitiated(
         uint indexed _logoID, 
-        address indexed _owner, 
-        uint indexed _amount,
         bool _case1,
         bool _case2,
         bool _case3,
@@ -89,7 +93,7 @@ contract dLogos is IdLogos, ReentrancyGuard {
             crowdfundEndAt: block.timestamp + _crowdfundNumberOfDays * 1 days,
             splits: address(0),
             rejectionDeadline: 0,
-            status: Status({isUploaded: false, isCrowdfunding: true, isAccepted: false})
+            status: Status({isUploaded: false, isCrowdfunding: true, isAccepted: false, isRefunded: false})
         });
 
         emit LogoCreated(msg.sender, logoID, block.timestamp);
@@ -103,9 +107,9 @@ contract dLogos is IdLogos, ReentrancyGuard {
      * returns if successful.
      */
     function toggleCrowdfund(uint256 _logoID) external nonReentrant {
-        Logo memory l = logos[_logoID];
+        Logo storage l = logos[_logoID];
+        require(l.creator == msg.sender, "Only the Logo owner is allowed to toggle crowdfund.");
         l.status.isCrowdfunding = !l.status.isCrowdfunding;
-        logos[_logoID] = l;
 
         emit CrowdfundToggle(msg.sender, l.status.isCrowdfunding);
     }
@@ -118,16 +122,11 @@ contract dLogos is IdLogos, ReentrancyGuard {
         Logo memory l = logos[_logoID];
         require(l.status.isCrowdfunding == true, "Crowdfund is not open.");
 
-        bool isBacker = false;
-        Backer[] storage backers = logoBackers[_logoID];
-        for (uint i = 0; i < backers.length; i++) {
-            if (!backers[i].isDistributed && backers[i].addr == msg.sender) {
-                backers[i].amount += msg.value; // Add to existing backer. Must not be distributed.
-                isBacker = true;
-            }
-        }
-
-        if (!isBacker) {
+        bool isBacker = logoBackerAddresses[_logoID].contains(msg.sender);
+        if (isBacker){
+            Backer storage backer = logoBackersUpdated[_logoID][msg.sender];
+            backer.amount += msg.value;
+        } else {
             // Record the value sent to the address.
             Backer memory b = Backer({
                 addr: msg.sender,
@@ -135,10 +134,31 @@ contract dLogos is IdLogos, ReentrancyGuard {
                 votesToReject: false,
                 isDistributed: false
             });
-            logoBackers[_logoID].push(b);
+            logoBackerAddresses[_logoID].add(msg.sender);
+            logoBackersUpdated[_logoID][msg.sender] = b;
         }
-
+        
         emit Crowdfund(msg.sender, msg.value);
+
+        // for (uint i = 0; i < backers.length; i++) {
+        //     if (!backers[i].isDistributed && backers[i].addr == msg.sender) {
+        //         backers[i].amount += msg.value; // Add to existing backer. Must not be distributed.
+        //         isBacker = true;
+        //     }
+        // }
+
+        // if (!isBacker) {
+        //     // Record the value sent to the address.
+        //     Backer memory b = Backer({
+        //         addr: msg.sender,
+        //         amount: msg.value,
+        //         votesToReject: false,
+        //         isDistributed: false
+        //     });
+        //     logoBackers[_logoID].push(b);
+        // }
+
+        
     }
 
     /**
@@ -152,25 +172,40 @@ contract dLogos is IdLogos, ReentrancyGuard {
         Logo memory l = logos[_logoID];
         require(
             l.status.isCrowdfunding == true,
-            "Cannot withdraw after crowdfund is closed."
+            "Cannot withdraw after crowdfund is closed." // TODO: Update this to can withdraw also if refund issued
         );
-
-        Backer[] storage backers = logoBackers[_logoID];
-
-        for (uint i = 0; i < backers.length; i++) {
-            if (
-                !backers[i].isDistributed &&
-                backers[i].addr == msg.sender &&
-                backers[i].amount == _amount
-            ) {
-                uint256 amount = backers[i].amount;
+        require(_amount > 0, "Amount must be greater than 0");
+        
+        bool isBacker = logoBackerAddresses[_logoID].contains(msg.sender);
+        if (isBacker) {
+            Backer storage backer = logoBackersUpdated[_logoID][msg.sender];
+            if (!backer.isDistributed && backer.amount == _amount) {
+                uint256 amount = backer.amount;
                 (bool success, ) = payable(msg.sender).call{value: amount}("");
                 require(success, "Withdraw failed.");
-                delete backers[i];
+                logoBackerAddresses[_logoID].remove(msg.sender);
+                delete logoBackersUpdated[_logoID][msg.sender];
                 emit FundsWithdrawn(msg.sender, amount);
-                break;
             }
         }
+
+        // Backer[] storage backers = logoBackers[_logoID];
+
+        // for (uint i = 0; i < backers.length; i++) {
+        //     if (
+        //         !backers[i].isDistributed &&
+        //         backers[i].addr == msg.sender &&
+        //         backers[i].amount == _amount
+        //     ) {
+        //         uint256 amount = backers[i].amount;
+        //         (bool success, ) = payable(msg.sender).call{value: amount}("");
+        //         require(success, "Withdraw failed.");
+        //         delete backers[i];
+        //         emit FundsWithdrawn(msg.sender, amount);
+        //         break;
+        //     }
+        // }
+
     }
     
     /**
@@ -182,15 +217,22 @@ contract dLogos is IdLogos, ReentrancyGuard {
         Logo memory l = logos[_logoID];
         require(block.timestamp < l.rejectionDeadline, "Rejection deadline has passed.");
 
-        Backer[] storage backers = logoBackers[_logoID];
-        
-        for (uint i = 0; i < backers.length; i++) {
-            if (backers[i].addr == msg.sender){
-                backers[i].votesToReject = true;
-                return;
-            }
+        bool isBacker = logoBackerAddresses[_logoID].contains(msg.sender);
+        if (isBacker) {
+            Backer storage backer = logoBackersUpdated[_logoID][msg.sender];
+            backer.votesToReject = true;
+            emit RejectionSubmitted(_logoID, msg.sender);
         }
-        require(false, "msg.sender is not a backer.");
+        
+        // Backer[] storage backers = logoBackers[_logoID];
+        
+        // for (uint i = 0; i < backers.length; i++) {
+        //     if (backers[i].addr == msg.sender){
+        //         backers[i].votesToReject = true;
+        //         return;
+        //     }
+        // }
+        // require(false, "msg.sender is not a backer.");
     }
 
     /**
@@ -202,16 +244,32 @@ contract dLogos is IdLogos, ReentrancyGuard {
         Logo memory l = logos[_logoID];
         require(block.timestamp < l.rejectionDeadline, "Rejection deadline has passed.");
         
-        Backer[] storage backers = logoBackers[_logoID];
-        uint total = backers.length;
-        uint rejected = 0;
-        for (uint i = 0; i < backers.length; i++) {
-            if (backers[i].votesToReject){
+        // new
+        EnumerableSet.AddressSet storage backerAddresses = logoBackerAddresses[_logoID];
+        
+        address[] memory backerArray = backerAddresses.values();
+        uint256 total = backerAddresses.length();
+        uint256 rejected = 0;
+        for (uint i = 0; i < total; i++) {
+            address bAddr = backerArray[i];
+            Backer memory b = logoBackersUpdated[_logoID][bAddr];
+            if (b.votesToReject){
                 rejected += 1;
             }
         }
-        uint threshold = rejected * 10_000 / total; // BPS
-        return threshold >= rejectThreshold;
+        uint256 threshold = rejected * 10_000 / total; // BPS
+        return threshold > rejectThreshold;
+
+        // Backer[] storage backers = logoBackers[_logoID];
+        // uint total = backers.length;
+        // uint rejected = 0;
+        // for (uint i = 0; i < backers.length; i++) {
+        //     if (backers[i].votesToReject){
+        //         rejected += 1;
+        //     }
+        // }
+        // uint threshold = rejected * 10_000 / total; // BPS
+        // return threshold >= rejectThreshold;
     }
 
     /**
@@ -220,7 +278,7 @@ contract dLogos is IdLogos, ReentrancyGuard {
     function refund(
         uint256 _logoID
     ) external nonReentrant {
-        Logo memory l = logos[_logoID];
+        Logo storage l = logos[_logoID];
         
         bool c1 = l.creator == msg.sender; // Case 1: Logo admin can refund whenever.
         bool c2 = (block.timestamp > l.crowdfundEndAt) && !l.status.isAccepted; // Case 2: Crowdfund due date reached and not accepted by backers
@@ -228,21 +286,26 @@ contract dLogos is IdLogos, ReentrancyGuard {
         bool c4 = _pollBackersForRefund(_logoID); // Case 4: >50% of backers reject upload.
         require(c1 || c2 || c3 || c4, "No conditions met for refund.");
         
-        Backer[] storage backers = logoBackers[_logoID];
-        
-        for (uint i = 0; i < backers.length; i++) {
-            require(
-                backers[i].isDistributed == false,
-                "Cannot refund backer funds that are already distributed."
-            );
+        // new
+        l.status.isRefunded = true;
+        emit RefundInitiated(_logoID, c1, c2, c3, c4)
 
-            uint256 amount = backers[i].amount;
-            address addr = backers[i].addr;
-            (bool success, ) = payable(addr).call{value: amount}("");
-            require(success, "Refund failed.");
-            delete backers[i];
-            emit RefundIssued(_logoID, addr, amount, c1, c2, c3, c4);
-        }
+        // old
+        //Backer[] storage backers = logoBackers[_logoID];
+        
+        // for (uint i = 0; i < backers.length; i++) {
+        //     require(
+        //         backers[i].isDistributed == false,
+        //         "Cannot refund backer funds that are already distributed."
+        //     );
+
+        //     uint256 amount = backers[i].amount;
+        //     address addr = backers[i].addr;
+        //     (bool success, ) = payable(addr).call{value: amount}("");
+        //     require(success, "Refund failed.");
+        //     delete backers[i];
+        //     emit RefundIssued(_logoID, addr, amount, c1, c2, c3, c4);
+        // }
     }
 
     /**

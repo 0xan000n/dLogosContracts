@@ -27,7 +27,8 @@ interface IdLogos {
     struct Status {
         bool isCrowdfunding;
         bool isUploaded;
-        bool isAccepted;
+        bool isAccepted; // TODO: isDistributed
+        bool isRefunded;
     }
 
     /// @notice All onchain information for a Logo.
