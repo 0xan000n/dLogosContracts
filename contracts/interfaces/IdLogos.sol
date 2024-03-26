@@ -2,12 +2,11 @@
 pragma solidity ^0.8.24;
 
 interface IdLogos {
-
     struct Backer {
         address addr;
-        uint256 amount; // ETH Contribution
+        uint256 amount;
         bool votesToReject;
-        bool isDistributed; // Funds have been distributed
+        bool isDistributed; 
     }
 
     enum SpeakerStatus {
@@ -18,54 +17,32 @@ interface IdLogos {
 
     struct Speaker {
         address addr;
-        uint16 fee; // Speaker reward BPS
+        uint16 fee; // in BPS
         string provider; // e.g. X, Discord etc.
         string handle;
-        SpeakerStatus status; // Status of the speaker 0 = pending, 1 = accepted, 2 = declined, 4 = rejected
+        SpeakerStatus status;
     }
 
     struct Status {
         bool isCrowdfunding;
         bool isUploaded;
-        bool isAccepted; // TODO: isDistributed
+        bool isDistributed;
         bool isRefunded;
     }
 
     /// @notice All onchain information for a Logo.
     struct Logo {
-        // Meta
         uint256 id;
         string title;
         string description;
         string discussion;
-        // Roles
+        string mediaAssetURL;
         address creator;
         uint scheduledAt;
-        // Crowdfunding Attributes
         uint crowdfundStartAt;
         uint crowdfundEndAt;
-        //bool isCrowdfunding;
-        /*
-        address[] speakers;
-        address[] backers;      // BackerInfo[] backers;
-    
-        
-
-        // Scheduling Attributes
-        uint scheduledAt;
-        uint scheduleFailedRefundAt; // Date to allow refund if conversation is not scheduled.
-        bool isScheduled;
-        
-        // Media Upload Attributes
-        uint uploadFailureRefundAt; // Date to allow refund if conversation is not uploaded.
-        
-        */
-        string mediaAssetURL;
-        //bool isUploaded;
         uint rejectionDeadline;
-        // Logo Split Address
-        address splits;
-        //bool isAccepted;
+        address splits; // Splits Address
         Status status;
     }
 
