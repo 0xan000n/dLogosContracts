@@ -26,7 +26,7 @@ contract dLogos is IdLogos, Ownable, ReentrancyGuard {
         uint indexed _crowdfundStartAt
     );
     event Crowdfund(address indexed _owner, uint indexed _amount);
-    event CrowdfundToggle(
+    event CrowdfundToggled(
         address indexed _owner,
         bool indexed _crowdfundIsOpen
     );
@@ -91,7 +91,7 @@ contract dLogos is IdLogos, Ownable, ReentrancyGuard {
             status: Status({isUploaded: false, isCrowdfunding: true, isDistributed: false, isRefunded: false})
         });
         emit LogoCreated(msg.sender, logoID, block.timestamp);
-        emit CrowdfundToggle(msg.sender, true);
+        emit CrowdfundToggled(msg.sender, true);
         return logoID++; // Return and Increment Global Logo ID
     }
 
@@ -105,7 +105,7 @@ contract dLogos is IdLogos, Ownable, ReentrancyGuard {
         require(!l.status.isRefunded, "Cannot toggle crowdfund after Logo is refunded.");
         require(l.creator == msg.sender, "Only the Logo creator is allowed to toggle crowdfund.");
         l.status.isCrowdfunding = !l.status.isCrowdfunding;
-        emit CrowdfundToggle(msg.sender, l.status.isCrowdfunding);
+        emit CrowdfundToggled(msg.sender, l.status.isCrowdfunding);
     }
 
     /**
