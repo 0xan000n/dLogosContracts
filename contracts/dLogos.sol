@@ -19,7 +19,8 @@ contract dLogos is IdLogos, Ownable, ReentrancyGuard {
     uint16 public rejectThreshold = 5000; // backer rejection threshold in BPS (50%)
     
     /// EVENTS
-    event LogUpdateFee(uint16 indexed _fee);
+    event ServiceFeeUpdated(uint16 indexed _fee);
+    event RejectThresholdUpdated(uint16 indexed _fee);
     event LogoCreated(
         address indexed _owner,
         uint indexed _logoID,
@@ -61,10 +62,22 @@ contract dLogos is IdLogos, Ownable, ReentrancyGuard {
     function setServiceFee(uint16 _dLogosServiceFee) external nonReentrant onlyOwner {
         require(
             _dLogosServiceFee > 0 && _dLogosServiceFee <= 10000,
-            "dLogos: DLOGOS_SERVICE_FEE_INVALID"
+            "Service fee must be greater than 0 and less than 100."
         );
         dLogosServiceFee = _dLogosServiceFee;
-        emit LogUpdateFee(dLogosServiceFee);
+        emit ServiceFeeUpdated(dLogosServiceFee);
+    }
+
+     /**
+     * @dev Set reject threshold for dLogos.
+     */
+    function setRejectThreshold(uint16 _rejectThreshold) external nonReentrant onlyOwner {
+        require(
+            _rejectThreshold > 0 && _rejectThreshold <= 10000,
+            "Reject threshold must be greater than 0 and less than 100."
+        );
+        rejectThreshold = _rejectThreshold;
+        emit RejectThresholdUpdated(rejectThreshold);
     }
 
     /**
@@ -175,21 +188,22 @@ contract dLogos is IdLogos, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Internal function for polling backers.
+     * @dev Internal function for polling backers, weighted by capital.
      */
     function _pollBackersForRefund(
         uint256 _logoID
     ) private view returns (bool) {
         EnumerableSet.AddressSet storage backerAddresses = logoBackerAddresses[_logoID];
         address[] memory backerArray = backerAddresses.values();
-        uint256 total = backerAddresses.length();
+        uint256 total = 0;
         uint256 rejected = 0;
         for (uint i = 0; i < total; i++) {
             address bAddress = backerArray[i];
             Backer memory b = logoBackers[_logoID][bAddress];
             if (b.votesToReject){
-                rejected += 1;
+                rejected += b.amount;
             }
+            total += b.amount;
         }
         uint256 threshold = rejected * 10_000 / total; // BPS
         return threshold > rejectThreshold;
