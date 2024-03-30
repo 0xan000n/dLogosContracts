@@ -11,62 +11,36 @@ import "./interfaces/IdLogos.sol";
 contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    /// STORAGE
     uint256 public logoID = 1; // Global Logo ID starting from 1
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info 
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private logoBackerAddresses;
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
-    uint16 public dLogosServiceFee = 300; // dLogos fees in BPS (3%)
+    uint16 public dLogosServiceAndCommunityFee = 2000; // dLogos fees in BPS (20%)
     uint16 public rejectThreshold = 5000; // backer rejection threshold in BPS (50%)
     
-    /// EVENTS
-    event ServiceFeeUpdated(uint16 indexed _fee);
-    event RejectThresholdUpdated(uint16 indexed _fee);
-    event LogoCreated(
-        address indexed _owner,
-        uint indexed _logoID,
-        uint indexed _crowdfundStartAt
-    );
-    event Crowdfund(address indexed _owner, uint indexed _amount);
-    event CrowdfundToggled(
-        address indexed _owner,
-        bool indexed _crowdfundIsOpen
-    );
-    event FundsWithdrawn(address indexed _owner, uint indexed _amount);
-    event SpeakersSet(
-        address indexed _owner,
-        address[] _speakers,
-        uint16[] _fees,
-        string[] _providers,
-        string[] _handles
-    );
-    event DateSet(address indexed _owner, uint indexed _scheduledAt);
-    event MediaAssetSet(address indexed _owner, string indexed _mediaAssetURL);
-    event SplitsSetAndRewardsDistributed(
-        address indexed _owner,
-        address indexed _splitsAddress,
-        uint256 indexed _totalRewards
-    );
-    event SpeakerStatusSet(uint indexed _logoID, address indexed _speaker, uint indexed _status);
-    event RejectionSubmitted(uint indexed _logoID, address indexed _backer);
-    event RefundInitiated(
-        uint indexed _logoID, 
-        bool _case1,
-        bool _case2,
-        bool _case3,
-        bool _case4
-    );
+    /* 
+    TODO: Polygon Mumbai. Move to the constructor. */
+    address public immutable dLogosFeeAddress;
+    /* Move to Constructor 
+    */
     
+    /// Constructor
+    constructor() {
+        dLogosFeeAddress = 0xcc734C6B251b44716d774901B8757654c6C7BceF;
+    }
+
     /**
      * @dev Set service fee for dLogos.
      */
-    function setServiceFee(uint16 _dLogosServiceFee) external nonReentrant onlyOwner {
+    function setServiceFee(uint16 _fee) external nonReentrant onlyOwner {
         require(
-            _dLogosServiceFee > 0 && _dLogosServiceFee <= 10000,
+            _fee > 0 && _fee <= 10000,
             "Service fee must be greater than 0 and less than 100."
         );
-        dLogosServiceFee = _dLogosServiceFee;
-        emit ServiceFeeUpdated(dLogosServiceFee);
+        dLogosServiceAndCommunityFee = _fee;
+        emit FeeUpdated(dLogosServiceAndCommunityFee);
     }
 
      /**
@@ -314,7 +288,7 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
         emit DateSet(msg.sender, _scheduledAt);
     }
 
-    /*
+    /**
      * @dev Sets media URL for a Logo.
      */
     function setMediaAsset(
@@ -331,17 +305,36 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
         l.rejectionDeadline = block.timestamp + 7 * 1 days;
         emit MediaAssetSet(msg.sender, _mediaAssetURL);
     }
-
-    function setSplitsAndDistributeRewards(
+    
+    /**
+     * @dev Sets splits address for a Logo.
+     */
+    function setSplitsAddress(
         uint256 _logoID,
         address _splitsAddress
+    ) external nonReentrant whenNotPaused {
+        Logo storage l = logos[_logoID];
+        require(!l.status.isDistributed, "Cannot set splits after rewards are distributed.");
+        require(!l.status.isRefunded, "Cannot set splits after Logo is refunded.");
+        require(l.creator == msg.sender, "msg.sender is not the Logo creator.");
+        l.splits = _splitsAddress;
+        l.status.isCrowdfunding = false; // Close crowdfund
+        l.rejectionDeadline = block.timestamp + 7 * 1 days;
+        emit SplitsSet(msg.sender, _splitsAddress);
+    }
+
+    /**
+     * @dev Calculate and distribute rewards to the Splits contract.
+     */
+    function distributeRewards(
+        uint256 _logoID
     ) external nonReentrant whenNotPaused {
         Logo storage l = logos[_logoID];
         require(!l.status.isDistributed, "Logo has already been distributed.");
         require(!l.status.isRefunded, "Cannot distribute rewards after Logo is refunded.");
         require(block.timestamp > l.rejectionDeadline, "Rewards can only be distributed after rejection deadline has passed.");
         require(l.creator == msg.sender, "msg.sender is not the Logo creator.");
-        l.splits = _splitsAddress;
+        require(l.splits != address(0), "Splits address must be set prior to distribution.");
         EnumerableSet.AddressSet storage backerAddresses = logoBackerAddresses[_logoID];
         address[] memory backerArray = backerAddresses.values();
         uint256 totalRewards = 0;
@@ -353,8 +346,8 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
             }
         }
         (bool success, ) = payable(l.splits).call{value: totalRewards}("");
-        require(success, "Distribute failed.");
+        require(success, "Reward distribution failed.");
         l.status.isDistributed = true;
-        emit SplitsSetAndRewardsDistributed(msg.sender, l.splits, totalRewards);
+        emit RewardsDistributed(msg.sender, l.splits, totalRewards);
     }
 }
