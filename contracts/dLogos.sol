@@ -85,7 +85,9 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
         bool isBacker = logoBackerAddresses[_logoID].contains(msg.sender);
         if (isBacker){
             Backer storage backer = logoBackers[_logoID][msg.sender];
-            backer.amount += msg.value;
+            unchecked {
+                backer.amount += msg.value;
+            }
         } else {
             // Record the value sent to the address.
             require (logoBackerAddresses[_logoID].length() < 1000, "A Logo can have at most 1000 backers.");
@@ -167,10 +169,12 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
         for (uint i = 0; i < total; i++) {
             address bAddress = backerArray[i];
             Backer memory b = logoBackers[_logoID][bAddress];
-            if (b.votesToReject){
-                rejected += b.amount;
+            unchecked {
+                if (b.votesToReject){
+                    rejected += b.amount;
+                }
+                total += b.amount;
             }
-            total += b.amount;
         }
         uint256 threshold = rejected * 10_000 / total; // BPS
         return threshold > rejectThreshold;
@@ -333,7 +337,9 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
         for (uint256 i = 0; i < backerArray.length; i++) {
             Backer storage b = logoBackers[_logoID][backerArray[i]];
             if (!b.isDistributed) {
-                totalRewards += b.amount;
+                unchecked {
+                    totalRewards += b.amount;
+                }
                 b.isDistributed = true;
             }
         }
