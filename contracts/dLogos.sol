@@ -49,6 +49,7 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
             creator: msg.sender,
             scheduledAt: 0,
             mediaAssetURL: "",
+            minimumPledge: 0,
             crowdfundStartAt: block.timestamp,
             crowdfundEndAt: block.timestamp + _crowdfundNumberOfDays * 1 days,
             splits: address(0),
@@ -96,6 +97,18 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
             logoBackers[_logoID][msg.sender] = b;
         }
         emit Crowdfund(msg.sender, msg.value);    
+    }
+
+    /**
+     * @dev Set minimum pledge for a conversation.
+     */
+    function setMinimumPledge(uint256 _logoID, uint256 _minimumPledge) external nonReentrant whenNotPaused {
+        Logo storage l = logos[_logoID];
+        require(l.status.isCrowdfunding, "Can only set minimum pledge during crowdfund.");
+        require(l.creator == msg.sender, "msg.sender is not the Logo creator.");
+        require(_minimumPledge > 0, "Minimum pledge must be greater than 0.");
+        l.minimumPledge = _minimumPledge;
+        emit MinimumPledgeSet(msg.sender, _minimumPledge);
     }
 
     /**

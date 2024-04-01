@@ -39,6 +39,7 @@ interface IdLogos {
         string mediaAssetURL;
         address creator;
         uint scheduledAt;
+        uint256 minimumPledge;
         uint crowdfundStartAt;
         uint crowdfundEndAt;
         uint rejectionDeadline;
@@ -53,6 +54,7 @@ interface IdLogos {
         uint indexed _logoID,
         uint indexed _crowdfundStartAt
     );
+    event MinimumPledgeSet(address indexed _owner, uint indexed _minimumPledge);
     event Crowdfund(address indexed _owner, uint indexed _amount);
     event CrowdfundToggled(
         address indexed _owner,
