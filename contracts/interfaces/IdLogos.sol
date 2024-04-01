@@ -47,7 +47,6 @@ interface IdLogos {
     }
 
     /// EVENTS
-    event FeeUpdated(uint16 indexed _fee);
     event RejectThresholdUpdated(uint16 indexed _fee);
     event LogoCreated(
         address indexed _owner,

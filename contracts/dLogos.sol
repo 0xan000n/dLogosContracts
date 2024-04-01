@@ -17,33 +17,10 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private logoBackerAddresses;
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
-    uint16 public dLogosServiceAndCommunityFee = 2000; // dLogos fees in BPS (20%)
     uint16 public rejectThreshold = 5000; // backer rejection threshold in BPS (50%)
-    
-    /* 
-    TODO: Polygon Mumbai. Move to the constructor. */
-    address public immutable dLogosFeeAddress;
-    /* Move to Constructor 
-    */
-    
-    /// Constructor
-    constructor() {
-        dLogosFeeAddress = 0xcc734C6B251b44716d774901B8757654c6C7BceF;
-    }
 
+    /// FUNCTIONS
     /**
-     * @dev Set service fee for dLogos.
-     */
-    function setServiceFee(uint16 _fee) external nonReentrant onlyOwner {
-        require(
-            _fee > 0 && _fee <= 10000,
-            "Service fee must be greater than 0 and less than 100."
-        );
-        dLogosServiceAndCommunityFee = _fee;
-        emit FeeUpdated(dLogosServiceAndCommunityFee);
-    }
-
-     /**
      * @dev Set reject threshold for dLogos.
      */
     function setRejectThreshold(uint16 _rejectThreshold) external nonReentrant onlyOwner {
