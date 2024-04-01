@@ -88,6 +88,7 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
             backer.amount += msg.value;
         } else {
             // Record the value sent to the address.
+            require (logoBackerAddresses[_logoID].length() < 1000, "A Logo can have at most 1000 backers.");
             Backer memory b = Backer({
                 addr: msg.sender,
                 amount: msg.value,
@@ -328,7 +329,7 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
         require(l.splits != address(0), "Splits address must be set prior to distribution.");
         EnumerableSet.AddressSet storage backerAddresses = logoBackerAddresses[_logoID];
         address[] memory backerArray = backerAddresses.values();
-        uint256 totalRewards = 0;
+        uint256 totalRewards;
         for (uint256 i = 0; i < backerArray.length; i++) {
             Backer storage b = logoBackers[_logoID][backerArray[i]];
             if (!b.isDistributed) {
