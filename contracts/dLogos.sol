@@ -81,6 +81,7 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
         Logo memory l = logos[_logoID];
         require(l.status.isCrowdfunding, "Crowdfund is not open.");
         require(!l.status.isDistributed, "Cannot set date after rewards are distributed.");
+        require(msg.value > l.minimumPledge, "Crowdfund value must be greater than the minimum pledge.");
         bool isBacker = logoBackerAddresses[_logoID].contains(msg.sender);
         if (isBacker){
             Backer storage backer = logoBackers[_logoID][msg.sender];
