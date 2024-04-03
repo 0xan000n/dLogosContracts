@@ -51,7 +51,7 @@ interface Idlogos {
     event RejectThresholdUpdated(uint16 indexed _fee);
     event LogoCreated(
         address indexed _owner,
-        uint indexed _logoID,
+        uint indexed _logoId,
         uint indexed _crowdfundStartAt
     );
     event MinimumPledgeSet(address indexed _owner, uint indexed _minimumPledge);
@@ -76,10 +76,10 @@ interface Idlogos {
         address indexed _splitsAddress,
         uint256 indexed _totalRewards
     );
-    event SpeakerStatusSet(uint indexed _logoID, address indexed _speaker, uint indexed _status);
-    event RejectionSubmitted(uint indexed _logoID, address indexed _backer);
+    event SpeakerStatusSet(uint indexed _logoId, address indexed _speaker, uint indexed _status);
+    event RejectionSubmitted(uint indexed _logoId, address indexed _backer);
     event RefundInitiated(
-        uint indexed _logoID, 
+        uint indexed _logoId, 
         bool _case1,
         bool _case2,
         bool _case3,
