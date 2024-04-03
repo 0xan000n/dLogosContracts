@@ -1,21 +1,21 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IdLogos.sol";
+import "./interfaces/Idlogos.sol";
 
-/// @title Core dLogos contract
+/// @title Core DLogos contract
 /// @author 0xan000n
-contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
+contract Dlogos is Idlogos, Ownable, Pausable, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// STORAGE
     uint256 public logoID = 1; // Global Logo ID starting from 1
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info 
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
-    mapping(uint256 => EnumerableSet.AddressSet) private logoBackerAddresses;
+    mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
     uint16 public rejectThreshold = 5000; // backer rejection threshold in BPS (50%)
 
@@ -82,7 +82,7 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
         require(l.status.isCrowdfunding, "Crowdfund is not open.");
         require(!l.status.isDistributed, "Cannot set date after rewards are distributed.");
         require(msg.value > l.minimumPledge, "Crowdfund value must be greater than the minimum pledge.");
-        bool isBacker = logoBackerAddresses[_logoID].contains(msg.sender);
+        bool isBacker = _logoBackerAddresses[_logoID].contains(msg.sender);
         if (isBacker){
             Backer storage backer = logoBackers[_logoID][msg.sender];
             unchecked {
@@ -90,14 +90,15 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
             }
         } else {
             // Record the value sent to the address.
-            require (logoBackerAddresses[_logoID].length() < 1000, "A Logo can have at most 1000 backers.");
+            require (_logoBackerAddresses[_logoID].length() < 1000, "A Logo can have at most 1000 backers.");
             Backer memory b = Backer({
                 addr: msg.sender,
                 amount: msg.value,
                 votesToReject: false,
                 isDistributed: false
             });
-            logoBackerAddresses[_logoID].add(msg.sender);
+            bool added = _logoBackerAddresses[_logoID].add(msg.sender);
+            require(added, "Failed to add backer");
             logoBackers[_logoID][msg.sender] = b;
         }
         emit Crowdfund(msg.sender, msg.value);    
@@ -128,16 +129,17 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
             "Logo must be crowdfunding or be refunded to withdraw."
         );
         require(_amount > 0, "Amount must be greater than 0."); 
-        bool isBacker = logoBackerAddresses[_logoID].contains(msg.sender);
+        bool isBacker = _logoBackerAddresses[_logoID].contains(msg.sender);
         require (isBacker, "msg.sender is not a backer.");
         Backer storage backer = logoBackers[_logoID][msg.sender];
         require(!backer.isDistributed, "Backer funds have already been distributed.");
         require(backer.amount == _amount, "Requested withdrawal amount does not match the backer's pledged amount.");
         uint256 amount = backer.amount;
+        bool removed = _logoBackerAddresses[_logoID].remove(msg.sender);
+        require(removed, "Failed to remove backer.");
+        delete logoBackers[_logoID][msg.sender];
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         require(success, "Withdraw failed.");
-        logoBackerAddresses[_logoID].remove(msg.sender);
-        delete logoBackers[_logoID][msg.sender];
         emit FundsWithdrawn(msg.sender, amount);
     }
     
@@ -149,36 +151,13 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
     ) external nonReentrant whenNotPaused {
         Logo memory l = logos[_logoID];
         require(block.timestamp < l.rejectionDeadline, "Rejection deadline has passed.");
-        bool isBacker = logoBackerAddresses[_logoID].contains(msg.sender);
+        bool isBacker = _logoBackerAddresses[_logoID].contains(msg.sender);
         require (isBacker, "msg.sender is not a backer.");
         Backer storage backer = logoBackers[_logoID][msg.sender];
         backer.votesToReject = true;
         emit RejectionSubmitted(_logoID, msg.sender);
     }
 
-    /**
-     * @dev Internal function for polling backers, weighted by capital.
-     */
-    function _pollBackersForRefund(
-        uint256 _logoID
-    ) private view returns (bool) {
-        EnumerableSet.AddressSet storage backerAddresses = logoBackerAddresses[_logoID];
-        address[] memory backerArray = backerAddresses.values();
-        uint256 total = 0;
-        uint256 rejected = 0;
-        for (uint i = 0; i < total; i++) {
-            address bAddress = backerArray[i];
-            Backer memory b = logoBackers[_logoID][bAddress];
-            unchecked {
-                if (b.votesToReject){
-                    rejected += b.amount;
-                }
-                total += b.amount;
-            }
-        }
-        uint256 threshold = rejected * 10_000 / total; // BPS
-        return threshold > rejectThreshold;
-    }
 
     /**
      * @dev Issue refund of the Logo.
@@ -203,7 +182,7 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
     function getBackersForLogo(
         uint256 _logoID
     ) external view returns (Backer[] memory) {
-        EnumerableSet.AddressSet storage backerAddresses = logoBackerAddresses[_logoID];
+        EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoID];
         address[] memory backerArray = backerAddresses.values();
         Backer[] memory backers = new Backer[](backerArray.length);
         for (uint256 i = 0; i < backerArray.length; i++) {
@@ -249,12 +228,12 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Set status of a speaker.
      */
-    function setSpeakerStatus(uint256 _logoID, uint _status) external nonReentrant whenNotPaused {
+    function setSpeakerStatus(uint256 _logoID, uint _speakerStatus) external nonReentrant whenNotPaused {
         Speaker[] memory speakers = logoSpeakers[_logoID];
         for (uint i = 0; i < speakers.length; i++) {
             if (address(speakers[i].addr) == msg.sender) { 
-                logoSpeakers[_logoID][i].status = SpeakerStatus(_status);
-                emit SpeakerStatusSet(_logoID, msg.sender, _status);
+                logoSpeakers[_logoID][i].status = SpeakerStatus(_speakerStatus);
+                emit SpeakerStatusSet(_logoID, msg.sender, _speakerStatus);
                 break;
             }
         }
@@ -331,9 +310,9 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
         require(block.timestamp > l.rejectionDeadline, "Rewards can only be distributed after rejection deadline has passed.");
         require(l.creator == msg.sender, "msg.sender is not the Logo creator.");
         require(l.splits != address(0), "Splits address must be set prior to distribution.");
-        EnumerableSet.AddressSet storage backerAddresses = logoBackerAddresses[_logoID];
+        EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoID];
         address[] memory backerArray = backerAddresses.values();
-        uint256 totalRewards;
+        uint256 totalRewards = 0;
         for (uint256 i = 0; i < backerArray.length; i++) {
             Backer storage b = logoBackers[_logoID][backerArray[i]];
             if (!b.isDistributed) {
@@ -343,9 +322,33 @@ contract dLogos is IdLogos, Ownable, Pausable, ReentrancyGuard {
                 b.isDistributed = true;
             }
         }
+        l.status.isDistributed = true;
         (bool success, ) = payable(l.splits).call{value: totalRewards}("");
         require(success, "Reward distribution failed.");
-        l.status.isDistributed = true;
         emit RewardsDistributed(msg.sender, l.splits, totalRewards);
+    }
+
+    /**
+     * @dev Private function for polling backers, weighted by capital.
+     */
+    function _pollBackersForRefund(
+        uint256 _logoID
+    ) private view returns (bool) {
+        EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoID];
+        address[] memory backerArray = backerAddresses.values();
+        uint256 total = 0;
+        uint256 rejected = 0;
+        for (uint i = 0; i < total; i++) {
+            address bAddress = backerArray[i];
+            Backer memory b = logoBackers[_logoID][bAddress];
+            unchecked {
+                if (b.votesToReject){
+                    rejected += b.amount;
+                }
+                total += b.amount;
+            }
+        }
+        uint256 threshold = rejected * 10_000 / total; // BPS
+        return threshold > rejectThreshold;
     }
 }

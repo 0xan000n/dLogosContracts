@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IdLogos {
+interface Idlogos {
     struct Backer {
         address addr;
         uint256 amount;
