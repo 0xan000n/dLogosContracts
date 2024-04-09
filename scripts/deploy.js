@@ -5,10 +5,10 @@ async function main() {
   
     console.log("Account balance:", (await deployer.getBalance()).toString());
   
-    const dLogos = await ethers.getContractFactory("dLogos");
+    const dLogos = await ethers.getContractFactory("Dlogos");
     const deploy = await dLogos.deploy();
   
-    console.log("dLogos address:", deploy.address);
+    console.log("Dlogos address:", deploy.address);
   }
   
   main()
