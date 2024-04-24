@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "compile": "npx hardhat compile",
-    "deploy": "npx hardhat run scripts/deploy.js --network polygon_mumbai"
+    "deploy": "npx hardhat run scripts/deploy.js --network sepolia"
   },
   "author": "0xan000n",
   "license": "ISC",
@@ -31,6 +31,7 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.9.2"
+    "@openzeppelin/contracts": "^4.9.2",
+    "twitter-api-sdk": "^1.2.1"
   }
 }
