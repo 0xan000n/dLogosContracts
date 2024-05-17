@@ -122,7 +122,7 @@ contract Dlogos is Idlogos, Ownable, Pausable, ReentrancyGuard {
         Logo memory l = logos[_logoId];
         require(l.status.isCrowdfunding, "Crowdfund is not open.");
         require(!l.status.isDistributed, "Cannot set date after rewards are distributed.");
-        require(msg.value > l.minimumPledge, "Crowdfund value must be greater than the minimum pledge.");
+        require(msg.value >= l.minimumPledge, "Crowdfund value must be >= than the minimum pledge.");
         bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
         if (isBacker){
             Backer storage backer = logoBackers[_logoId][msg.sender];
@@ -190,8 +190,10 @@ contract Dlogos is Idlogos, Ownable, Pausable, ReentrancyGuard {
     function reject(
         uint256 _logoId
     ) external nonReentrant whenNotPaused {
+        /* Only Mainnet
         Logo memory l = logos[_logoId];
         require(block.timestamp < l.rejectionDeadline, "Rejection deadline has passed.");
+        */
         bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
         require (isBacker, "msg.sender is not a backer.");
         Backer storage backer = logoBackers[_logoId][msg.sender];
@@ -348,7 +350,9 @@ contract Dlogos is Idlogos, Ownable, Pausable, ReentrancyGuard {
         Logo storage l = logos[_logoId];
         require(!l.status.isDistributed, "Logo has already been distributed.");
         require(!l.status.isRefunded, "Cannot distribute rewards after Logo is refunded.");
+        /* Only Mainnet
         require(block.timestamp > l.rejectionDeadline, "Rewards can only be distributed after rejection deadline has passed.");
+        */
         require(l.creator == msg.sender, "msg.sender is not the Logo creator.");
         require(l.splits != address(0), "Splits address must be set prior to distribution.");
         EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
