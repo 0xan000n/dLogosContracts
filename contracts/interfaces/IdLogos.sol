@@ -37,7 +37,7 @@ interface Idlogos {
         string description;
         string discussion;
         string mediaAssetURL;
-        address creator;
+        address proposer;
         uint scheduledAt;
         uint256 minimumPledge;
         uint crowdfundStartAt;
