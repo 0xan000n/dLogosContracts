@@ -90,7 +90,7 @@ contract Dlogos is Idlogos, Ownable, Pausable, ReentrancyGuard {
             creator: msg.sender,
             scheduledAt: 0,
             mediaAssetURL: "",
-            minimumPledge: 0,
+            minimumPledge: 10000000000000, // 0.00001 ETH
             crowdfundStartAt: block.timestamp,
             crowdfundEndAt: block.timestamp + _crowdfundNumberOfDays * 1 days,
             splits: address(0),
