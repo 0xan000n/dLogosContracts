@@ -6,6 +6,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IDlogos} from "./interfaces/IdLogos.sol";
+import "./Error.sol";
 
 /*                                                           
                                      ..........................                                     
@@ -60,6 +61,12 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     mapping(uint256 => uint256) public logoRewards; // Mapping of Logo ID to accumulated rewards
     mapping(uint256 => uint256) public logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
 
+    /// MODIFIERS
+    modifier validLogoId(uint256 _logoId) {
+        if (_logoId >= logoId) revert InvalidLogoId();
+        _;
+    }
+
     /// FUNCTIONS
     /**
      * @dev Set reject threshold for dLogos.
@@ -76,12 +83,15 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-     * @dev Create new Logo onchain.
+     * @dev Create a new Logo onchain.
      */
+    // TODO check _crowdfundNumberOfDays limit
     function createLogo(
         string calldata _title,
         uint _crowdfundNumberOfDays
     ) external nonReentrant whenNotPaused returns (uint256) {
+        if (bytes(_title).length == 0) revert EmptyString();
+
         logos[logoId] = Logo({
             id: logoId,
             title: _title,
@@ -110,7 +120,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      */
     function toggleCrowdfund(
         uint256 _logoId
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo storage l = logos[_logoId];
         require(
             !l.status.isUploaded,
@@ -137,7 +147,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      */
     function crowdfund(
         uint256 _logoId
-    ) external payable nonReentrant whenNotPaused {
+    ) external payable nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         require(l.status.isCrowdfunding, "Crowdfund is not open.");
         require(
@@ -182,7 +192,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setMinimumPledge(
         uint256 _logoId,
         uint256 _minimumPledge
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo storage l = logos[_logoId];
         require(
             l.status.isCrowdfunding,
@@ -202,7 +212,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      */
     function withdrawFunds(
         uint256 _logoId
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         require(
             l.status.isCrowdfunding ||
@@ -231,7 +241,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Allows a backer to reject an uploaded asset.
      */
-    function reject(uint256 _logoId) external nonReentrant whenNotPaused {
+    function reject(uint256 _logoId) external nonReentrant whenNotPaused validLogoId(_logoId) {
         /* Only Mainnet
         Logo memory l = logos[_logoId];
         require(block.timestamp < l.rejectionDeadline, "Rejection deadline has passed.");
@@ -252,7 +262,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Issue refund of the Logo.
      */
-    function refund(uint256 _logoId) external nonReentrant whenNotPaused {
+    function refund(uint256 _logoId) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo storage l = logos[_logoId];
         require(
             !l.status.isDistributed,
@@ -295,7 +305,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         uint16[] calldata _fees,
         string[] calldata _providers,
         string[] calldata _handles
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         require(
             l.proposer == msg.sender,
@@ -329,7 +339,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setSpeakerStatus(
         uint256 _logoId,
         uint _speakerStatus
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Speaker[] memory speakers = logoSpeakers[_logoId];
         for (uint i = 0; i < speakers.length; i++) {
             if (address(speakers[i].addr) == msg.sender) {
@@ -355,7 +365,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setDate(
         uint256 _logoId,
         uint _scheduledAt
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo storage l = logos[_logoId];
         require(
             !l.status.isUploaded,
@@ -388,7 +398,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setMediaAsset(
         uint256 _logoId,
         string calldata _mediaAssetURL
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo storage l = logos[_logoId];
         require(
             !l.status.isDistributed,
@@ -415,7 +425,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setSplitsAddress(
         uint256 _logoId,
         address _splitsAddress
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo storage l = logos[_logoId];
         require(
             !l.status.isDistributed,
@@ -440,7 +450,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      */
     function distributeRewards(
         uint256 _logoId
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo storage l = logos[_logoId];
         require(!l.status.isDistributed, "Logo has already been distributed.");
         require(

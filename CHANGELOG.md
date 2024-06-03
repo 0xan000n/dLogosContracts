@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - removed description and discussion from Logo structure
 - removed isDistributed from Backer structure
 ### Added
-- added logoRewards variable to avoid loops in Dlogos
-- added logoRejectedFunds variable to avoid loops in Dlogos
-- added pause() and unpause() in Dlogos
+- logoRewards variable to avoid loops in Dlogos
+- logoRejectedFunds variable to avoid loops in Dlogos
+- pause() and unpause() in Dlogos
+- Error.sol
 
 ## [2.0.1] - 2024-06-03
 ### Added
