@@ -34,8 +34,6 @@ interface IDlogos {
     struct Logo {
         uint256 id;
         string title;
-        string description;
-        string discussion;
         string mediaAssetURL;
         address proposer;
         uint scheduledAt;

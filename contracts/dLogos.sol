@@ -78,15 +78,11 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      */
     function createLogo(
         string calldata _title,
-        string calldata _description,
-        string calldata _discussion,
         uint _crowdfundNumberOfDays
     ) external nonReentrant whenNotPaused returns (uint256) {
         logos[logoId] = Logo({
             id: logoId,
             title: _title,
-            description: _description,
-            discussion: _discussion,
             proposer: msg.sender,
             scheduledAt: 0,
             mediaAssetURL: "",
