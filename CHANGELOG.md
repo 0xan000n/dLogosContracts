@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - remove description and discussion from Logo structure
 - remove isDistributed from Backer structure
+- added logoRewards variable to avoid loops in dLogos.sol
 
 ## [2.0.1] - 2024-06-03
 ### Added

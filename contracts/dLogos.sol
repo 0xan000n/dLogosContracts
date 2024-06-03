@@ -54,11 +54,12 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
 
     /// STORAGE
     uint256 public logoId = 1; // Global Logo ID starting from 1
+    uint16 public rejectThreshold = 5000; // backer rejection threshold in BPS (50%)
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info 
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
-    uint16 public rejectThreshold = 5000; // backer rejection threshold in BPS (50%)
+    mapping(uint256 => uint256) public logoRewards; // Mapping of Logo ID to accumulated rewards
 
     /// FUNCTIONS
     /**
@@ -137,6 +138,10 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
             require(added, "Failed to add backer");
             logoBackers[_logoId][msg.sender] = b;
         }
+        // Increase total rewards of logo
+        unchecked {
+            logoRewards[_logoId] = logoRewards[_logoId] + msg.value;
+        }
         emit Crowdfund(msg.sender, msg.value);    
     }
 
@@ -155,27 +160,25 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Withdraw your pledge from a Logo.
      */
-    function withdrawFunds(
-        uint256 _logoId,
-        uint256 _amount
-    ) external nonReentrant whenNotPaused {
+    function withdrawFunds(uint256 _logoId) external nonReentrant whenNotPaused {
         Logo memory l = logos[_logoId];
         require(
             l.status.isCrowdfunding || l.status.isRefunded || !l.status.isDistributed,
             "Logo must be crowdfunding, refunded or not distributed to withdraw."
         );
-        require(_amount > 0, "Amount must be greater than 0."); 
         bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
         require (isBacker, "msg.sender is not a backer.");
-        Backer storage backer = logoBackers[_logoId][msg.sender];
-        require(backer.amount == _amount, "Requested withdrawal amount does not match the backer's pledged amount.");
-        uint256 amount = backer.amount;
+        Backer memory backer = logoBackers[_logoId][msg.sender];
+        require(backer.amount > 0, "Backer amount must be greater than 0."); 
+        require(logoRewards[_logoId] >= backer.amount, "Backer amount exceeds total rewards");
         bool removed = _logoBackerAddresses[_logoId].remove(msg.sender);
         require(removed, "Failed to remove backer.");
         delete logoBackers[_logoId][msg.sender];
-        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        (bool success, ) = payable(msg.sender).call{value: backer.amount}("");
         require(success, "Withdraw failed.");
-        emit FundsWithdrawn(msg.sender, amount);
+        // Decrease total rewards of logo
+        logoRewards[_logoId] = logoRewards[_logoId] - backer.amount;
+        emit FundsWithdrawn(msg.sender, backer.amount);
     }
     
     /**
@@ -349,15 +352,19 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         */
         require(l.proposer == msg.sender, "msg.sender is not the Logo proposer.");
         require(l.splits != address(0), "Splits address must be set prior to distribution.");
-        EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
-        address[] memory backerArray = backerAddresses.values();
-        uint256 totalRewards = 0;
-        for (uint256 i = 0; i < backerArray.length; i++) {
-            Backer memory b = logoBackers[_logoId][backerArray[i]];
-            unchecked {
-                totalRewards += b.amount;
-            }
-        }
+
+        // TODO check again
+        // EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
+        // address[] memory backerArray = backerAddresses.values();
+        // uint256 totalRewards = 0;
+        // for (uint256 i = 0; i < backerArray.length; i++) {
+        //     Backer memory b = logoBackers[_logoId][backerArray[i]];
+        //     unchecked {
+        //         totalRewards += b.amount;
+        //     }
+        // }
+        uint256 totalRewards = logoRewards[_logoId];
+
         l.status.isDistributed = true;
         (bool success, ) = payable(l.splits).call{value: totalRewards}("");
         require(success, "Reward distribution failed.");
@@ -372,16 +379,19 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     ) private view returns (bool) {
         EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
         address[] memory backerArray = backerAddresses.values();
-        uint256 total = 0;
+        // TODO check again
+        // uint256 total = 0;
+        uint256 total = logoRewards[_logoId];
+
         uint256 rejected = 0;
-        for (uint i = 0; i < total; i++) {
+        for (uint i = 0; i < backerArray.length; i++) {
             address bAddress = backerArray[i];
             Backer memory b = logoBackers[_logoId][bAddress];
             unchecked {
                 if (b.votesToReject) {
                     rejected += b.amount;
                 }
-                total += b.amount;
+                // total += b.amount;
             }
         }
         uint256 threshold = rejected * 10_000 / total; // BPS
