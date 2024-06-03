@@ -5,7 +5,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {Idlogos} from "./interfaces/Idlogos.sol";
+import {IDlogos} from "./interfaces/IdLogos.sol";
 
 
 /*                                                           
@@ -49,7 +49,7 @@ import {Idlogos} from "./interfaces/Idlogos.sol";
 
 /// @title Core DLogos contract
 /// @author 0xan000n
-contract Dlogos is Idlogos, Ownable, Pausable, ReentrancyGuard {
+contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// STORAGE
