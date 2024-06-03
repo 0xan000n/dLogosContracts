@@ -60,6 +60,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
     mapping(uint256 => uint256) public logoRewards; // Mapping of Logo ID to accumulated rewards
+    mapping(uint256 => uint256) public logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
 
     /// FUNCTIONS
     /**
@@ -195,6 +196,10 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         require (isBacker, "msg.sender is not a backer.");
         Backer storage backer = logoBackers[_logoId][msg.sender];
         backer.votesToReject = true;
+        // Increase rejected funds
+        unchecked {
+            logoRejectedFunds[_logoId] = logoRejectedFunds[_logoId] + backer.amount;
+        }
         emit RejectionSubmitted(_logoId, msg.sender);
     }
 
@@ -377,23 +382,25 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function _pollBackersForRefund(
         uint256 _logoId
     ) private view returns (bool) {
-        EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
-        address[] memory backerArray = backerAddresses.values();
         // TODO check again
         // uint256 total = 0;
         uint256 total = logoRewards[_logoId];
 
-        uint256 rejected = 0;
-        for (uint i = 0; i < backerArray.length; i++) {
-            address bAddress = backerArray[i];
-            Backer memory b = logoBackers[_logoId][bAddress];
-            unchecked {
-                if (b.votesToReject) {
-                    rejected += b.amount;
-                }
-                // total += b.amount;
-            }
-        }
+        // TODO check again
+        uint256 rejected = logoRejectedFunds[_logoId];        
+        // EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
+        // address[] memory backerArray = backerAddresses.values();
+        // uint256 rejected = 0;
+        // for (uint i = 0; i < backerArray.length; i++) {
+        //     address bAddress = backerArray[i];
+        //     Backer memory b = logoBackers[_logoId][bAddress];
+        //     unchecked {
+        //         if (b.votesToReject) {
+        //             rejected += b.amount;
+        //         }
+        //         // total += b.amount;
+        //     }
+        // }
         uint256 threshold = rejected * 10_000 / total; // BPS
         return threshold > rejectThreshold;
     }
