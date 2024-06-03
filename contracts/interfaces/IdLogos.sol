@@ -6,7 +6,6 @@ interface IDlogos {
         address addr;
         uint256 amount;
         bool votesToReject;
-        bool isDistributed; 
     }
 
     enum SpeakerStatus {

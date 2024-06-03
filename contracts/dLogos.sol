@@ -131,8 +131,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
             Backer memory b = Backer({
                 addr: msg.sender,
                 amount: msg.value,
-                votesToReject: false,
-                isDistributed: false
+                votesToReject: false
             });
             bool added = _logoBackerAddresses[_logoId].add(msg.sender);
             require(added, "Failed to add backer");
@@ -162,14 +161,13 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     ) external nonReentrant whenNotPaused {
         Logo memory l = logos[_logoId];
         require(
-            l.status.isCrowdfunding || l.status.isRefunded,
-            "Logo must be crowdfunding or be refunded to withdraw."
+            l.status.isCrowdfunding || l.status.isRefunded || !l.status.isDistributed,
+            "Logo must be crowdfunding, refunded or not distributed to withdraw."
         );
         require(_amount > 0, "Amount must be greater than 0."); 
         bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
         require (isBacker, "msg.sender is not a backer.");
         Backer storage backer = logoBackers[_logoId][msg.sender];
-        require(!backer.isDistributed, "Backer funds have already been distributed.");
         require(backer.amount == _amount, "Requested withdrawal amount does not match the backer's pledged amount.");
         uint256 amount = backer.amount;
         bool removed = _logoBackerAddresses[_logoId].remove(msg.sender);
@@ -355,12 +353,9 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         address[] memory backerArray = backerAddresses.values();
         uint256 totalRewards = 0;
         for (uint256 i = 0; i < backerArray.length; i++) {
-            Backer storage b = logoBackers[_logoId][backerArray[i]];
-            if (!b.isDistributed) {
-                unchecked {
-                    totalRewards += b.amount;
-                }
-                b.isDistributed = true;
+            Backer memory b = logoBackers[_logoId][backerArray[i]];
+            unchecked {
+                totalRewards += b.amount;
             }
         }
         l.status.isDistributed = true;

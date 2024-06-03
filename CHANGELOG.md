@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Changed
 - remove description and discussion from Logo structure
+- remove isDistributed from Backer structure
 
 ## [2.0.1] - 2024-06-03
 ### Added
