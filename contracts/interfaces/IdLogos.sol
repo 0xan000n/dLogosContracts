@@ -22,6 +22,8 @@ interface IDlogos {
         SpeakerStatus status;
     }
 
+    // isUploaded && isDistributed for a successful logo
+    // isUploaded && isRefunded for an uploaded and refunded logo
     struct Status {
         bool isCrowdfunding;
         bool isUploaded;
@@ -46,6 +48,7 @@ interface IDlogos {
 
     /// EVENTS
     event RejectThresholdUpdated(uint16 indexed _fee);
+    event DurationThresholdUpdated(uint8 _durationThreshold);
     event LogoCreated(
         address indexed _owner,
         uint indexed _logoId,

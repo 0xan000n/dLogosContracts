@@ -54,6 +54,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /// STORAGE
     uint256 public logoId = 1; // Global Logo ID starting from 1
     uint16 public rejectThreshold = 5000; // backer rejection threshold in BPS (50%)
+    uint8 public durationThreshold = 60; // max crowdfunding duration
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
@@ -83,14 +84,25 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
+     * @dev Set crowdfund duration limit
+     */
+    function setDurationThreshold(uint8 _durationThreshold) external onlyOwner {
+        // TODO check 100 days limit again
+        if (_durationThreshold == 0 || _durationThreshold >= 100) revert InvalidDurationThreshold();
+
+        durationThreshold = _durationThreshold;
+        emit DurationThresholdUpdated(_durationThreshold);
+    }
+
+    /**
      * @dev Create a new Logo onchain.
      */
-    // TODO check _crowdfundNumberOfDays limit
     function createLogo(
         string calldata _title,
-        uint _crowdfundNumberOfDays
+        uint8 _crowdfundNumberOfDays
     ) external nonReentrant whenNotPaused returns (uint256) {
         if (bytes(_title).length == 0) revert EmptyString();
+        if (_crowdfundNumberOfDays > durationThreshold) revert CrowdfundDurationExceeded();
 
         logos[logoId] = Logo({
             id: logoId,
@@ -121,7 +133,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function toggleCrowdfund(
         uint256 _logoId
     ) external nonReentrant whenNotPaused validLogoId(_logoId) {
-        Logo storage l = logos[_logoId];
+        Logo memory l = logos[_logoId];
         require(
             !l.status.isUploaded,
             "Cannot toggle crowdfund after Logo asset is uploaded."
@@ -138,7 +150,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
             l.proposer == msg.sender,
             "Only the Logo proposer is allowed to toggle crowdfund."
         );
-        l.status.isCrowdfunding = !l.status.isCrowdfunding;
+        logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
         emit CrowdfundToggled(msg.sender, l.status.isCrowdfunding);
     }
 
@@ -149,15 +161,13 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         uint256 _logoId
     ) external payable nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        require(l.status.isCrowdfunding, "Crowdfund is not open.");
-        require(
-            !l.status.isDistributed,
-            "Cannot set date after rewards are distributed."
-        );
+
+        require(l.status.isCrowdfunding, "Crowdfund is not open.");        
         require(
             msg.value >= l.minimumPledge,
             "Crowdfund value must be >= than the minimum pledge."
         );
+        
         bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
         if (isBacker) {
             Backer storage backer = logoBackers[_logoId][msg.sender];
