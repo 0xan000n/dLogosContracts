@@ -251,7 +251,6 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      * @dev Allows a backer to reject an uploaded asset.
      */
     function reject(uint256 _logoId) external nonReentrant whenNotPaused validLogoId(_logoId) {
-        // TODO check again
         /* Only Mainnet
         Logo memory l = logos[_logoId];
         require(block.timestamp < l.rejectionDeadline, "Rejection deadline has passed.");
@@ -428,38 +427,13 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-     * @dev Sets splits address for a Logo.
+     * @dev Distribute rewards to the Splits contract.
+     * Create splits and distribute in 1 tx.
      */
-    function setSplitsAddress(
+    function distributeRewards(
         uint256 _logoId,
         address _splitsAddress
     ) external nonReentrant whenNotPaused validLogoId(_logoId) {
-        Logo memory ml = logos[_logoId];
-        require(
-            !ml.status.isDistributed,
-            "Cannot set splits after rewards are distributed."
-        );
-        require(
-            !ml.status.isRefunded,
-            "Cannot set splits after Logo is refunded."
-        );
-        require(
-            ml.proposer == msg.sender,
-            "msg.sender is not the Logo proposer."
-        );
-
-        Logo storage sl = logos[_logoId];
-        sl.splits = _splitsAddress;
-        sl.status.isCrowdfunding = false; // Close crowdfund
-        sl.rejectionDeadline = block.timestamp + 7 * 1 days;
-
-        emit SplitsSet(msg.sender, _splitsAddress);
-    }
-
-    /**
-     * @dev Calculate and distribute rewards to the Splits contract.
-     */
-    function distributeRewards(uint256 _logoId) external nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         require(!l.status.isDistributed, "Logo has already been distributed.");
         require(
@@ -474,52 +448,27 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
             "msg.sender is not the Logo proposer."
         );
         require(
-            l.splits != address(0),
-            "Splits address must be set prior to distribution."
+            _splitsAddress != address(0),
+            "Splits address must not be zero address."
         );
 
-        // TODO check again
-        // EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
-        // address[] memory backerArray = backerAddresses.values();
-        // uint256 totalRewards = 0;
-        // for (uint256 i = 0; i < backerArray.length; i++) {
-        //     Backer memory b = logoBackers[_logoId][backerArray[i]];
-        //     unchecked {
-        //         totalRewards += b.amount;
-        //     }
-        // }
+        Logo storage sl = logos[_logoId];
         uint256 totalRewards = logoRewards[_logoId];
-
-        logos[_logoId].status.isDistributed = true;
-        (bool success, ) = payable(l.splits).call{value: totalRewards}("");
+        sl.status.isDistributed = true;
+        sl.splits = _splitsAddress;
+        sl.status.isCrowdfunding = false; // Close crowdfund
+        // sl.rejectionDeadline = block.timestamp + 7 * 1 days;
+        (bool success, ) = payable(_splitsAddress).call{value: totalRewards}("");
         require(success, "Reward distribution failed.");
-        emit RewardsDistributed(msg.sender, l.splits, totalRewards);
+        emit SplitsSet(msg.sender, _splitsAddress);
+        emit RewardsDistributed(msg.sender, _splitsAddress, totalRewards);
     }
 
     /**
      * @dev Private function for polling backers, weighted by capital.
      */
     function _pollBackersForRefund(uint256 _logoId) private view returns (bool) {
-        // TODO check again
-        // uint256 total = 0;
-        uint256 total = logoRewards[_logoId];
-
-        // TODO check again
-        uint256 rejected = logoRejectedFunds[_logoId];
-        // EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
-        // address[] memory backerArray = backerAddresses.values();
-        // uint256 rejected = 0;
-        // for (uint i = 0; i < backerArray.length; i++) {
-        //     address bAddress = backerArray[i];
-        //     Backer memory b = logoBackers[_logoId][bAddress];
-        //     unchecked {
-        //         if (b.votesToReject) {
-        //             rejected += b.amount;
-        //         }
-        //         // total += b.amount;
-        //     }
-        // }
-        uint256 threshold = (rejected * 10_000) / total; // BPS
+        uint256 threshold = logoRejectedFunds[_logoId] * 10_000 / logoRewards[_logoId]; // BPS
         return threshold > rejectThreshold;
     }
 
