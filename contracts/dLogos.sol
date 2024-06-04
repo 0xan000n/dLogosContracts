@@ -69,6 +69,8 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     }
 
     /// FUNCTIONS
+    receive() external payable {}
+    
     /**
      * @dev Set reject threshold for dLogos.
      */
