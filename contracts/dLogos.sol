@@ -74,7 +74,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      */
     function setRejectThreshold(
         uint16 _rejectThreshold
-    ) external nonReentrant onlyOwner {
+    ) external onlyOwner {
         require(
             _rejectThreshold > 0 && _rejectThreshold <= 10000,
             "Reject threshold must be greater than 0 and less than 100."
@@ -100,7 +100,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function createLogo(
         string calldata _title,
         uint8 _crowdfundNumberOfDays
-    ) external nonReentrant whenNotPaused returns (uint256) {
+    ) external whenNotPaused returns (uint256) {
         if (bytes(_title).length == 0) revert EmptyString();
         if (_crowdfundNumberOfDays > durationThreshold) revert CrowdfundDurationExceeded();
 
@@ -132,7 +132,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      */
     function toggleCrowdfund(
         uint256 _logoId
-    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
+    ) external whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         require(
             !l.status.isUploaded,
@@ -203,7 +203,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setMinimumPledge(
         uint256 _logoId,
         uint256 _minimumPledge
-    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
+    ) external whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         require(
             l.status.isCrowdfunding,
@@ -250,7 +250,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Allows a backer to reject an uploaded asset.
      */
-    function reject(uint256 _logoId) external nonReentrant whenNotPaused validLogoId(_logoId) {
+    function reject(uint256 _logoId) external whenNotPaused validLogoId(_logoId) {
         /* Only Mainnet
         Logo memory l = logos[_logoId];
         require(block.timestamp < l.rejectionDeadline, "Rejection deadline has passed.");
@@ -270,7 +270,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Issue refund of the Logo.
      */
-    function refund(uint256 _logoId) external nonReentrant whenNotPaused validLogoId(_logoId) {
+    function refund(uint256 _logoId) external whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         require(
             !l.status.isDistributed,
@@ -311,7 +311,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         uint16[] calldata _fees,
         string[] calldata _providers,
         string[] calldata _handles
-    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
+    ) external whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         require(
             l.proposer == msg.sender,
@@ -345,7 +345,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setSpeakerStatus(
         uint256 _logoId,
         uint256 _speakerStatus
-    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
+    ) external whenNotPaused validLogoId(_logoId) {
         Speaker[] memory speakers = logoSpeakers[_logoId];
         for (uint256 i = 0; i < speakers.length; i++) {
             if (address(speakers[i].addr) == msg.sender) {
@@ -369,7 +369,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setDate(
         uint256 _logoId,
         uint _scheduledAt
-    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
+    ) external whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         require(
             !l.status.isUploaded,
@@ -402,7 +402,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setMediaAsset(
         uint256 _logoId,
         string calldata _mediaAssetURL
-    ) external nonReentrant whenNotPaused validLogoId(_logoId) {
+    ) external whenNotPaused validLogoId(_logoId) {
         Logo memory ml = logos[_logoId];
         require(
             !ml.status.isDistributed,
