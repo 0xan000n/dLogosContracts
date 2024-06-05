@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-error Failed();
+error NoRefundConditionsMet();
 
 error Unauthorized();
 
@@ -31,9 +31,11 @@ error InsufficientFunds();
 
 error TooManyBackers();
 
-error LogoNotToWithdrawFunds();
+error LogoFundsCannotBeWithdrawn();
 
 error InsufficientLogoReward();
+
+error AddBackerFailed();
 
 error RemoveBackerFailed();
 

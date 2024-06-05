@@ -175,7 +175,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
             });
             bool added = _logoBackerAddresses[_logoId].add(msg.sender);
 
-            if (!added) revert Failed();
+            if (!added) revert AddBackerFailed();
             
             logoBackers[_logoId][msg.sender] = b;
         }
@@ -211,7 +211,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
             !l.status.isCrowdfunding &&
             !l.status.isRefunded &&
             l.status.isDistributed
-        ) revert LogoNotToWithdrawFunds();
+        ) revert LogoFundsCannotBeWithdrawn();
         
         bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
 
@@ -272,7 +272,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
             !l.status.isUploaded; // Case 3: >7 days have passed since schedule date and no asset uploaded.
         bool c4 = _pollBackersForRefund(_logoId); // Case 4: >50% of backer funds reject upload.
         
-        if (!c1 && !c2 && !c3 && !c4) revert Failed();
+        if (!c1 && !c2 && !c3 && !c4) revert NoRefundConditionsMet();
 
         logos[_logoId].status.isRefunded = true;
 
