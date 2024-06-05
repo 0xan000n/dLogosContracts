@@ -53,8 +53,8 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
 
     /// STORAGE
     uint256 public logoId = 1; // Global Logo ID starting from 1
-    uint16 public rejectThreshold = 5000; // backer rejection threshold in BPS (50%)
-    uint8 public durationThreshold = 60; // max crowdfunding duration
+    uint16 public rejectThreshold = 5000; // Backer rejection threshold in BPS (50%)
+    uint8 public durationThreshold = 60; // Max crowdfunding duration (60 days)
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
@@ -188,11 +188,11 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
                 votesToReject: false
             });
             bool added = _logoBackerAddresses[_logoId].add(msg.sender);
-            require(added, "Failed to add backer");
+            require(added, "Failed to add backer.");
             logoBackers[_logoId][msg.sender] = b;
         }
 
-        // Increase total rewards of logo
+        // Increase total rewards of Logo.
         unchecked {
             logoRewards[_logoId] = logoRewards[_logoId] + msg.value;
         }
@@ -237,14 +237,14 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         require(backer.amount > 0, "Backer amount must be greater than 0.");
         require(
             logoRewards[_logoId] >= backer.amount,
-            "Backer amount exceeds total rewards"
+            "Backer amount exceeds total rewards."
         );
         bool removed = _logoBackerAddresses[_logoId].remove(msg.sender);
         require(removed, "Failed to remove backer.");
         delete logoBackers[_logoId][msg.sender];
         (bool success, ) = payable(msg.sender).call{value: backer.amount}("");
         require(success, "Withdraw failed.");
-        // Decrease total rewards of logo
+        // Decrease total rewards of Logo.
         logoRewards[_logoId] = logoRewards[_logoId] - backer.amount;
         emit FundsWithdrawn(msg.sender, backer.amount);
     }
@@ -261,7 +261,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
         require(isBacker, "msg.sender is not a backer.");
         Backer memory backer = logoBackers[_logoId][msg.sender];
-        // Increase rejected funds
+        // Increase rejected funds.
         unchecked {
             logoRejectedFunds[_logoId] = logoRejectedFunds[_logoId] + backer.amount;
         }
@@ -279,11 +279,11 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
             "Cannot refund after rewards are distributed."
         );
         bool c1 = l.proposer == msg.sender; // Case 1: Logo proposer can refund whenever.
-        bool c2 = block.timestamp > l.crowdfundEndAt; // Case 2: Crowdfund end date reached and not distributed
+        bool c2 = block.timestamp > l.crowdfundEndAt; // Case 2: Crowdfund end date reached and not distributed.
         bool c3 = l.scheduledAt != 0 &&
             (block.timestamp > l.scheduledAt + 7 * 1 days) &&
             !l.status.isUploaded; // Case 3: >7 days have passed since schedule date and no asset uploaded.
-        bool c4 = _pollBackersForRefund(_logoId); // Case 4: >50% of backers reject upload.
+        bool c4 = _pollBackersForRefund(_logoId); // Case 4: >50% of backer funds reject upload.
         require(c1 || c2 || c3 || c4, "No conditions met for refund.");
 
         logos[_logoId].status.isRefunded = true;
@@ -394,7 +394,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
             "Proposed date must be in the future."
         );
         logos[_logoId].scheduledAt = _scheduledAt;
-        logos[_logoId].status.isCrowdfunding = false; // Close crowdfund
+        logos[_logoId].status.isCrowdfunding = false; // Close crowdfund.
         emit DateSet(msg.sender, _scheduledAt);
     }
 
@@ -421,7 +421,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
-        sl.status.isCrowdfunding = false; // Close crowdfund
+        sl.status.isCrowdfunding = false; // Close crowdfund.
         sl.status.isUploaded = true;
         sl.rejectionDeadline = block.timestamp + 7 * 1 days;
 
