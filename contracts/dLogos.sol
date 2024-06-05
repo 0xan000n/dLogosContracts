@@ -242,10 +242,10 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         bool removed = _logoBackerAddresses[_logoId].remove(msg.sender);
         require(removed, "Failed to remove backer.");
         delete logoBackers[_logoId][msg.sender];
+        logoRewards[_logoId] = logoRewards[_logoId] - backer.amount;
         (bool success, ) = payable(msg.sender).call{value: backer.amount}("");
         require(success, "Withdraw failed.");
         // Decrease total rewards of Logo.
-        logoRewards[_logoId] = logoRewards[_logoId] - backer.amount;
         emit FundsWithdrawn(msg.sender, backer.amount);
     }
 
