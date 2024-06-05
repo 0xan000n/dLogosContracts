@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface Idlogos {
+interface IDlogos {
     struct Backer {
         address addr;
         uint256 amount;
         bool votesToReject;
-        bool isDistributed; 
     }
 
     enum SpeakerStatus {
@@ -23,6 +22,8 @@ interface Idlogos {
         SpeakerStatus status;
     }
 
+    // isUploaded && isDistributed for a successful logo
+    // isUploaded && isRefunded for an uploaded and refunded logo
     struct Status {
         bool isCrowdfunding;
         bool isUploaded;
@@ -34,8 +35,6 @@ interface Idlogos {
     struct Logo {
         uint256 id;
         string title;
-        string description;
-        string discussion;
         string mediaAssetURL;
         address proposer;
         uint scheduledAt;
@@ -49,6 +48,7 @@ interface Idlogos {
 
     /// EVENTS
     event RejectThresholdUpdated(uint16 indexed _fee);
+    event DurationThresholdUpdated(uint8 _durationThreshold);
     event LogoCreated(
         address indexed _owner,
         uint indexed _logoId,
