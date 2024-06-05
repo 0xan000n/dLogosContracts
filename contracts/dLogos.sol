@@ -89,7 +89,6 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      * @dev Set crowdfund duration limit
      */
     function setDurationThreshold(uint8 _durationThreshold) external onlyOwner {
-        // TODO check 100 days limit again
         if (_durationThreshold == 0 || _durationThreshold >= 100) revert InvalidDurationThreshold();
 
         durationThreshold = _durationThreshold;
