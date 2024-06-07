@@ -38,30 +38,24 @@ async function main(): Promise<void> {
 
   let proxyAdmin = undefined;
   let dLogosImpl = undefined;
+  let dLogosImplAddr;
   let dLogosInstance = undefined;
-
-  // factories
-  const DLOGOS_F = await ethers.getContractFactory("DLogos");
+  let dLogosInstanceAddr;
 
   // deploy DLogos implementation
   if (DEPLOY_DLOGOS_IMPLEMENTATION) {
     dLogosImpl = await deployDLogosImplementation();
-  } else if (DLOGOS_IMPLEMENTATION_ADDRESS != "") {
-    dLogosImpl = DLOGOS_F.attach(DLOGOS_IMPLEMENTATION_ADDRESS);
-  } else {
-    console.log("DLogos implementation deployment error!");
   }
+  dLogosImplAddr = await dLogosImpl?.getAddress() || DLOGOS_IMPLEMENTATION_ADDRESS;
+
+  console.log('dLogosImplAddr---------', dLogosImplAddr);
 
   // deploy DLogos instance
-  if (DEPLOY_DLOGOS_INSTANCE) {
+  if (DEPLOY_DLOGOS_INSTANCE && dLogosImplAddr != "") {
     dLogosInstance = await deployDLogosInstance(
-      dLogosImpl!,
+      dLogosImplAddr,
       deployer.address
     );
-  } else if (DLOGOS_INSTANCE_ADDRESS != "") {
-    dLogosInstance = DLOGOS_F.attach(DLOGOS_INSTANCE_ADDRESS);
-  } else {
-    console.log("DLogos instance deployment error!");
   }
 
   console.log(

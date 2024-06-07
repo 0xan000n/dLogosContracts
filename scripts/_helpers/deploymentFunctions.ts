@@ -1,5 +1,4 @@
 import { ethers } from "hardhat";
-import { DLogos } from "../../typechain-types";
 
 export async function deployDLogosImplementation() {
 	console.log("DEPLOYING DLogos Implementation");
@@ -18,17 +17,20 @@ export async function deployDLogosImplementation() {
 }
 
 export async function deployDLogosInstance(
-	dLogosImpl: DLogos,
+	dLogosImplAddr: string,
 	ownerAddr: string
 ) {
 	console.log("DEPLOYING DLogos Instance");
 	
 	// factories
+	const dLogosF = await ethers.getContractFactory("DLogos");
 	const transparentUpgradeableProxyF = await ethers.getContractFactory("TransparentUpgradeableProxy");
 
-	const dLogosImplAddr = await dLogosImpl.getAddress();
+	const dLogosImpl = dLogosF.attach(dLogosImplAddr);
 	const dLogosInitFunc = dLogosImpl.getFunction("initialize");
 	const initTx = await dLogosInitFunc.populateTransaction();
+
+	console.log("initTxdata.............",initTx.data!);
 
 	console.log("DEPLOYING TransparentUpgradeableProxy");
 
@@ -40,7 +42,6 @@ export async function deployDLogosInstance(
 	await dLogosProxy.waitForDeployment();
 	const dLogosProxyAddr = await dLogosProxy.getAddress();
 
-	const dLogosF = await ethers.getContractFactory("DLogos");
 	const dLogosInstance = dLogosF.attach(dLogosProxyAddr);
 
 	console.log(`DEPLOYED DLogos Instance at:${dLogosProxyAddr}`);

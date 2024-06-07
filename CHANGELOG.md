@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - logoRejectedFunds variable to avoid loops in Dlogos
 - pause() and unpause() in Dlogos
 - Error.sol
+- deployment and upgrade scripts
 
 ## [2.0.1] - 2024-06-03
 ### Added

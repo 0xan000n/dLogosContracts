@@ -1,25 +1,22 @@
 import { ethers } from "hardhat";
-import {
-	ProxyAdmin,
-	DLogos
-} from "../../typechain-types";
 
 export async function upgradeDLogos(
-	proxyAdmin: ProxyAdmin,
-	newDLogosImpl: DLogos
+	proxyAdminAddr: string,
+	proxyAddr: string,
+	newDLogosImplAddr: string
 ) {
 	console.log("UPGRADING Dlogos");
 
-	const proxyAdminAddr = await proxyAdmin.getAddress();
-	const newDLogosImplAddr = await newDLogosImpl.getAddress();
+	const proxyAdminF = await ethers.getContractFactory("ProxyAdmin");
+	const proxyAdmin = proxyAdminF.attach(proxyAdminAddr);
 	const proxyAdminFunc = proxyAdmin.getFunction("upgradeAndCall");
 	let tx = await proxyAdminFunc.send(
-		proxyAdminAddr,
+		proxyAddr,
 		newDLogosImplAddr,
 		"0x"
 	);
 	let txReceipt = await tx.wait();
 
-	console.log(`UPGRADED at:${txReceipt?.hash}`);
+	console.log(`UPGRADED Dlogos at:${txReceipt?.hash}`);
 	console.log("\n");
 }
