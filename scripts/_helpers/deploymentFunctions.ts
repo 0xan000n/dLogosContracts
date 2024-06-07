@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, run } from "hardhat";
 
 export async function deployDLogosImplementation() {
 	console.log("DEPLOYING DLogos Implementation");
@@ -9,6 +9,12 @@ export async function deployDLogosImplementation() {
 	const dLogosImpl = await dLogosF.deploy();
 	await dLogosImpl.waitForDeployment();
 	const dLogosImplAddr = await dLogosImpl.getAddress();
+
+	// verify
+	await run(`verify:verify`, {
+		address: dLogosImplAddr,
+		constructorArguments: [],
+	});
 
 	console.log(`DEPLOYED DLogos Implementation at:${dLogosImplAddr}`);
 	console.log("\n");
@@ -30,7 +36,7 @@ export async function deployDLogosInstance(
 	const dLogosInitFunc = dLogosImpl.getFunction("initialize");
 	const initTx = await dLogosInitFunc.populateTransaction();
 
-	console.log("initTxdata.............",initTx.data!);
+	console.log("initTxdata.............", initTx.data!);
 
 	console.log("DEPLOYING TransparentUpgradeableProxy");
 
@@ -41,6 +47,16 @@ export async function deployDLogosInstance(
 	);
 	await dLogosProxy.waitForDeployment();
 	const dLogosProxyAddr = await dLogosProxy.getAddress();
+
+	// verify
+	await run(`verify:verify`, {
+		address: dLogosProxyAddr,
+		constructorArguments: [
+			dLogosImplAddr,
+			ownerAddr,
+			initTx.data!
+		],
+	});
 
 	const dLogosInstance = dLogosF.attach(dLogosProxyAddr);
 

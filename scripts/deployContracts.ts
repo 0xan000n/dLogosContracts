@@ -48,8 +48,6 @@ async function main(): Promise<void> {
   }
   dLogosImplAddr = await dLogosImpl?.getAddress() || DLOGOS_IMPLEMENTATION_ADDRESS;
 
-  console.log('dLogosImplAddr---------', dLogosImplAddr);
-
   // deploy DLogos instance
   if (DEPLOY_DLOGOS_INSTANCE && dLogosImplAddr != "") {
     dLogosInstance = await deployDLogosInstance(
