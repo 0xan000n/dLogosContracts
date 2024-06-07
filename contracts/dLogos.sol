@@ -5,7 +5,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import {IDlogos} from "./interfaces/IdLogos.sol";
+import {IDLogos} from "./interfaces/IdLogos.sol";
 import "./Error.sol";
 
 /*                                                           
@@ -48,7 +48,7 @@ import "./Error.sol";
 
 /// @title Core DLogos contract
 /// @author 0xan000n
-contract Dlogos is IDlogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
+contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// STORAGE
