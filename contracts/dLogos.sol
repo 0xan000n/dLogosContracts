@@ -2,9 +2,9 @@
 pragma solidity ^0.8.24;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {IDlogos} from "./interfaces/IdLogos.sol";
 import "./Error.sol";
 
@@ -48,19 +48,30 @@ import "./Error.sol";
 
 /// @title Core DLogos contract
 /// @author 0xan000n
-contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
+contract Dlogos is IDlogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// STORAGE
-    uint256 public logoId = 1; // Global Logo ID starting from 1
-    uint16 public rejectThreshold = 5000; // Backer rejection threshold in BPS (50%)
-    uint8 public durationThreshold = 60; // Max crowdfunding duration (60 days)
+    uint256 public override logoId; // Global Logo ID
+    uint16 public override rejectThreshold; // Backer rejection threshold in BPS
+    uint8 public override durationThreshold; // Max crowdfunding duration
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
     mapping(uint256 => uint256) public logoRewards; // Mapping of Logo ID to accumulated rewards
     mapping(uint256 => uint256) public logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
+
+    function initialize() external override initializer {
+        __Ownable_init(msg.sender);
+        __Pausable_init();
+        __ReentrancyGuard_init();
+        
+        logoId = 1; // Starting from 1
+        rejectThreshold = 5000; // 50%
+        durationThreshold = 60; // 60 days
+        
+    }
 
     /// MODIFIERS
     modifier validLogoId(uint256 _logoId) {
@@ -81,7 +92,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      */
     function setRejectThreshold(
         uint16 _rejectThreshold
-    ) external onlyOwner {
+    ) external override onlyOwner {
         if (_rejectThreshold == 0 || _rejectThreshold > 10000) revert InvalidRejectThreshold();
         
         rejectThreshold = _rejectThreshold;
@@ -91,7 +102,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Set crowdfund duration limit
      */
-    function setDurationThreshold(uint8 _durationThreshold) external onlyOwner {
+    function setDurationThreshold(uint8 _durationThreshold) external override onlyOwner {
         if (_durationThreshold == 0 || _durationThreshold >= 100) revert InvalidDurationThreshold();
 
         durationThreshold = _durationThreshold;
@@ -104,7 +115,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function createLogo(
         string calldata _title,
         uint8 _crowdfundNumberOfDays
-    ) external whenNotPaused returns (uint256) {
+    ) external override whenNotPaused returns (uint256) {
         if (bytes(_title).length == 0) revert EmptyString();
         if (_crowdfundNumberOfDays > durationThreshold) revert CrowdfundDurationExceeded();
 
@@ -136,7 +147,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      */
     function toggleCrowdfund(
         uint256 _logoId
-    ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.status.isUploaded) revert LogoUploaded();
         if (l.status.isDistributed) revert LogoDistributed();
@@ -151,7 +162,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      */
     function crowdfund(
         uint256 _logoId
-    ) external payable nonReentrant whenNotPaused validLogoId(_logoId) {
+    ) external override payable nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
 
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
@@ -193,7 +204,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setMinimumPledge(
         uint256 _logoId,
         uint256 _minimumPledge
-    ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (_minimumPledge == 0) revert NotZero();
@@ -205,7 +216,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Withdraw your pledge from a Logo.
      */
-    function withdrawFunds(uint256 _logoId) external nonReentrant whenNotPaused validLogoId(_logoId) {
+    function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         if (
             !l.status.isCrowdfunding &&
@@ -239,7 +250,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Allows a backer to reject an uploaded asset.
      */
-    function reject(uint256 _logoId) external whenNotPaused validLogoId(_logoId) {
+    function reject(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
         /* Only Mainnet
         Logo memory l = logos[_logoId];
         require(block.timestamp < l.rejectionDeadline, "Rejection deadline has passed.");
@@ -261,7 +272,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Issue refund of the Logo.
      */
-    function refund(uint256 _logoId) external whenNotPaused validLogoId(_logoId) {
+    function refund(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.status.isDistributed) revert LogoDistributed();
 
@@ -282,7 +293,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Return the list of backers for a Logo.
      */
-    function getBackersForLogo(uint256 _logoId) external view returns (Backer[] memory) {
+    function getBackersForLogo(uint256 _logoId) external override view returns (Backer[] memory) {
         EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
         address[] memory backerArray = backerAddresses.values();
         Backer[] memory backers = new Backer[](backerArray.length);
@@ -301,7 +312,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
         uint16[] calldata _fees,
         string[] calldata _providers,
         string[] calldata _handles
-    ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         if (_speakers.length == 0 || _speakers.length >= 100) revert InvalidSpeakers();
         if (
             _speakers.length != _fees.length ||
@@ -329,7 +340,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setSpeakerStatus(
         uint256 _logoId,
         uint256 _speakerStatus
-    ) external whenNotPaused validLogoId(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) {
         Speaker[] memory speakers = logoSpeakers[_logoId];
         for (uint256 i = 0; i < speakers.length; i++) {
             if (address(speakers[i].addr) == msg.sender) {
@@ -343,7 +354,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     /**
      * @dev Return the list of speakers for a Logo.
      */
-    function getSpeakersForLogo(uint256 _logoId) external view returns (Speaker[] memory) {
+    function getSpeakersForLogo(uint256 _logoId) external override view returns (Speaker[] memory) {
         return logoSpeakers[_logoId];
     }
 
@@ -353,7 +364,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setDate(
         uint256 _logoId,
         uint _scheduledAt
-    ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.status.isUploaded) revert LogoUploaded();
         if (l.status.isDistributed) revert LogoDistributed();
@@ -371,7 +382,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function setMediaAsset(
         uint256 _logoId,
         string calldata _mediaAssetURL
-    ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory ml = logos[_logoId];
         if (ml.status.isDistributed) revert LogoDistributed();
         if (ml.status.isRefunded) revert LogoRefunded();
@@ -392,7 +403,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
     function distributeRewards(
         uint256 _logoId,
         address _splitsAddress
-    ) external nonReentrant whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override nonReentrant whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
@@ -428,7 +439,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      * @dev Pause the contract
      * Only `owner` can call
      */
-    function pause() external onlyOwner {
+    function pause() external override onlyOwner {
         super._pause();
     }
 
@@ -436,7 +447,7 @@ contract Dlogos is IDlogos, Ownable, Pausable, ReentrancyGuard {
      * @dev Unpause the contract
      * Only `owner` can call
      */
-    function unpause() external onlyOwner {
+    function unpause() external override onlyOwner {
         super._unpause();
     }
 }

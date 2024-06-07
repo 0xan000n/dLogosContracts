@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - removed isDistributed from Backer structure
 - removed setSplitsAddress()
 - removed "_amount" argument from withdrawFunds
+- upgraded openzeppelin contracts version from ^4.9.2 to ^5.0.2
+- made DLogos upgradeable
 ### Added
 - logoRewards variable to avoid loops in Dlogos
 - logoRejectedFunds variable to avoid loops in Dlogos
