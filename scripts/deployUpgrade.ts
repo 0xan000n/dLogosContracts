@@ -19,8 +19,8 @@ import {
 // complete ./_helpers/data.ts with valid addresses if there are already deployed contracts
 // configuration flags to select what to deploy
 const DEPLOY_DLOGOS_IMPLEMENTATION = true;
-const DEPLOY_DLOGOS_INSTANCE = false; // true for deploy, false for upgrade
-const UPGRADE = true; // false for deploy, true for upgrade
+const DEPLOY_DLOGOS_INSTANCE = true; // true for deploy, false for upgrade
+const UPGRADE = false; // false for deploy, true for upgrade
 
 async function main(): Promise<void> {
   console.clear();

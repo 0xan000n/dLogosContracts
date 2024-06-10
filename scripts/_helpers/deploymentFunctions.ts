@@ -44,6 +44,12 @@ export async function deployDLogosInstance(
 		initTx.data!
 	);
 	await dLogosProxy.waitForDeployment();
+
+	// parse ProxyAdmin address from event logs
+	const txResponse = dLogosProxy.deploymentTransaction();
+	const txReceipt = await txResponse?.wait();
+	console.log(`DEPLOYED ProxyAdmin at:${txReceipt?.logs[3].address}`);
+
 	const dLogosProxyAddr = await dLogosProxy.getAddress();
 
 	// verify
