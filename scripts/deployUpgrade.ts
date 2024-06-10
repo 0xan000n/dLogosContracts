@@ -6,6 +6,9 @@ import {
   deployDLogosImplementation,
   deployDLogosInstance
 } from "./_helpers/deploymentFunctions";
+import {
+  upgradeDLogos
+} from "./_helpers/upgradeFunctions";
 
 import {
   PROXY_ADMIN_ADDRESS,
@@ -13,10 +16,11 @@ import {
   DLOGOS_INSTANCE_ADDRESS
 } from "./_helpers/data";
 
-// configuration flags to select what to deploy
 // complete ./_helpers/data.ts with valid addresses if there are already deployed contracts
+// configuration flags to select what to deploy
 const DEPLOY_DLOGOS_IMPLEMENTATION = true;
-const DEPLOY_DLOGOS_INSTANCE = true;
+const DEPLOY_DLOGOS_INSTANCE = false; // true for deploy, false for upgrade
+const UPGRADE = true; // false for deploy, true for upgrade
 
 async function main(): Promise<void> {
   console.clear();
@@ -38,9 +42,9 @@ async function main(): Promise<void> {
 
   let proxyAdmin = undefined;
   let dLogosImpl = undefined;
-  let dLogosImplAddr;
   let dLogosInstance = undefined;
-  let dLogosInstanceAddr;
+  let dLogosImplAddr: string;
+  let dLogosInstanceAddr: string;
 
   // deploy DLogos implementation
   if (DEPLOY_DLOGOS_IMPLEMENTATION) {
@@ -49,11 +53,28 @@ async function main(): Promise<void> {
   dLogosImplAddr = await dLogosImpl?.getAddress() || DLOGOS_IMPLEMENTATION_ADDRESS;
 
   // deploy DLogos instance
-  if (DEPLOY_DLOGOS_INSTANCE && dLogosImplAddr != "") {
-    dLogosInstance = await deployDLogosInstance(
-      dLogosImplAddr,
-      deployer.address
-    );
+  if (DEPLOY_DLOGOS_INSTANCE) {
+    if (dLogosImplAddr != "") {
+      dLogosInstance = await deployDLogosInstance(
+        dLogosImplAddr,
+        deployer.address
+      );      
+    } else {
+      console.log("DLogos instance deployment error - Parameter missing!");
+    }
+  }
+  dLogosInstanceAddr = await dLogosInstance?.getAddress() || DLOGOS_INSTANCE_ADDRESS;
+
+  if (UPGRADE) {
+    if (PROXY_ADMIN_ADDRESS != "" && dLogosInstanceAddr != "" && dLogosImplAddr != "") {
+      await upgradeDLogos(
+        PROXY_ADMIN_ADDRESS,
+        dLogosInstanceAddr,
+        dLogosImplAddr
+      );
+    } else {
+      console.log("DLogos upgrade error - Parameter missing!");
+    }
   }
 
   console.log(

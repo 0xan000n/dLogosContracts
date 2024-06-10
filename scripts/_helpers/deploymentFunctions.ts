@@ -36,8 +36,6 @@ export async function deployDLogosInstance(
 	const dLogosInitFunc = dLogosImpl.getFunction("initialize");
 	const initTx = await dLogosInitFunc.populateTransaction();
 
-	console.log("initTxdata.............", initTx.data!);
-
 	console.log("DEPLOYING TransparentUpgradeableProxy");
 
 	const dLogosProxy = await transparentUpgradeableProxyF.deploy(
