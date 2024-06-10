@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IDlogos {
+interface IDLogos {
     struct Backer {
         address addr;
         uint256 amount;
@@ -85,4 +85,66 @@ interface IDlogos {
         bool _case3,
         bool _case4
     );
+
+    function logoId() external view returns (uint256);
+
+    function rejectThreshold() external view returns (uint16);
+
+    function durationThreshold() external view returns (uint8);
+
+    function initialize() external;  
+
+    function setRejectThreshold(uint16) external;
+
+    function setDurationThreshold(uint8) external;
+
+    function createLogo(string calldata, uint8) external returns (uint256);  
+
+    function toggleCrowdfund(uint256) external;
+
+    function crowdfund(uint256) external payable;
+
+    function setMinimumPledge(uint256, uint256) external;
+
+    function withdrawFunds(uint256) external;
+
+    function reject(uint256) external;
+
+    function refund(uint256) external;
+
+    function getBackersForLogo(uint256) external view returns (Backer[] memory);
+
+    function setSpeakers(
+        uint256, 
+        address[] calldata, 
+        uint16[] calldata, 
+        string[] calldata, 
+        string[] calldata
+    ) external;
+
+    function setSpeakerStatus(
+        uint256,
+        uint256
+    ) external;
+
+    function getSpeakersForLogo(uint256) external view returns (Speaker[] memory);
+
+    function setDate(
+        uint256,
+        uint256
+    ) external;
+
+    function setMediaAsset(
+        uint256,
+        string calldata
+    ) external;
+
+    function distributeRewards(
+        uint256,
+        address
+    ) external;
+
+    function pause() external;
+
+    function unpause() external;
 }
