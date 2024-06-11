@@ -46,3 +46,5 @@ error InvalidSpeakers();
 error InvalidArrayArguments();
 
 error InvalidScheduleTime();
+
+error InvalidSpeakerStatus();

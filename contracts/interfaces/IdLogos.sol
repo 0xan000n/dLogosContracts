@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {SplitV2Lib} from "../splitsV2/libraries/SplitV2.sol";
+
 interface IDLogos {
     struct Backer {
         address addr;
@@ -70,7 +72,6 @@ interface IDLogos {
     );
     event DateSet(address indexed _owner, uint indexed _scheduledAt);
     event MediaAssetSet(address indexed _owner, string indexed _mediaAssetURL);
-    event SplitsSet(address indexed _owner, address indexed _splitsAddress);
     event RewardsDistributed(
         address indexed _owner,
         address indexed _splitsAddress,
@@ -85,6 +86,12 @@ interface IDLogos {
         bool _case3,
         bool _case4
     );
+    event PushSplitCreated(
+        address indexed _split, 
+        SplitV2Lib.Split _splitParams, 
+        address _owner, 
+        address _creator
+    );
 
     function logoId() external view returns (uint256);
 
@@ -92,7 +99,7 @@ interface IDLogos {
 
     function durationThreshold() external view returns (uint8);
 
-    function initialize() external;  
+    function initialize(address _pushSplitFactory) external;  
 
     function setRejectThreshold(uint16) external;
 
@@ -124,7 +131,7 @@ interface IDLogos {
 
     function setSpeakerStatus(
         uint256,
-        uint256
+        uint8
     ) external;
 
     function getSpeakersForLogo(uint256) external view returns (Speaker[] memory);
@@ -140,8 +147,7 @@ interface IDLogos {
     ) external;
 
     function distributeRewards(
-        uint256,
-        address
+        uint256
     ) external;
 
     function pause() external;

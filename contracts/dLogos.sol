@@ -6,6 +6,9 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {IDLogos} from "./interfaces/IdLogos.sol";
+import {IPushSplitFactory} from "./splitsV2/interfaces/IPushSplitFactory.sol";
+import {IPushSplit} from "./splitsV2/interfaces/IPushSplit.sol";
+import {SplitV2Lib} from "./splitsV2/libraries/SplitV2.sol";
 import "./Error.sol";
 
 /*                                                           
@@ -51,7 +54,10 @@ import "./Error.sol";
 contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // address of native token, inline with ERC7528
+
     /// STORAGE
+    address public pushSplitFactory;
     uint256 public override logoId; // Global Logo ID
     uint16 public override rejectThreshold; // Backer rejection threshold in BPS
     uint8 public override durationThreshold; // Max crowdfunding duration
@@ -62,11 +68,13 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     mapping(uint256 => uint256) public logoRewards; // Mapping of Logo ID to accumulated rewards
     mapping(uint256 => uint256) public logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
 
-    function initialize() external override initializer {
+    function initialize(address _pushSplitFactory) external override initializer {
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
         
+        if (_pushSplitFactory == address(0)) revert ZeroAddress();
+        pushSplitFactory = _pushSplitFactory;
         logoId = 1; // Starting from 1
         rejectThreshold = 5000; // 50%
         durationThreshold = 60; // 60 days
@@ -339,8 +347,11 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      */
     function setSpeakerStatus(
         uint256 _logoId,
-        uint256 _speakerStatus
+        uint8 _speakerStatus
     ) external override whenNotPaused validLogoId(_logoId) {
+        // Speaker status should be either Accepted or Rejected
+        if (_speakerStatus == 0) revert InvalidSpeakerStatus();
+
         Speaker[] memory speakers = logoSpeakers[_logoId];
         for (uint256 i = 0; i < speakers.length; i++) {
             if (address(speakers[i].addr) == msg.sender) {
@@ -401,31 +412,81 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      * Create splits and distribute in 1 tx.
      */
     function distributeRewards(
-        uint256 _logoId,
-        address _splitsAddress
+        uint256 _logoId
     ) external override nonReentrant whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
-        if (_splitsAddress == address(0)) revert ZeroAddress();
         
+        // Create a new PushSplit
+        // TODO check parameters
+        address[] memory recipients = new address[](logoSpeakers[_logoId].length);
+        uint256[] memory allocations = new uint256[](logoSpeakers[_logoId].length);
+        SplitV2Lib.Split memory splitParams = SplitV2Lib.Split({
+            recipients: recipients,
+            allocations: allocations,
+            totalAllocation: 0,
+            distributionIncentive: 0 // set to 0
+        });
+        // TODO check splits to find out what owner and creator are for
+        address split = IPushSplitFactory(pushSplitFactory).createSplit(splitParams, owner(), l.proposer);
+        emit PushSplitCreated(split, splitParams, owner(), l.proposer);
+
+        // Send Eth to PushSplit
+        uint256 totalRewards = logoRewards[_logoId];
+        (bool success, ) = payable(split).call{value: totalRewards}("");        
+        if (!success) revert EthTransferFailed();
+
+        // TODO check distributor rewards for msg.sender
+        IPushSplit(split).distribute(
+            splitParams,
+            NATIVE_TOKEN,
+            address(0) // distributor address
+        );
+
         /* Only Mainnet
         require(block.timestamp > l.rejectionDeadline, "Rewards can only be distributed after rejection deadline has passed.");
         */
         
         Logo storage sl = logos[_logoId];
-        uint256 totalRewards = logoRewards[_logoId];
         sl.status.isDistributed = true;
-        sl.splits = _splitsAddress;
+        sl.splits = split;
         sl.status.isCrowdfunding = false; // Close crowdfund
         // sl.rejectionDeadline = block.timestamp + 7 * 1 days;
-        (bool success, ) = payable(_splitsAddress).call{value: totalRewards}("");
-        
-        if (!success) revert EthTransferFailed();
 
-        emit SplitsSet(msg.sender, _splitsAddress);
-        emit RewardsDistributed(msg.sender, _splitsAddress, totalRewards);
+        emit RewardsDistributed(msg.sender, split, totalRewards);
     }
+
+    // /**
+    //  * @dev Distribute rewards to the Splits contract.
+    //  * Create splits and distribute in 1 tx.
+    //  */
+    // function distributeRewards(
+    //     uint256 _logoId,
+    //     address _splitsAddress
+    // ) external override nonReentrant whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    //     Logo memory l = logos[_logoId];
+    //     if (l.status.isDistributed) revert LogoDistributed();
+    //     if (l.status.isRefunded) revert LogoRefunded();
+    //     if (_splitsAddress == address(0)) revert ZeroAddress();
+        
+    //     /* Only Mainnet
+    //     require(block.timestamp > l.rejectionDeadline, "Rewards can only be distributed after rejection deadline has passed.");
+    //     */
+        
+    //     Logo storage sl = logos[_logoId];
+    //     uint256 totalRewards = logoRewards[_logoId];
+    //     sl.status.isDistributed = true;
+    //     sl.splits = _splitsAddress;
+    //     sl.status.isCrowdfunding = false; // Close crowdfund
+    //     // sl.rejectionDeadline = block.timestamp + 7 * 1 days;
+    //     (bool success, ) = payable(_splitsAddress).call{value: totalRewards}("");
+        
+    //     if (!success) revert EthTransferFailed();
+
+    //     emit SplitsSet(msg.sender, _splitsAddress);
+    //     emit RewardsDistributed(msg.sender, _splitsAddress, totalRewards);
+    // }
 
     /**
      * @dev Private function for polling backers, weighted by capital.
