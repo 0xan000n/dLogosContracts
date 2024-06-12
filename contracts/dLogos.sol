@@ -54,10 +54,17 @@ import "./Error.sol";
 contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    // Constants
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // address of native token, inline with ERC7528
+    uint256 public constant PERCENTAGE_SCALE = 1e6;
+    uint256 public constant PROPOSER_FEE = 5 * 1e4; // Logo proposer fee 5%
 
     /// STORAGE
     address public pushSplitFactory;
+    address public dLogos;
+    address public community;
+    uint256 public dLogosFee; // DLogos (company) fee
+    uint256 public communityFee; // Community fee
     uint256 public override logoId; // Global Logo ID
     uint16 public override rejectThreshold; // Backer rejection threshold in BPS
     uint8 public override durationThreshold; // Max crowdfunding duration
@@ -68,17 +75,25 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     mapping(uint256 => uint256) public logoRewards; // Mapping of Logo ID to accumulated rewards
     mapping(uint256 => uint256) public logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
 
-    function initialize(address _pushSplitFactory) external override initializer {
+    function initialize(
+        address _pushSplitFactory,
+        address _dLogos,
+        address _community
+    ) external override initializer {
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
         
-        if (_pushSplitFactory == address(0)) revert ZeroAddress();
+        if (_pushSplitFactory == address(0) || _dLogos == address(0) || _community == address(0)) revert ZeroAddress();
+
         pushSplitFactory = _pushSplitFactory;
+        dLogos = _dLogos;
+        community = _community;
+        dLogosFee = 1e5; // 10%
+        communityFee = 1e5; // 10%        
         logoId = 1; // Starting from 1
         rejectThreshold = 5000; // 50%
-        durationThreshold = 60; // 60 days
-        
+        durationThreshold = 60; // 60 days        
     }
 
     /// MODIFIERS
@@ -117,6 +132,34 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         emit DurationThresholdUpdated(_durationThreshold);
     }
 
+    function setDLogosAddress(address _dLogos) external onlyOwner {
+        if (_dLogos == address(0)) revert ZeroAddress();
+
+        dLogos = _dLogos;
+        emit DLogosAddressUpdated(_dLogos);
+    }
+
+    function setCommunityAddress(address _community) external onlyOwner {
+        if (_community == address(0)) revert ZeroAddress();
+
+        community = _community;
+        emit CommunityAddressUpdated(_community);
+    }
+
+    function setDLogosFee(uint256 _dLogosFee) external onlyOwner {
+        if (_dLogosFee > PERCENTAGE_SCALE) revert FeeExceeded();
+
+        dLogosFee = _dLogosFee;
+        emit DLogosFeeUpdated(_dLogosFee);
+    }
+
+    function setCommunityFee(uint256 _communityFee) external onlyOwner {
+        if (_communityFee + dLogosFee > PERCENTAGE_SCALE) revert FeeExceeded();
+
+        communityFee = _communityFee;
+        emit CommunityFeeUpdated(_communityFee);
+    }  
+
     /**
      * @dev Create a new Logo onchain.
      */
@@ -131,6 +174,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             id: logoId,
             title: _title,
             proposer: msg.sender,
+            proposerFee: PROPOSER_FEE,
             scheduledAt: 0,
             mediaAssetURL: "",
             minimumPledge: 10000000000000, // 0.00001 ETH
@@ -148,6 +192,18 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         emit LogoCreated(msg.sender, logoId, block.timestamp);
         emit CrowdfundToggled(msg.sender, true);
         return logoId++; // Return and Increment Global Logo ID
+    }
+
+    // TODO check time condition
+    function setProposerFee(
+        uint256 _logoId,
+        uint256 _proposerFee
+    ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+        if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (dLogosFee + communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
+
+        logos[_logoId].proposerFee = _proposerFee;
+        emit ProposerFeeUpdated(msg.sender, _logoId, _proposerFee);
     }
 
     /**
@@ -314,10 +370,11 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /**
      * @dev Set speakers for a Logo.
      */
+    // TODO add time condition
     function setSpeakers(
         uint256 _logoId,
         address[] calldata _speakers,
-        uint16[] calldata _fees,
+        uint256[] calldata _fees,
         string[] calldata _providers,
         string[] calldata _handles
     ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
@@ -329,7 +386,10 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         ) revert InvalidArrayArguments();
         
         delete logoSpeakers[_logoId]; // Reset to default (no speakers)
+
+        uint256 speakerFeesSum;
         for (uint i = 0; i < _speakers.length; i++) {
+            speakerFeesSum += _fees[i];
             Speaker memory s = Speaker({
                 addr: _speakers[i],
                 fee: _fees[i],
@@ -339,12 +399,15 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             });
             logoSpeakers[_logoId].push(s);
         }
+        if (dLogosFee + communityFee + logos[_logoId].proposerFee + speakerFeesSum > PERCENTAGE_SCALE) revert FeeExceeded();
+
         emit SpeakersSet(msg.sender, _speakers, _fees, _providers, _handles);
     }
 
     /**
      * @dev Set status of a speaker.
      */
+    // TODO add time condition
     function setSpeakerStatus(
         uint256 _logoId,
         uint8 _speakerStatus
@@ -419,18 +482,41 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (l.status.isRefunded) revert LogoRefunded();
         
         // Create a new PushSplit
-        // TODO check parameters
-        address[] memory recipients = new address[](logoSpeakers[_logoId].length);
-        uint256[] memory allocations = new uint256[](logoSpeakers[_logoId].length);
+        Speaker[] memory speakers = logoSpeakers[_logoId];
+        address[] memory recipients = new address[](speakers.length + 3);
+        uint256[] memory allocations = new uint256[](speakers.length + 3);
+        // Assign recipients array
+        recipients[0] = dLogos;
+        recipients[1] = community;
+        recipients[2] = l.proposer;
+        for (uint256 i = 3; i < recipients.length; i++) {
+            recipients[i] = speakers[i - 3].addr;
+        }
+        // Assign allocations array
+        uint256 totalAllocation;
+        allocations[0] = dLogosFee;
+        allocations[1] = communityFee;
+        allocations[2] = l.proposerFee;
+        totalAllocation += dLogosFee + communityFee + l.proposerFee;
+        for (uint256 i = 3; i < allocations.length; i++) {
+            allocations[i] = speakers[i - 3].fee;
+            totalAllocation += speakers[i - 3].fee;
+        }
+        // Check total allocation equals to 1e6
+        if (totalAllocation > PERCENTAGE_SCALE) revert TotalAllocationExceeded();
+        // TODO add last allocation to fill margin        
+
         SplitV2Lib.Split memory splitParams = SplitV2Lib.Split({
             recipients: recipients,
             allocations: allocations,
-            totalAllocation: 0,
+            totalAllocation: PERCENTAGE_SCALE,
             distributionIncentive: 0 // set to 0
         });
-        // TODO check splits to find out what owner and creator are for
-        address split = IPushSplitFactory(pushSplitFactory).createSplit(splitParams, owner(), l.proposer);
-        emit PushSplitCreated(split, splitParams, owner(), l.proposer);
+
+        // Split owner can pause and unpause the contract
+        // Split creator does not mean anything
+        address split = IPushSplitFactory(pushSplitFactory).createSplit(splitParams, owner(), address(this));
+        emit PushSplitCreated(split, splitParams, owner(), address(this));
 
         // Send Eth to PushSplit
         uint256 totalRewards = logoRewards[_logoId];

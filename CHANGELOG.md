@@ -13,12 +13,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - upgraded openzeppelin contracts version from ^4.9.2 to ^5.0.2
 - made DLogos upgradeable
 ### Added
-- logoRewards variable to avoid loops in Dlogos
-- logoRejectedFunds variable to avoid loops in Dlogos
-- pause() and unpause() in Dlogos
+- logoRewards variable to avoid loops in DLogos
+- logoRejectedFunds variable to avoid loops in DLogos
+- pause() and unpause() in DLogos
 - Error.sol
 - deployment and upgrade scripts
-- create a new [SplitsV2 PushSplit](https://docs.splits.org/core/split-v2) in Dlogos distribution function
+- create a new [SplitsV2 PushSplit](https://docs.splits.org/core/split-v2) in DLogos distribution function
+- fees for dLogos, community and proposer in DLogos
 
 ## [2.0.1] - 2024-06-03
 ### Added

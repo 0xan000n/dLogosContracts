@@ -48,3 +48,7 @@ error InvalidArrayArguments();
 error InvalidScheduleTime();
 
 error InvalidSpeakerStatus();
+
+error TotalAllocationExceeded();
+
+error FeeExceeded();
