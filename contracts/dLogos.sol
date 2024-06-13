@@ -74,6 +74,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
     mapping(uint256 => uint256) public logoRewards; // Mapping of Logo ID to accumulated rewards
     mapping(uint256 => uint256) public logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
+    mapping(address => bool) public zeroFeeProposers; // Mapping of proposer address to zero fee status
 
     function initialize(
         address _pushSplitFactory,
@@ -160,6 +161,19 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         emit CommunityFeeUpdated(_communityFee);
     }  
 
+    function setZeroFeeProposers(
+        address[] calldata _proposers,
+        bool[] calldata _statuses
+    ) external onlyOwner {
+        if (_proposers.length != _statuses.length) revert InvalidArrayArguments();
+
+        for (uint256 i = 0; i < _proposers.length; i++) {
+            zeroFeeProposers[_proposers[i]] = _statuses[i];
+        }
+
+        emit ZeroFeeProposersSet(_proposers, _statuses);
+    }
+
     /**
      * @dev Create a new Logo onchain.
      */
@@ -170,11 +184,13 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (bytes(_title).length == 0) revert EmptyString();
         if (_crowdfundNumberOfDays > durationThreshold) revert CrowdfundDurationExceeded();
 
+        bool isZeroFee = zeroFeeProposers[msg.sender];
+
         logos[logoId] = Logo({
             id: logoId,
             title: _title,
             proposer: msg.sender,
-            proposerFee: PROPOSER_FEE,
+            proposerFee: isZeroFee? 0 : PROPOSER_FEE,
             scheduledAt: 0,
             mediaAssetURL: "",
             minimumPledge: 10000000000000, // 0.00001 ETH
@@ -199,6 +215,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint256 _logoId,
         uint256 _proposerFee
     ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+        if (zeroFeeProposers[msg.sender]) revert ZeroFeeProposer();
         if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (dLogosFee + communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
 

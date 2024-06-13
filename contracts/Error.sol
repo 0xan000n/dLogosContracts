@@ -52,3 +52,5 @@ error InvalidSpeakerStatus();
 error TotalAllocationExceeded();
 
 error FeeExceeded();
+
+error ZeroFeeProposer();

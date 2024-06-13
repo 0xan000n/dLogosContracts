@@ -56,6 +56,7 @@ interface IDLogos {
     event CommunityFeeUpdated(uint256 _communityFee);
     event RejectThresholdUpdated(uint16 indexed _fee);
     event DurationThresholdUpdated(uint8 _durationThreshold);
+    event ZeroFeeProposersSet(address[] _proposers, bool[] _statuses);
     event LogoCreated(
         address indexed _owner,
         uint256 indexed _logoId,
