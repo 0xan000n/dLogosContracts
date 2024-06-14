@@ -64,7 +64,11 @@ interface IDLogos {
     );
     event ProposerFeeUpdated(address indexed _proposer, uint256 indexed _logoId, uint256 _proposerFee);
     event MinimumPledgeSet(address indexed _owner, uint256 indexed _minimumPledge);
-    event Crowdfund(address indexed _owner, uint256 indexed _amount);
+    event Crowdfund(
+        uint256 indexed _logoId,
+        address indexed _owner, 
+        uint256 indexed _amount
+    );
     event CrowdfundToggled(
         address indexed _owner,
         bool indexed _crowdfundIsOpen

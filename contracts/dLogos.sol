@@ -109,6 +109,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     }
 
     /// FUNCTIONS
+    // TODO allow direct Eth deposit?
     receive() external payable {}
     
     /**
@@ -185,9 +186,9 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (_crowdfundNumberOfDays > durationThreshold) revert CrowdfundDurationExceeded();
 
         bool isZeroFee = zeroFeeProposers[msg.sender];
-
-        logos[logoId] = Logo({
-            id: logoId,
+        uint256 _logoId = logoId;
+        logos[_logoId] = Logo({
+            id: _logoId,
             title: _title,
             proposer: msg.sender,
             proposerFee: isZeroFee? 0 : PROPOSER_FEE,
@@ -199,23 +200,24 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             splits: address(0),
             rejectionDeadline: 0,
             status: Status({
-                isUploaded: false,
                 isCrowdfunding: true,
+                isUploaded: false,
                 isDistributed: false,
                 isRefunded: false
             })
         });
-        emit LogoCreated(msg.sender, logoId, block.timestamp);
+        emit LogoCreated(msg.sender, _logoId, block.timestamp);
+        // TODO what is toggle?
         emit CrowdfundToggled(msg.sender, true);
         return logoId++; // Return and Increment Global Logo ID
     }
 
-    // TODO check time condition
     function setProposerFee(
         uint256 _logoId,
         uint256 _proposerFee
     ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         if (zeroFeeProposers[msg.sender]) revert ZeroFeeProposer();
+        // Proposer can set his fee only during crowdfunding
         if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (dLogosFee + communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
 
@@ -226,16 +228,18 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /**
      * @dev Toggle crowdfund for Logo. Only the proposer of the Logo is allowed to toggle a crowdfund.
      */
+    // TODO toggle means pause/unpause?
     function toggleCrowdfund(
         uint256 _logoId
     ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.status.isUploaded) revert LogoUploaded();
-        if (l.status.isDistributed) revert LogoDistributed();
-        if (l.status.isRefunded) revert LogoRefunded();
+        // TODO check again: first check includes following 2 checks
+        // if (l.status.isDistributed) revert LogoDistributed();
+        // if (l.status.isRefunded) revert LogoRefunded();
         
         logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
-        emit CrowdfundToggled(msg.sender, l.status.isCrowdfunding);
+        emit CrowdfundToggled(msg.sender, !l.status.isCrowdfunding);
     }
 
     /**
@@ -276,7 +280,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         unchecked {
             logoRewards[_logoId] = logoRewards[_logoId] + msg.value;
         }
-        emit Crowdfund(msg.sender, msg.value);
+        emit Crowdfund(_logoId, msg.sender, msg.value);
     }
 
     /**
@@ -299,6 +303,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      */
     function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
+        // TODO check again
         if (
             !l.status.isCrowdfunding &&
             !l.status.isRefunded &&
@@ -331,6 +336,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /**
      * @dev Allows a backer to reject an uploaded asset.
      */
+    // TODO add time check
     function reject(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
         /* Only Mainnet
         Logo memory l = logos[_logoId];
@@ -477,6 +483,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         Logo memory ml = logos[_logoId];
         if (ml.status.isDistributed) revert LogoDistributed();
         if (ml.status.isRefunded) revert LogoRefunded();
+        // TODO able to set media asset only after logo uploaded?
                 
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
@@ -497,6 +504,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         Logo memory l = logos[_logoId];
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
+        // TODO allow distribution only after logo uploaded?
         
         // Create a new PushSplit
         Speaker[] memory speakers = logoSpeakers[_logoId];
@@ -559,37 +567,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
 
         emit RewardsDistributed(msg.sender, split, totalRewards);
     }
-
-    // /**
-    //  * @dev Distribute rewards to the Splits contract.
-    //  * Create splits and distribute in 1 tx.
-    //  */
-    // function distributeRewards(
-    //     uint256 _logoId,
-    //     address _splitsAddress
-    // ) external override nonReentrant whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
-    //     Logo memory l = logos[_logoId];
-    //     if (l.status.isDistributed) revert LogoDistributed();
-    //     if (l.status.isRefunded) revert LogoRefunded();
-    //     if (_splitsAddress == address(0)) revert ZeroAddress();
-        
-    //     /* Only Mainnet
-    //     require(block.timestamp > l.rejectionDeadline, "Rewards can only be distributed after rejection deadline has passed.");
-    //     */
-        
-    //     Logo storage sl = logos[_logoId];
-    //     uint256 totalRewards = logoRewards[_logoId];
-    //     sl.status.isDistributed = true;
-    //     sl.splits = _splitsAddress;
-    //     sl.status.isCrowdfunding = false; // Close crowdfund
-    //     // sl.rejectionDeadline = block.timestamp + 7 * 1 days;
-    //     (bool success, ) = payable(_splitsAddress).call{value: totalRewards}("");
-        
-    //     if (!success) revert EthTransferFailed();
-
-    //     emit SplitsSet(msg.sender, _splitsAddress);
-    //     emit RewardsDistributed(msg.sender, _splitsAddress, totalRewards);
-    // }
 
     /**
      * @dev Private function for polling backers, weighted by capital.
