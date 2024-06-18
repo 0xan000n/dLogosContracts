@@ -13,7 +13,7 @@ error ZeroAddress();
 
 error InvalidLogoId();
 
-error InvalidDurationThreshold();
+error InvalidMaxDuration();
 
 error CrowdfundDurationExceeded();
 

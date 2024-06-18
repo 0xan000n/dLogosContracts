@@ -55,7 +55,7 @@ interface IDLogos {
     event DLogosFeeUpdated(uint256 _dLogosFee);
     event CommunityFeeUpdated(uint256 _communityFee);
     event RejectThresholdUpdated(uint16 indexed _fee);
-    event DurationThresholdUpdated(uint8 _durationThreshold);
+    event MaxDurationUpdated(uint8 _maxDuration);
     event ZeroFeeProposersSet(address[] _proposers, bool[] _statuses);
     event LogoCreated(
         address indexed _owner,
@@ -108,7 +108,7 @@ interface IDLogos {
 
     function rejectThreshold() external view returns (uint16);
 
-    function durationThreshold() external view returns (uint8);
+    function maxDuration() external view returns (uint8);
 
     function initialize(
         address _pushSplitFactory,
@@ -118,7 +118,7 @@ interface IDLogos {
 
     function setRejectThreshold(uint16) external;
 
-    function setDurationThreshold(uint8) external;
+    function setMaxDuration(uint8) external;
 
     function createLogo(string calldata, uint8) external returns (uint256);  
 

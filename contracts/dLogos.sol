@@ -67,7 +67,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     uint256 public communityFee; // Community fee
     uint256 public override logoId; // Global Logo ID
     uint16 public override rejectThreshold; // Backer rejection threshold in BPS
-    uint8 public override durationThreshold; // Max crowdfunding duration
+    uint8 public override maxDuration; // Max crowdfunding duration
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
@@ -94,7 +94,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         communityFee = 1e5; // 10%        
         logoId = 1; // Starting from 1
         rejectThreshold = 5000; // 50%
-        durationThreshold = 60; // 60 days        
+        maxDuration = 60; // 60 days        
     }
 
     /// MODIFIERS
@@ -127,11 +127,11 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /**
      * @dev Set crowdfund duration limit
      */
-    function setDurationThreshold(uint8 _durationThreshold) external override onlyOwner {
-        if (_durationThreshold == 0 || _durationThreshold >= 100) revert InvalidDurationThreshold();
+    function setMaxDuration(uint8 _maxDuration) external override onlyOwner {
+        if (_maxDuration == 0 || _maxDuration >= 100) revert InvalidMaxDuration();
 
-        durationThreshold = _durationThreshold;
-        emit DurationThresholdUpdated(_durationThreshold);
+        maxDuration = _maxDuration;
+        emit MaxDurationUpdated(_maxDuration);
     }
 
     function setDLogosAddress(address _dLogos) external onlyOwner {
@@ -183,7 +183,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint8 _crowdfundNumberOfDays
     ) external override whenNotPaused returns (uint256) {
         if (bytes(_title).length == 0) revert EmptyString();
-        if (_crowdfundNumberOfDays > durationThreshold) revert CrowdfundDurationExceeded();
+        if (_crowdfundNumberOfDays > maxDuration) revert CrowdfundDurationExceeded();
 
         bool isZeroFee = zeroFeeProposers[msg.sender];
         uint256 _logoId = logoId;
