@@ -68,13 +68,13 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     uint256 public override logoId; // Global Logo ID
     uint16 public override rejectThreshold; // Backer rejection threshold in BPS
     uint8 public override maxDuration; // Max crowdfunding duration
+    EnumerableSet.AddressSet private _zeroFeeProposers; // List of zero fee proposers
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
     mapping(uint256 => uint256) public logoRewards; // Mapping of Logo ID to accumulated rewards
     mapping(uint256 => uint256) public logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
-    mapping(address => bool) public zeroFeeProposers; // Mapping of proposer address to zero fee status
 
     function initialize(
         address _pushSplitFactory,
@@ -169,7 +169,11 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (_proposers.length != _statuses.length) revert InvalidArrayArguments();
 
         for (uint256 i = 0; i < _proposers.length; i++) {
-            zeroFeeProposers[_proposers[i]] = _statuses[i];
+            if (_statuses[i] && !_zeroFeeProposers.contains(_proposers[i])) {
+                _zeroFeeProposers.add(_proposers[i]);
+            } else if (!_statuses[i] && _zeroFeeProposers.contains(_proposers[i])) {
+                _zeroFeeProposers.remove(_proposers[i]);
+            }
         }
 
         emit ZeroFeeProposersSet(_proposers, _statuses);
@@ -185,7 +189,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (bytes(_title).length == 0) revert EmptyString();
         if (_crowdfundNumberOfDays > maxDuration) revert CrowdfundDurationExceeded();
 
-        bool isZeroFee = zeroFeeProposers[msg.sender];
+        bool isZeroFee = _zeroFeeProposers.contains(msg.sender);
         uint256 _logoId = logoId;
         logos[_logoId] = Logo({
             id: _logoId,
@@ -216,7 +220,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint256 _logoId,
         uint256 _proposerFee
     ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
-        if (zeroFeeProposers[msg.sender]) revert ZeroFeeProposer();
+        if (_zeroFeeProposers.contains(msg.sender)) revert ZeroFeeProposer();
         // Proposer can set his fee only during crowdfunding
         if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (dLogosFee + communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
