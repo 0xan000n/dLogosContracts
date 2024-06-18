@@ -56,3 +56,5 @@ error TotalAllocationExceeded();
 error FeeExceeded();
 
 error ZeroFeeProposer();
+
+error FeeSumNotMatch();

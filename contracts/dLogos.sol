@@ -49,6 +49,9 @@ import "./Error.sol";
                                      .........................                                                                                                                                 
 */
 
+// TODO check speakers array (emptiness & any speaker still pending or rejected) in setDate() or setMediaAsset()?
+
+
 /// @title Core DLogos contract
 /// @author 0xan000n
 contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
@@ -109,7 +112,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     }
 
     /// FUNCTIONS
-    // TODO allow direct Eth deposit?
+    // TODO allow direct Eth deposit? will decide after meta tx r&d is complete
     receive() external payable {}
     
     /**
@@ -428,9 +431,9 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         }
 
         if (_zeroFeeProposers.contains(msg.sender)) {
-            if (communityFee + logos[_logoId].proposerFee + speakerFeesSum > PERCENTAGE_SCALE) revert FeeExceeded();
+            if (communityFee + logos[_logoId].proposerFee + speakerFeesSum != PERCENTAGE_SCALE) revert FeeSumNotMatch();
         } else {
-            if (dLogosFee + communityFee + logos[_logoId].proposerFee + speakerFeesSum > PERCENTAGE_SCALE) revert FeeExceeded();
+            if (dLogosFee + communityFee + logos[_logoId].proposerFee + speakerFeesSum != PERCENTAGE_SCALE) revert FeeSumNotMatch();
         }
 
         emit SpeakersSet(msg.sender, _speakers, _fees, _providers, _handles);
@@ -541,7 +544,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         }
         // Check total allocation equals to 1e6
         if (totalAllocation > PERCENTAGE_SCALE) revert TotalAllocationExceeded();
-        // TODO add last allocation to fill margin        
 
         SplitV2Lib.Split memory splitParams = SplitV2Lib.Split({
             recipients: recipients,
@@ -560,7 +562,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         (bool success, ) = payable(split).call{value: totalRewards}("");        
         if (!success) revert EthTransferFailed();
 
-        // TODO check distributor rewards for msg.sender
         IPushSplit(split).distribute(
             splitParams,
             NATIVE_TOKEN,
