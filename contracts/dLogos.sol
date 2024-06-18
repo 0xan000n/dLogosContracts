@@ -68,7 +68,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     uint256 public override logoId; // Global Logo ID
     uint16 public override rejectThreshold; // Backer rejection threshold in BPS
     uint8 public override maxDuration; // Max crowdfunding duration
-    EnumerableSet.AddressSet private _zeroFeeProposers; // List of zero fee proposers
+    EnumerableSet.AddressSet private _zeroFeeProposers; // List of proposers who dLogos does not charge fees
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
@@ -189,13 +189,12 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (bytes(_title).length == 0) revert EmptyString();
         if (_crowdfundNumberOfDays > maxDuration) revert CrowdfundDurationExceeded();
 
-        bool isZeroFee = _zeroFeeProposers.contains(msg.sender);
         uint256 _logoId = logoId;
         logos[_logoId] = Logo({
             id: _logoId,
             title: _title,
             proposer: msg.sender,
-            proposerFee: isZeroFee? 0 : PROPOSER_FEE,
+            proposerFee: PROPOSER_FEE,
             scheduledAt: 0,
             mediaAssetURL: "",
             minimumPledge: 10000000000000, // 0.00001 ETH
@@ -220,10 +219,13 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint256 _logoId,
         uint256 _proposerFee
     ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
-        if (_zeroFeeProposers.contains(msg.sender)) revert ZeroFeeProposer();
         // Proposer can set his fee only during crowdfunding
         if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
-        if (dLogosFee + communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
+        if (_zeroFeeProposers.contains(msg.sender)) {
+            if (communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
+        } else {
+            if (dLogosFee + communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
+        }
 
         logos[_logoId].proposerFee = _proposerFee;
         emit ProposerFeeUpdated(msg.sender, _logoId, _proposerFee);
@@ -426,7 +428,12 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             });
             logoSpeakers[_logoId].push(s);
         }
-        if (dLogosFee + communityFee + logos[_logoId].proposerFee + speakerFeesSum > PERCENTAGE_SCALE) revert FeeExceeded();
+
+        if (_zeroFeeProposers.contains(msg.sender)) {
+            if (communityFee + logos[_logoId].proposerFee + speakerFeesSum > PERCENTAGE_SCALE) revert FeeExceeded();
+        } else {
+            if (dLogosFee + communityFee + logos[_logoId].proposerFee + speakerFeesSum > PERCENTAGE_SCALE) revert FeeExceeded();
+        }
 
         emit SpeakersSet(msg.sender, _speakers, _fees, _providers, _handles);
     }
@@ -523,7 +530,11 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         }
         // Assign allocations array
         uint256 totalAllocation;
-        allocations[0] = dLogosFee;
+        if (_zeroFeeProposers.contains(msg.sender)) {
+            allocations[0] = 0;
+        } else {
+            allocations[0] = dLogosFee;
+        }
         allocations[1] = communityFee;
         allocations[2] = l.proposerFee;
         totalAllocation += dLogosFee + communityFee + l.proposerFee;
