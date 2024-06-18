@@ -21,6 +21,8 @@ error InvalidRejectThreshold();
 
 error LogoUploaded();
 
+error LogoNotUploaded();
+
 error LogoDistributed();
 
 error LogoRefunded();

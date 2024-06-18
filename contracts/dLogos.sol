@@ -210,7 +210,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             })
         });
         emit LogoCreated(msg.sender, _logoId, block.timestamp);
-        // TODO what is toggle?
         emit CrowdfundToggled(msg.sender, true);
         return logoId++; // Return and Increment Global Logo ID
     }
@@ -234,7 +233,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /**
      * @dev Toggle crowdfund for Logo. Only the proposer of the Logo is allowed to toggle a crowdfund.
      */
-    // TODO toggle means pause/unpause?
     function toggleCrowdfund(
         uint256 _logoId
     ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
@@ -399,7 +397,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /**
      * @dev Set speakers for a Logo.
      */
-    // TODO add time condition
     function setSpeakers(
         uint256 _logoId,
         address[] calldata _speakers,
@@ -407,6 +404,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         string[] calldata _providers,
         string[] calldata _handles
     ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+        if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (_speakers.length == 0 || _speakers.length >= 100) revert InvalidSpeakers();
         if (
             _speakers.length != _fees.length ||
@@ -441,13 +439,13 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /**
      * @dev Set status of a speaker.
      */
-    // TODO add time condition
     function setSpeakerStatus(
         uint256 _logoId,
         uint8 _speakerStatus
     ) external override whenNotPaused validLogoId(_logoId) {
         // Speaker status should be either Accepted or Rejected
         if (_speakerStatus == 0) revert InvalidSpeakerStatus();
+        if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
 
         Speaker[] memory speakers = logoSpeakers[_logoId];
         for (uint256 i = 0; i < speakers.length; i++) {
@@ -494,8 +492,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         Logo memory ml = logos[_logoId];
         if (ml.status.isDistributed) revert LogoDistributed();
         if (ml.status.isRefunded) revert LogoRefunded();
-        // TODO able to set media asset only after logo uploaded?
-                
+        
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
         sl.status.isCrowdfunding = false; // Close crowdfund.
@@ -515,7 +512,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         Logo memory l = logos[_logoId];
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
-        // TODO allow distribution only after logo uploaded?
+        if (!l.status.isUploaded) revert LogoNotUploaded();
         
         // Create a new PushSplit
         Speaker[] memory speakers = logoSpeakers[_logoId];
@@ -577,7 +574,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         Logo storage sl = logos[_logoId];
         sl.status.isDistributed = true;
         sl.splits = split;
-        sl.status.isCrowdfunding = false; // Close crowdfund
+        // TODO isCrowdfunding is already false in setMediaAsset()
+        // sl.status.isCrowdfunding = false; // Close crowdfund
         // sl.rejectionDeadline = block.timestamp + 7 * 1 days;
 
         emit RewardsDistributed(msg.sender, split, totalRewards);
