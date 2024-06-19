@@ -605,4 +605,11 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     function unpause() external override onlyOwner {
         super._unpause();
     }
+
+    /**
+     * @dev Query zero fee proposer status
+     */
+    function isZeroFeeProposer(address _proposer) external view returns(bool) {
+        return _zeroFeeProposers.contains(_proposer);
+    }
 }
