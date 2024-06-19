@@ -60,7 +60,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /// CONSTANTS
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // Address of native token, inline with ERC7528
     uint256 public constant PERCENTAGE_SCALE = 1e6;
-    uint256 public constant PROPOSER_FEE = 5 * 1e4; // Default proposer fee of 5%
 
     /// STORAGE
     address public pushSplitFactory;
@@ -172,9 +171,9 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (_proposers.length != _statuses.length) revert InvalidArrayArguments();
 
         for (uint256 i = 0; i < _proposers.length; i++) {
-            if (_statuses[i] && !_zeroFeeProposers.contains(_proposers[i])) {
+            if (_statuses[i] && !_isZeroFeeProposer(_proposers[i])) {
                 _zeroFeeProposers.add(_proposers[i]);
-            } else if (!_statuses[i] && _zeroFeeProposers.contains(_proposers[i])) {
+            } else if (!_statuses[i] && _isZeroFeeProposer(_proposers[i])) {
                 _zeroFeeProposers.remove(_proposers[i]);
             }
         }
@@ -186,18 +185,24 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      * @dev Create a new Logo onchain.
      */
     function createLogo(
+        uint256 _proposerFee,
         string calldata _title,
         uint8 _crowdfundNumberOfDays
     ) external override whenNotPaused returns (uint256) {
         if (bytes(_title).length == 0) revert EmptyString();
         if (_crowdfundNumberOfDays > maxDuration) revert CrowdfundDurationExceeded();
+        if (_isZeroFeeProposer(msg.sender)) {
+            if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+        } else {
+            if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+        }
 
         uint256 _logoId = logoId;
         logos[_logoId] = Logo({
             id: _logoId,
             title: _title,
             proposer: msg.sender,
-            proposerFee: PROPOSER_FEE,
+            proposerFee: _proposerFee,
             scheduledAt: 0,
             mediaAssetURL: "",
             minimumPledge: 10000000000000, // 0.00001 ETH
@@ -223,7 +228,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         // Proposer can set his fee only during crowdfunding
         if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
-        if (_zeroFeeProposers.contains(msg.sender)) {
+        if (_isZeroFeeProposer(msg.sender)) {
             if (communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
         } else {
             if (dLogosFee + communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
@@ -430,7 +435,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             logoSpeakers[_logoId].push(s);
         }
 
-        if (_zeroFeeProposers.contains(msg.sender)) {
+        if (_isZeroFeeProposer(msg.sender)) {
             if (communityFee + logos[_logoId].proposerFee + speakerFeesSum != PERCENTAGE_SCALE) revert FeeSumNotMatch();
         } else {
             if (dLogosFee + communityFee + logos[_logoId].proposerFee + speakerFeesSum != PERCENTAGE_SCALE) revert FeeSumNotMatch();
@@ -530,7 +535,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         }
         // Assign allocations array
         uint256 totalAllocation;
-        if (_zeroFeeProposers.contains(msg.sender)) {
+        if (_isZeroFeeProposer(msg.sender)) {
             allocations[0] = 0;
         } else {
             allocations[0] = dLogosFee;
@@ -580,15 +585,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         // sl.rejectionDeadline = block.timestamp + 7 * 1 days;
 
         emit RewardsDistributed(msg.sender, split, totalRewards);
-    }
-
-    /**
-     * @dev Private function for polling backers, weighted by capital.
-     */
-    function _pollBackersForRefund(uint256 _logoId) private view returns (bool) {
-        uint256 threshold = logoRejectedFunds[_logoId] * 10_000 / logoRewards[_logoId]; // BPS
-        return threshold > rejectThreshold;
-    }
+    }    
 
     /**
      * @dev Pause the contract
@@ -610,6 +607,18 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      * @dev Query zero fee proposer status
      */
     function isZeroFeeProposer(address _proposer) external view returns(bool) {
+        return _isZeroFeeProposer(_proposer);
+    }
+
+    /**
+     * @dev Private function for polling backers, weighted by capital.
+     */
+    function _pollBackersForRefund(uint256 _logoId) private view returns (bool) {
+        uint256 threshold = logoRejectedFunds[_logoId] * 10_000 / logoRewards[_logoId]; // BPS
+        return threshold > rejectThreshold;
+    }
+
+    function _isZeroFeeProposer(address _proposer) private view returns (bool) {
         return _zeroFeeProposers.contains(_proposer);
     }
 }

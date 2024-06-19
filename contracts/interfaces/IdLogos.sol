@@ -120,7 +120,7 @@ interface IDLogos {
 
     function setMaxDuration(uint8) external;
 
-    function createLogo(string calldata, uint8) external returns (uint256);  
+    function createLogo(uint256, string calldata, uint8) external returns (uint256);  
 
     function toggleCrowdfund(uint256) external;
 
