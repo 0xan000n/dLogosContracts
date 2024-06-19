@@ -57,16 +57,16 @@ import "./Error.sol";
 contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    // Constants
-    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // address of native token, inline with ERC7528
+    /// CONSTANTS
+    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // Address of native token, inline with ERC7528
     uint256 public constant PERCENTAGE_SCALE = 1e6;
-    uint256 public constant PROPOSER_FEE = 5 * 1e4; // Logo proposer fee 5%
+    uint256 public constant PROPOSER_FEE = 5 * 1e4; // Default proposer fee of 5%
 
     /// STORAGE
     address public pushSplitFactory;
     address public dLogos;
     address public community;
-    uint256 public dLogosFee; // DLogos (company) fee
+    uint256 public dLogosFee; // DLogos (Labs) fee
     uint256 public communityFee; // Community fee
     uint256 public override logoId; // Global Logo ID
     uint16 public override rejectThreshold; // Backer rejection threshold in BPS
