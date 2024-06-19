@@ -222,22 +222,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         return logoId++; // Return and Increment Global Logo ID
     }
 
-    function setProposerFee(
-        uint256 _logoId,
-        uint256 _proposerFee
-    ) external whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
-        // Proposer can set his fee only during crowdfunding
-        if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
-        if (_isZeroFeeProposer(msg.sender)) {
-            if (communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
-        } else {
-            if (dLogosFee + communityFee + _proposerFee > PERCENTAGE_SCALE) revert FeeExceeded();
-        }
-
-        logos[_logoId].proposerFee = _proposerFee;
-        emit ProposerFeeUpdated(msg.sender, _logoId, _proposerFee);
-    }
-
     /**
      * @dev Toggle crowdfund for Logo. Only the proposer of the Logo is allowed to toggle a crowdfund.
      */
