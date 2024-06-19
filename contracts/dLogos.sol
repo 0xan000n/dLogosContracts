@@ -543,7 +543,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             totalAllocation += speakers[i - 3].fee;
         }
         // Check total allocation equals to 1e6
-        if (totalAllocation > PERCENTAGE_SCALE) revert TotalAllocationExceeded();
+        if (totalAllocation != PERCENTAGE_SCALE) revert TotalAllocationExceeded();
 
         SplitV2Lib.Split memory splitParams = SplitV2Lib.Split({
             recipients: recipients,
