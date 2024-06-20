@@ -66,3 +66,5 @@ error NotAllSpeakersAccepted();
 error CrowdfundEnded();
 
 error AffiliateRewardsExceeded();
+
+error InvalidRejectionWindow();

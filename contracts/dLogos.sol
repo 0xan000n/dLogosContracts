@@ -67,6 +67,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     uint256 public override logoId; // Global Logo ID
     uint16 public override rejectThreshold; // Backer rejection threshold in BPS
     uint8 public override maxDuration; // Max crowdfunding duration
+    uint8 public rejectionWindow; // Reject deadline in days
     EnumerableSet.AddressSet private _zeroFeeProposers; // List of proposers who dLogos does not charge fees
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
@@ -94,7 +95,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         affiliateFee = 5 * 1e4; // 5%        
         logoId = 1; // Starting from 1
         rejectThreshold = 5000; // 50%
-        maxDuration = 60; // 60 days        
+        maxDuration = 60; // 60 days
+        rejectionWindow = 7; // 7 days        
     }
 
     /// MODIFIERS
@@ -132,6 +134,13 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
 
         maxDuration = _maxDuration;
         emit MaxDurationUpdated(_maxDuration);
+    }
+
+    function setRejectionWindow(uint8 _rejectionWindow) external onlyOwner {
+        if (_rejectionWindow == 0) revert InvalidRejectionWindow();
+
+        rejectionWindow = _rejectionWindow;
+        emit RejectinoWindowUpdated(_rejectionWindow);
     }
 
     function setDLogosAddress(address _dLogos) external onlyOwner {
@@ -510,7 +519,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         sl.mediaAssetURL = _mediaAssetURL;
         sl.status.isCrowdfunding = false; // Close crowdfund.
         sl.status.isUploaded = true;
-        sl.rejectionDeadline = block.timestamp + 7 * 1 days;
+        sl.rejectionDeadline = block.timestamp + rejectionWindow * 1 days;
 
         emit MediaAssetSet(msg.sender, _mediaAssetURL);
     }
