@@ -46,7 +46,8 @@ interface IDLogos {
         uint256 crowdfundStartAt;
         uint256 crowdfundEndAt;
         uint256 rejectionDeadline;
-        address splits; // Splits Address
+        address splitForSpeaker; // PUshSplit address for dlogos, community, speakers
+        address splitForAffiliate; // PUshSplit address for affiliates
         Status status;
     }
 
@@ -86,9 +87,10 @@ interface IDLogos {
     event DateSet(address indexed _owner, uint256 indexed _scheduledAt);
     event MediaAssetSet(address indexed _owner, string indexed _mediaAssetURL);
     event RewardsDistributed(
-        address indexed _owner,
-        address indexed _splitsAddress,
-        uint256 indexed _totalRewards
+        address indexed _proposer, 
+        address _splitForSpeaker, 
+        address _splitForAffiliate, 
+        uint256 _totalRewards
     );
     event SpeakerStatusSet(uint256 indexed _logoId, address indexed _speaker, uint256 indexed _status);
     event RejectionSubmitted(uint256 indexed _logoId, address indexed _backer);
@@ -99,7 +101,13 @@ interface IDLogos {
         bool _case3,
         bool _case4
     );
-    event PushSplitCreated(
+    event SplitForAffiliateCreated(
+        address indexed _split, 
+        SplitV2Lib.Split _splitParams, 
+        address _owner, 
+        address _creator
+    );
+    event SplitForSpeakerCreated(
         address indexed _split, 
         SplitV2Lib.Split _splitParams, 
         address _owner, 

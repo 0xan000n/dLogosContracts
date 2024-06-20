@@ -64,3 +64,5 @@ error AffiliateFeeExceeded();
 error NotAllSpeakersAccepted();
 
 error CrowdfundEnded();
+
+error AffiliateRewardsExceeded();
