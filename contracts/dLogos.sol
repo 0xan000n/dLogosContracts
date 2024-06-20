@@ -345,13 +345,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      * @dev Allows a backer to reject an uploaded asset.
      */
     function reject(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
-        /* Only Mainnet
-        Logo memory l = logos[_logoId];
-        // TODO check again
-        if (l.rejectionDeadline > 0) {
-            if (block.timestamp > l.rejectionDeadline) revert RejectionDeadlinePassed();
-        }
-        */
+        if (block.timestamp > logos[_logoId].rejectionDeadline) revert RejectionDeadlinePassed();
 
         bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
 

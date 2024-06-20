@@ -70,3 +70,5 @@ error AffiliateRewardsExceeded();
 error InvalidRejectionWindow();
 
 error RejectionDeadlineNotPassed();
+
+error RejectionDeadlinePassed();
