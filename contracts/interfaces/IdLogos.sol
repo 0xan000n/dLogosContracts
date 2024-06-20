@@ -6,6 +6,7 @@ import {SplitV2Lib} from "../splitsV2/libraries/SplitV2.sol";
 interface IDLogos {
     struct Backer {
         address addr;
+        address referrer;
         uint256 amount;
         bool votesToReject;
     }
@@ -54,6 +55,7 @@ interface IDLogos {
     event CommunityAddressUpdated(address _community);
     event DLogosFeeUpdated(uint256 _dLogosFee);
     event CommunityFeeUpdated(uint256 _communityFee);
+    event AffiliateFeeUpdated(uint256 _affiliateFee);
     event RejectThresholdUpdated(uint16 indexed _fee);
     event MaxDurationUpdated(uint8 _maxDuration);
     event ZeroFeeProposersSet(address[] _proposers, bool[] _statuses);
@@ -124,7 +126,7 @@ interface IDLogos {
 
     function toggleCrowdfund(uint256) external;
 
-    function crowdfund(uint256) external payable;
+    function crowdfund(uint256, address) external payable;
 
     function setMinimumPledge(uint256, uint256) external;
 

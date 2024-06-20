@@ -58,3 +58,5 @@ error FeeExceeded();
 error ZeroFeeProposer();
 
 error FeeSumNotMatch();
+
+error AffiliateFeeExceeded();

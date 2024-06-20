@@ -67,6 +67,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     address public community;
     uint256 public dLogosFee; // DLogos (Labs) fee
     uint256 public communityFee; // Community fee
+    uint256 public affiliateFee; // Sum of affiliate fee
     uint256 public override logoId; // Global Logo ID
     uint16 public override rejectThreshold; // Backer rejection threshold in BPS
     uint8 public override maxDuration; // Max crowdfunding duration
@@ -93,7 +94,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         dLogos = _dLogos;
         community = _community;
         dLogosFee = 1e5; // 10%
-        communityFee = 1e5; // 10%        
+        communityFee = 1e5; // 10%
+        affiliateFee = 5 * 1e4; // 5%        
         logoId = 1; // Starting from 1
         rejectThreshold = 5000; // 50%
         maxDuration = 60; // 60 days        
@@ -164,6 +166,13 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         emit CommunityFeeUpdated(_communityFee);
     }  
 
+    function setAffiliateFee(uint256 _affiliateFee) external onlyOwner {
+        if (dLogosFee + communityFee + _affiliateFee > PERCENTAGE_SCALE) revert FeeExceeded();
+
+        affiliateFee = _affiliateFee;
+        emit AffiliateFeeUpdated(_affiliateFee);
+    }
+
     function setZeroFeeProposers(
         address[] calldata _proposers,
         bool[] calldata _statuses
@@ -192,9 +201,9 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (bytes(_title).length == 0) revert EmptyString();
         if (_crowdfundNumberOfDays > maxDuration) revert CrowdfundDurationExceeded();
         if (_isZeroFeeProposer(msg.sender)) {
-            if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+            if (_proposerFee + communityFee + affiliateFee > PERCENTAGE_SCALE) revert FeeExceeded();
         } else {
-            if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+            if (_proposerFee + dLogosFee + communityFee + affiliateFee > PERCENTAGE_SCALE) revert FeeExceeded();
         }
 
         uint256 _logoId = logoId;
@@ -242,7 +251,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      * @dev Crowdfund.
      */
     function crowdfund(
-        uint256 _logoId
+        uint256 _logoId,
+        address _referrer
     ) external override payable nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
 
@@ -252,6 +262,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
 
         if (isBacker) {
+            // Ignore `_referrer` because it was already set
             Backer storage backer = logoBackers[_logoId][msg.sender];
             unchecked {
                 backer.amount += msg.value;
@@ -262,6 +273,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
 
             Backer memory b = Backer({
                 addr: msg.sender,
+                referrer: _referrer, // Zero address possible
                 amount: msg.value,
                 votesToReject: false
             });
@@ -420,9 +432,17 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         }
 
         if (_isZeroFeeProposer(msg.sender)) {
-            if (communityFee + logos[_logoId].proposerFee + speakerFeesSum != PERCENTAGE_SCALE) revert FeeSumNotMatch();
+            if (
+                communityFee + affiliateFee + logos[_logoId].proposerFee + speakerFeesSum 
+                != 
+                PERCENTAGE_SCALE
+            ) revert FeeSumNotMatch();
         } else {
-            if (dLogosFee + communityFee + logos[_logoId].proposerFee + speakerFeesSum != PERCENTAGE_SCALE) revert FeeSumNotMatch();
+            if (
+                dLogosFee + communityFee + affiliateFee + logos[_logoId].proposerFee + speakerFeesSum 
+                != 
+                PERCENTAGE_SCALE
+            ) revert FeeSumNotMatch();
         }
 
         emit SpeakersSet(msg.sender, _speakers, _fees, _providers, _handles);
@@ -505,58 +525,70 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
         if (!l.status.isUploaded) revert LogoNotUploaded();
-        
-        // Create a new PushSplit
-        Speaker[] memory speakers = logoSpeakers[_logoId];
-        address[] memory recipients = new address[](speakers.length + 3);
-        uint256[] memory allocations = new uint256[](speakers.length + 3);
-        // Assign recipients array
-        recipients[0] = dLogos;
-        recipients[1] = community;
-        recipients[2] = l.proposer;
-        for (uint256 i = 3; i < recipients.length; i++) {
-            recipients[i] = speakers[i - 3].addr;
-        }
-        // Assign allocations array
-        uint256 totalAllocation;
-        if (_isZeroFeeProposer(msg.sender)) {
-            allocations[0] = 0;
-        } else {
-            allocations[0] = dLogosFee;
-        }
-        allocations[1] = communityFee;
-        allocations[2] = l.proposerFee;
-        totalAllocation += dLogosFee + communityFee + l.proposerFee;
-        for (uint256 i = 3; i < allocations.length; i++) {
-            allocations[i] = speakers[i - 3].fee;
-            totalAllocation += speakers[i - 3].fee;
-        }
-        // Check total allocation equals to 1e6
-        if (totalAllocation != PERCENTAGE_SCALE) revert TotalAllocationExceeded();
 
-        SplitV2Lib.Split memory splitParams = SplitV2Lib.Split({
-            recipients: recipients,
-            allocations: allocations,
-            totalAllocation: PERCENTAGE_SCALE,
-            distributionIncentive: 0 // set to 0
-        });
-
-        // Split owner can pause and unpause the contract
-        // Split creator does not mean anything
-        address split = IPushSplitFactory(pushSplitFactory).createSplit(splitParams, owner(), address(this));
-        emit PushSplitCreated(split, splitParams, owner(), address(this));
-
-        // Send Eth to PushSplit
         uint256 totalRewards = logoRewards[_logoId];
-        (bool success, ) = payable(split).call{value: totalRewards}("");        
-        if (!success) revert EthTransferFailed();
+        address split;        
 
-        IPushSplit(split).distribute(
-            splitParams,
-            NATIVE_TOKEN,
-            address(0) // distributor address
-        );
+        if (totalRewards != 0) {
+            (address[] memory referrers, uint256[] memory refAllocations) = _getAffiliates(_logoId, totalRewards);
+            // Create a new PushSplit
+            Speaker[] memory speakers = logoSpeakers[_logoId];
+            address[] memory recipients = new address[](3 + speakers.length + referrers.length);
+            uint256[] memory allocations = new uint256[](3 + speakers.length + referrers.length);
+            // Assign recipients array
+            recipients[0] = dLogos;
+            recipients[1] = community;
+            recipients[2] = l.proposer;
+            for (uint256 i = 0; i < speakers.length; i++) {
+                recipients[i + 3] = speakers[i].addr;
+            }
+            for (uint256 j = 0; j < referrers.length; j++) {
+                recipients[j + 3 + speakers.length] = referrers[j];
+            }
+            // Assign allocations array
+            uint256 totalAllocation;
+            if (_isZeroFeeProposer(msg.sender)) {
+                allocations[0] = 0;
+            } else {
+                allocations[0] = dLogosFee;
+            }
+            allocations[1] = communityFee;
+            allocations[2] = l.proposerFee;
+            totalAllocation += dLogosFee + communityFee + l.proposerFee;
+            for (uint256 i = 0; i < speakers.length; i++) {
+                allocations[i + 3] = speakers[i].fee;
+                totalAllocation += speakers[i].fee;
+            }
+            for (uint256 j = 0; j < referrers.length; j++) {
+                allocations[j + 3 + speakers.length] = refAllocations[j];
+                totalAllocation += refAllocations[j];
+            }
+            // Check total allocation equals to 1e6
+            if (totalAllocation != PERCENTAGE_SCALE) revert TotalAllocationExceeded();
 
+            SplitV2Lib.Split memory splitParams = SplitV2Lib.Split({
+                recipients: recipients,
+                allocations: allocations,
+                totalAllocation: PERCENTAGE_SCALE,
+                distributionIncentive: 0 // set to 0
+            });
+
+            // Split owner can pause and unpause the contract
+            // Split creator does not mean anything
+            split = IPushSplitFactory(pushSplitFactory).createSplit(splitParams, owner(), address(this));
+            emit PushSplitCreated(split, splitParams, owner(), address(this));
+
+            // Send Eth to PushSplit
+            (bool success, ) = payable(split).call{value: totalRewards}("");        
+            if (!success) revert EthTransferFailed();
+
+            IPushSplit(split).distribute(
+                splitParams,
+                NATIVE_TOKEN,
+                address(0) // distributor address
+            );
+        }
+        
         /* Only Mainnet
         require(block.timestamp > l.rejectionDeadline, "Rewards can only be distributed after rejection deadline has passed.");
         */
@@ -604,5 +636,34 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
 
     function _isZeroFeeProposer(address _proposer) private view returns (bool) {
         return _zeroFeeProposers.contains(_proposer);
+    }
+
+    function _getAffiliates(
+        uint256 _logoId,
+        uint256 _totalReward
+    ) private view returns (
+        address[] memory referrers, 
+        uint256[] memory allocations
+    ) {
+        EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
+        address[] memory backerArray = backerAddresses.values();
+        referrers = new address[](backerArray.length + 1);
+        allocations  = new uint256[](backerArray.length + 1);
+        uint256 totalAllocation;
+
+        for (uint256 i = 0; i < backerArray.length; i++) {
+            referrers[i] = logoBackers[_logoId][backerArray[i]].referrer;
+            // _totalReward is not 0
+            unchecked {
+                allocations[i] = logoBackers[_logoId][backerArray[i]].amount * affiliateFee / _totalReward;
+                totalAllocation += allocations[i];
+            }
+        }
+
+        if (totalAllocation > affiliateFee) revert AffiliateFeeExceeded();
+
+        // TODO check
+        referrers[backerArray.length] = address(this);
+        allocations[backerArray.length] = affiliateFee - totalAllocation;
     }
 }
