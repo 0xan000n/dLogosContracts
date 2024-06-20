@@ -43,7 +43,7 @@ error RemoveBackerFailed();
 
 error EthTransferFailed();
 
-error InvalidSpeakers();
+error InvalidSpeakerNumber();
 
 error InvalidArrayArguments();
 
@@ -60,3 +60,5 @@ error ZeroFeeProposer();
 error FeeSumNotMatch();
 
 error AffiliateFeeExceeded();
+
+error NotAllSpeakersAccepted();

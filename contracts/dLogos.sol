@@ -48,10 +48,6 @@ import "./Error.sol";
                                  ..................................                                 
                                      .........................                                                                                                                                 
 */
-
-// TODO check speakers array (emptiness & any speaker still pending or rejected) in setDate() or setMediaAsset()?
-
-
 /// @title Core DLogos contract
 /// @author 0xan000n
 contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
@@ -409,7 +405,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         string[] calldata _handles
     ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
-        if (_speakers.length == 0 || _speakers.length >= 100) revert InvalidSpeakers();
+        if (_speakers.length == 0 || _speakers.length >= 100) revert InvalidSpeakerNumber();
         if (
             _speakers.length != _fees.length ||
             _fees.length != _providers.length ||
@@ -488,6 +484,14 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
         if (_scheduledAt <= block.timestamp) revert InvalidScheduleTime();
+
+        Speaker[] memory speakers = logoSpeakers[_logoId];
+        // Need to be sure the logo has more than one speaker
+        if (speakers.length == 0) revert InvalidSpeakerNumber();
+        // Need to be sure all speakers accepted
+        for (uint256 i = 0; i < speakers.length; i++) {
+            if (speakers[i].status != SpeakerStatus.Accepted) revert NotAllSpeakersAccepted();
+        }
         
         logos[_logoId].scheduledAt = _scheduledAt;
         logos[_logoId].status.isCrowdfunding = false; // Close crowdfund.
