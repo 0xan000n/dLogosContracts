@@ -13,13 +13,15 @@ error ZeroAddress();
 
 error InvalidLogoId();
 
-error InvalidDurationThreshold();
+error InvalidMaxDuration();
 
 error CrowdfundDurationExceeded();
 
 error InvalidRejectThreshold();
 
 error LogoUploaded();
+
+error LogoNotUploaded();
 
 error LogoDistributed();
 
@@ -41,8 +43,32 @@ error RemoveBackerFailed();
 
 error EthTransferFailed();
 
-error InvalidSpeakers();
+error InvalidSpeakerNumber();
 
 error InvalidArrayArguments();
 
 error InvalidScheduleTime();
+
+error InvalidSpeakerStatus();
+
+error TotalAllocationExceeded();
+
+error FeeExceeded();
+
+error ZeroFeeProposer();
+
+error FeeSumNotMatch();
+
+error AffiliateFeeExceeded();
+
+error NotAllSpeakersAccepted();
+
+error CrowdfundEnded();
+
+error AffiliateRewardsExceeded();
+
+error InvalidRejectionWindow();
+
+error RejectionDeadlineNotPassed();
+
+error RejectionDeadlinePassed();
