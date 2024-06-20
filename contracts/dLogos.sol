@@ -535,6 +535,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
         if (!l.status.isUploaded) revert LogoNotUploaded();
+        if (block.timestamp < l.rejectionDeadline) revert RejectionDeadlineNotPassed();
 
         uint256 totalRewards = logoRewards[_logoId];
         address splitForAffiliate;
@@ -618,11 +619,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
                 NATIVE_TOKEN,
                 address(0) // distributor address
             );
-        }
-        
-        /* Only Mainnet
-        require(block.timestamp > l.rejectionDeadline, "Rewards can only be distributed after rejection deadline has passed.");
-        */
+        }     
         
         Logo storage sl = logos[_logoId];
         sl.status.isDistributed = true;
