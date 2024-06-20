@@ -56,6 +56,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /// CONSTANTS
     address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // Address of native token, inline with ERC7528
     uint256 public constant PERCENTAGE_SCALE = 1e6;
+    uint256 public constant MAX_AFFILIATE_FEE = 2 * 1e5; // Max 20%
 
     /// STORAGE
     address public pushSplitFactory;
@@ -172,8 +173,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     }  
 
     function setAffiliateFee(uint256 _affiliateFee) external onlyOwner {
-        // TODO Max affiliate fee?
-        if (_affiliateFee > PERCENTAGE_SCALE) revert FeeExceeded();
+        if (_affiliateFee > MAX_AFFILIATE_FEE) revert FeeExceeded();
 
         affiliateFee = _affiliateFee;
         emit AffiliateFeeUpdated(_affiliateFee);
@@ -315,7 +315,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         if (
-            l.scheduledAt == 0 &&
+            l.scheduledAt != 0 &&
             !l.status.isRefunded &&
             l.status.isDistributed
         ) revert LogoFundsCannotBeWithdrawn();
