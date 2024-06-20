@@ -8,7 +8,6 @@ interface IDLogos {
         address addr;
         address referrer;
         uint256 amount;
-        bool votesToReject;
     }
 
     enum SpeakerStatus {
