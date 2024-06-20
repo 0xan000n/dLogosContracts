@@ -62,3 +62,5 @@ error FeeSumNotMatch();
 error AffiliateFeeExceeded();
 
 error NotAllSpeakersAccepted();
+
+error CrowdfundEnded();

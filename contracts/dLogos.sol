@@ -234,10 +234,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint256 _logoId
     ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
-        if (l.status.isUploaded) revert LogoUploaded();
-        // TODO check again: first check includes following 2 checks
-        // if (l.status.isDistributed) revert LogoDistributed();
-        // if (l.status.isRefunded) revert LogoRefunded();
+        if (l.scheduledAt != 0) revert CrowdfundEnded();
         
         logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
         emit CrowdfundToggled(msg.sender, !l.status.isCrowdfunding);
@@ -307,9 +304,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      */
     function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        // TODO check again
         if (
-            !l.status.isCrowdfunding &&
+            l.scheduledAt == 0 &&
             !l.status.isRefunded &&
             l.status.isDistributed
         ) revert LogoFundsCannotBeWithdrawn();
