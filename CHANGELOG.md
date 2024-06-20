@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - fees for dLogos, community and proposer in DLogos
 - zeroFeeProposers mapping in DLogos
 - affiliate fees in DLogos
+- rejectionWindow in DLogos
 
 ## [2.0.1] - 2024-06-03
 ### Added
