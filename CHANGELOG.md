@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - create a new [SplitsV2 PushSplit](https://docs.splits.org/core/split-v2) in DLogos distribution function
 - fees for dLogos, community and proposer in DLogos
 - zeroFeeProposers mapping in DLogos
+- affiliate fees in DLogos
 
 ## [2.0.1] - 2024-06-03
 ### Added
