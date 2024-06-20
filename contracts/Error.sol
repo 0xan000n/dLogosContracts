@@ -1,74 +1,110 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-error NoRefundConditionsMet();
+// NoRefundConditionsMet
+error NRCM();
 
-error Unauthorized();
+// Unauthorized
+error U();
 
-error EmptyString();
+// EmptyString
+error ES();
 
-error NotZero();
+// NotZero
+error NZ();
 
-error ZeroAddress();
+// ZeroAddress
+error ZA();
 
-error InvalidLogoId();
+// InvalidLogoId
+error ILI();
 
-error InvalidMaxDuration();
+// InvalidMaxDuration
+error IMD();
 
-error CrowdfundDurationExceeded();
+// CrowdfundDurationExceeded
+error CDE();
 
-error InvalidRejectThreshold();
+// InvalidRejectThreshold
+error IRT();
 
-error LogoUploaded();
+// LogoUploaded
+error LU();
 
-error LogoNotUploaded();
+// LogoNotUploaded
+error LNU();
 
-error LogoDistributed();
+// LogoDistributed
+error LD();
 
-error LogoRefunded();
+// LogoRefunded
+error LR();
 
-error LogoNotCrowdfunding();
+// LogoNotCrowdfunding
+error LNC();
 
-error InsufficientFunds();
+// InsufficientFunds
+error IF();
 
-error TooManyBackers();
+// TooManyBackers
+error TMB();
 
-error LogoFundsCannotBeWithdrawn();
+// LogoFundsCannotBeWithdrawn
+error LFCBW();
 
-error InsufficientLogoReward();
+// InsufficientLogoReward
+error ILR();
 
-error AddBackerFailed();
+// AddBackerFailed
+error ABF();
 
-error RemoveBackerFailed();
+// RemoveBackerFailed
+error RBF();
 
-error EthTransferFailed();
+// EthTransferFailed
+error ETF();
 
-error InvalidSpeakerNumber();
+// InvalidSpeakerNumber
+error ISN();
 
-error InvalidArrayArguments();
+// InvalidArrayArguments
+error IAA();
 
-error InvalidScheduleTime();
+// InvalidScheduleTime
+error IST();
 
-error InvalidSpeakerStatus();
+// InvalidSpeakerStatus
+error ISS();
 
-error TotalAllocationExceeded();
+// TotalAllocationExceeded
+error TAE();
 
-error FeeExceeded();
+// FeeExceeded
+error FE();
 
-error ZeroFeeProposer();
+// ZeroFeeProposer
+error ZFP();
 
-error FeeSumNotMatch();
+// FeeSumNotMatch
+error FSNM();
 
-error AffiliateFeeExceeded();
+// AffiliateFeeExceeded
+error AFE();
 
-error NotAllSpeakersAccepted();
+// NotAllSpeakersAccepted
+error NASA();
 
-error CrowdfundEnded();
+// CrowdfundEnded
+error CE();
 
-error AffiliateRewardsExceeded();
+// AffiliateRewardsExceeded
+error ARE();
 
-error InvalidRejectionWindow();
+// InvalidRejectionWindow
+error IRW();
 
-error RejectionDeadlineNotPassed();
+// RejectionDeadlineNotPassed
+error RDNP();
 
-error RejectionDeadlinePassed();
+// RejectionDeadlinePassed
+error RDP();
