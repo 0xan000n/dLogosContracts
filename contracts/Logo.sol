@@ -25,7 +25,7 @@ contract Logo is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     // The follong functions are overrides required by Solidity.
 
     function _update(address to, uint256 tokenId, address auth) internal override(ERC721, ERC721Enumerable) returns (address) {
-        ERC721Enumerable._update(to, tokenId, auth);
+        return ERC721Enumerable._update(to, tokenId, auth);
     }
 
     function _increaseBalance(address account, uint128 amount) internal override(ERC721, ERC721Enumerable) {
