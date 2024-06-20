@@ -315,8 +315,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         if (
-            l.scheduledAt != 0 &&
-            !l.status.isRefunded &&
+            (l.scheduledAt != 0 && !l.status.isRefunded) ||
             l.status.isDistributed
         ) revert LogoFundsCannotBeWithdrawn();
         
@@ -630,7 +629,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         sl.status.isDistributed = true;
         sl.splitForSpeaker = splitForSpeaker;
         sl.splitForAffiliate = splitForAffiliate;
-        // sl.rejectionDeadline = block.timestamp + 7 * 1 days;
 
         emit RewardsDistributed(msg.sender, splitForSpeaker, splitForAffiliate, totalRewards);
     }    
