@@ -596,8 +596,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         Logo storage sl = logos[_logoId];
         sl.status.isDistributed = true;
         sl.splits = split;
-        // TODO isCrowdfunding is already false in setMediaAsset()
-        // sl.status.isCrowdfunding = false; // Close crowdfund
         // sl.rejectionDeadline = block.timestamp + 7 * 1 days;
 
         emit RewardsDistributed(msg.sender, split, totalRewards);
