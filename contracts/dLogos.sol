@@ -138,8 +138,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     }
 
     function setRejectionWindow(uint8 _rejectionWindow) external onlyOwner {
-        if (_rejectionWindow == 0) revert InvalidRejectionWindow();
-
+        // Zero possible
         rejectionWindow = _rejectionWindow;
         emit RejectinoWindowUpdated(_rejectionWindow);
     }
