@@ -7,6 +7,7 @@ interface IDLogos {
     struct Backer {
         address addr;
         address referrer;
+        bool votesToReject;
         uint256 amount;
     }
 
@@ -113,6 +114,7 @@ interface IDLogos {
         address _owner, 
         address _creator
     );
+    event TrustedForwarderUpdated(address trustedForwarder_);
 
     function logoId() external view returns (uint256);
 
@@ -123,7 +125,8 @@ interface IDLogos {
     function initialize(
         address _pushSplitFactory,
         address _dLogos,
-        address _community
+        address _community,
+        address trustedForwarder_
     ) external;  
 
     function setRejectThreshold(uint16) external;

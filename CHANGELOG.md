@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - zeroFeeProposers mapping in DLogos
 - affiliate fees in DLogos
 - rejectionWindow in DLogos
+- meta tx in DLogos
 
 ## [2.0.1] - 2024-06-03
 ### Added

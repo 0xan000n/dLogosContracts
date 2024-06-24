@@ -5,6 +5,8 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IDLogos} from "./interfaces/IdLogos.sol";
 import {IPushSplitFactory} from "./splitsV2/interfaces/IPushSplitFactory.sol";
 import {IPushSplit} from "./splitsV2/interfaces/IPushSplit.sol";
@@ -50,7 +52,7 @@ import "./Error.sol";
 */
 /// @title Core DLogos contract
 /// @author 0xan000n
-contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
+contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable, ERC2771ContextUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// CONSTANTS
@@ -69,6 +71,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     uint16 public override rejectThreshold; // Backer rejection threshold in BPS
     uint8 public override maxDuration; // Max crowdfunding duration
     uint8 public rejectionWindow; // Reject deadline in days
+    address private _trustedForwarder; // Customized trusted forwarder address
     EnumerableSet.AddressSet private _zeroFeeProposers; // List of proposers who dLogos does not charge fees
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
@@ -77,20 +80,31 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     mapping(uint256 => uint256) public logoRewards; // Mapping of Logo ID to accumulated rewards
     mapping(uint256 => uint256) public logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
 
+    // The contract does not use trustedForwarder that is defined in ERC2771ContextUpgradeable
+    constructor() ERC2771ContextUpgradeable(address(0)) {}
+
     function initialize(
         address _pushSplitFactory,
         address _dLogos,
-        address _community
+        address _community,
+        address trustedForwarder_
     ) external override initializer {
+        // Initialize tx is not gasless
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
         
-        if (_pushSplitFactory == address(0) || _dLogos == address(0) || _community == address(0)) revert ZA();
+        if (
+            _pushSplitFactory == address(0) || 
+            _dLogos == address(0) || 
+            _community == address(0) || 
+            trustedForwarder_ == address(0)
+        ) revert ZA();
 
         pushSplitFactory = _pushSplitFactory;
         dLogos = _dLogos;
         community = _community;
+        _trustedForwarder = trustedForwarder_;
         dLogosFee = 1e5; // 10%
         communityFee = 1e5; // 10%
         affiliateFee = 5 * 1e4; // 5%        
@@ -107,7 +121,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     }
 
     modifier onlyLogoProposer(uint256 _logoId) {
-        if (logos[_logoId].proposer != msg.sender) revert U();
+        if (logos[_logoId].proposer != _msgSender()) revert U();
         _;
     }
 
@@ -205,7 +219,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     ) external override whenNotPaused returns (uint256) {
         if (bytes(_title).length == 0) revert ES();
         if (_crowdfundNumberOfDays > maxDuration) revert CDE();
-        if (_isZeroFeeProposer(msg.sender)) {
+        address msgSender = _msgSender();
+        if (_isZeroFeeProposer(msgSender)) {
             if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FE();
         } else {
             if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FE();
@@ -215,7 +230,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         logos[_logoId] = Logo({
             id: _logoId,
             title: _title,
-            proposer: msg.sender,
+            proposer: msgSender,
             proposerFee: _proposerFee,
             scheduledAt: 0,
             mediaAssetURL: "",
@@ -232,8 +247,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
                 isRefunded: false
             })
         });
-        emit LogoCreated(msg.sender, _logoId, block.timestamp);
-        emit CrowdfundToggled(msg.sender, true);
+        emit LogoCreated(msgSender, _logoId, block.timestamp);
+        emit CrowdfundToggled(msgSender, true);
         return logoId++; // Return and Increment Global Logo ID
     }
 
@@ -247,7 +262,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (l.scheduledAt != 0) revert CE();
         
         logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
-        emit CrowdfundToggled(msg.sender, !l.status.isCrowdfunding);
+        emit CrowdfundToggled(_msgSender(), !l.status.isCrowdfunding);
     }
 
     /**
@@ -261,12 +276,13 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
 
         if (!l.status.isCrowdfunding) revert LNC();
         if (msg.value < l.minimumPledge) revert IF();
-                
-        bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
+        
+        address msgSender = _msgSender();
+        bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
 
         if (isBacker) {
             // Ignore `_referrer` because it was already set
-            Backer storage backer = logoBackers[_logoId][msg.sender];
+            Backer storage backer = logoBackers[_logoId][msgSender];
             unchecked {
                 backer.amount += msg.value;
             }
@@ -275,22 +291,23 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             if (_logoBackerAddresses[_logoId].length() >= 1000) revert TMB();
 
             Backer memory b = Backer({
-                addr: msg.sender,
+                addr: msgSender,
                 referrer: _referrer, // Zero address possible
-                amount: msg.value
+                amount: msg.value,
+                votesToReject: false
             });
-            bool added = _logoBackerAddresses[_logoId].add(msg.sender);
+            bool added = _logoBackerAddresses[_logoId].add(msgSender);
 
             if (!added) revert ABF();
             
-            logoBackers[_logoId][msg.sender] = b;
+            logoBackers[_logoId][msgSender] = b;
         }
 
         // Increase total rewards of Logo.
         unchecked {
             logoRewards[_logoId] = logoRewards[_logoId] + msg.value;
         }
-        emit Crowdfund(_logoId, msg.sender, msg.value);
+        emit Crowdfund(_logoId, msgSender, msg.value);
     }
 
     /**
@@ -305,7 +322,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (_minimumPledge == 0) revert NZ();
 
         logos[_logoId].minimumPledge = _minimumPledge;
-        emit MinimumPledgeSet(msg.sender, _minimumPledge);
+        emit MinimumPledgeSet(_msgSender(), _minimumPledge);
     }
 
     /**
@@ -318,27 +335,28 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             l.status.isDistributed
         ) revert LFCBW();
         
-        bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
+        address msgSender = _msgSender();
+        bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
 
         if (!isBacker) revert U();
 
-        Backer memory backer = logoBackers[_logoId][msg.sender];
+        Backer memory backer = logoBackers[_logoId][msgSender];
         
         if (backer.amount == 0) revert IF();
         if (logoRewards[_logoId] < backer.amount) revert ILR();
         
-        bool removed = _logoBackerAddresses[_logoId].remove(msg.sender);
+        bool removed = _logoBackerAddresses[_logoId].remove(msgSender);
 
         if (!removed) revert RBF();
         
-        delete logoBackers[_logoId][msg.sender];
+        delete logoBackers[_logoId][msgSender];
         // Decrease total rewards of Logo.
         logoRewards[_logoId] = logoRewards[_logoId] - backer.amount;
-        (bool success, ) = payable(msg.sender).call{value: backer.amount}("");
+        (bool success, ) = payable(msgSender).call{value: backer.amount}("");
 
         if (!success) revert ETF();
         
-        emit FundsWithdrawn(msg.sender, backer.amount);
+        emit FundsWithdrawn(msgSender, backer.amount);
     }
 
     /**
@@ -347,17 +365,21 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     function reject(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
         if (block.timestamp > logos[_logoId].rejectionDeadline) revert RDP();
 
-        bool isBacker = _logoBackerAddresses[_logoId].contains(msg.sender);
+        address msgSender = _msgSender();
+        bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
 
         if (!isBacker) revert U();
 
-        Backer memory backer = logoBackers[_logoId][msg.sender];
+        Backer memory backer = logoBackers[_logoId][msgSender];
+        // Backer can not reject more than once
+        if (backer.votesToReject) revert BAR();
         // Increase rejected funds.
         unchecked {
             logoRejectedFunds[_logoId] = logoRejectedFunds[_logoId] + backer.amount;
         }
+        logoBackers[_logoId][msgSender].votesToReject = true;
         
-        emit RejectionSubmitted(_logoId, msg.sender);
+        emit RejectionSubmitted(_logoId, msgSender);
     }
 
     /**
@@ -367,7 +389,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         Logo memory l = logos[_logoId];
         if (l.status.isDistributed) revert LD();
 
-        bool c1 = l.proposer == msg.sender; // Case 1: Logo proposer can refund whenever.
+        bool c1 = l.proposer == _msgSender(); // Case 1: Logo proposer can refund whenever.
         bool c2 = block.timestamp > l.crowdfundEndAt; // Case 2: Crowdfund end date reached and not distributed.
         bool c3 = l.scheduledAt != 0 &&
             (block.timestamp > l.scheduledAt + 7 * 1 days) &&
@@ -427,7 +449,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             logoSpeakers[_logoId].push(s);
         }
 
-        if (_isZeroFeeProposer(msg.sender)) {
+        // Use `_msgSender()` twice to avoid stack too deep error
+        if (_isZeroFeeProposer(_msgSender())) {
             if (
                 communityFee + logos[_logoId].proposerFee + speakerFeesSum 
                 != 
@@ -441,7 +464,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             ) revert FSNM();
         }
 
-        emit SpeakersSet(msg.sender, _speakers, _fees, _providers, _handles);
+        emit SpeakersSet(_msgSender(), _speakers, _fees, _providers, _handles);
     }
 
     /**
@@ -455,11 +478,12 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (_speakerStatus == 0) revert ISS();
         if (!logos[_logoId].status.isCrowdfunding) revert LNC();
 
+        address msgSender = _msgSender();
         Speaker[] memory speakers = logoSpeakers[_logoId];
         for (uint256 i = 0; i < speakers.length; i++) {
-            if (address(speakers[i].addr) == msg.sender) {
+            if (address(speakers[i].addr) == msgSender) {
                 logoSpeakers[_logoId][i].status = SpeakerStatus(_speakerStatus);
-                emit SpeakerStatusSet(_logoId, msg.sender, _speakerStatus);
+                emit SpeakerStatusSet(_logoId, msgSender, _speakerStatus);
                 break;
             }
         }
@@ -495,7 +519,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         
         logos[_logoId].scheduledAt = _scheduledAt;
         logos[_logoId].status.isCrowdfunding = false; // Close crowdfund.
-        emit DateSet(msg.sender, _scheduledAt);
+        emit DateSet(_msgSender(), _scheduledAt);
     }
 
     /**
@@ -515,7 +539,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         sl.status.isUploaded = true;
         sl.rejectionDeadline = block.timestamp + rejectionWindow * 1 days;
 
-        emit MediaAssetSet(msg.sender, _mediaAssetURL);
+        emit MediaAssetSet(_msgSender(), _mediaAssetURL);
     }
 
     /**
@@ -531,6 +555,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (!l.status.isUploaded) revert LNU();
         if (block.timestamp < l.rejectionDeadline) revert RDNP();
 
+        address msgSender = _msgSender();
         uint256 totalRewards = logoRewards[_logoId];
         address splitForAffiliate;
         address splitForSpeaker;        
@@ -578,7 +603,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             }
             // Assign allocations array
             uint256 totalAllocation;
-            if (_isZeroFeeProposer(msg.sender)) {
+            if (_isZeroFeeProposer(msgSender)) {
                 allocations[0] = 0;
             } else {
                 allocations[0] = dLogosFee;
@@ -620,7 +645,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         sl.splitForSpeaker = splitForSpeaker;
         sl.splitForAffiliate = splitForAffiliate;
 
-        emit RewardsDistributed(msg.sender, splitForSpeaker, splitForAffiliate, totalRewards);
+        emit RewardsDistributed(msgSender, splitForSpeaker, splitForAffiliate, totalRewards);
     }    
 
     /**
@@ -697,5 +722,33 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
                 allocations[backerArray.length] = PERCENTAGE_SCALE - _totalAllocation;
             }            
         }
+    }
+
+    // ----------------------------------------------Biconomy meta tx helpers----------------------------------------------
+
+    function setTrustedForwarder(address trustedForwarder_) external onlyOwner {
+        if (trustedForwarder_ == address(0)) revert ZA();
+
+        _trustedForwarder = trustedForwarder_;
+        emit TrustedForwarderUpdated(trustedForwarder_);
+    }
+
+    /**
+     * @dev Override of `trustedForwarder()` in ERC2771ContextUpgradeable
+     */
+    function trustedForwarder() public view override returns (address) {
+        return _trustedForwarder;
+    }
+    
+    function _msgSender() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address) {
+        return ERC2771ContextUpgradeable._msgSender();
+    }
+
+    function _msgData() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+        return ERC2771ContextUpgradeable._msgData();
+    }
+
+    function _contextSuffixLength() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (uint256) {
+        return ERC2771ContextUpgradeable._contextSuffixLength();
     }
 }
