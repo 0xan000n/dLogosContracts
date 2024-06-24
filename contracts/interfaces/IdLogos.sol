@@ -7,6 +7,7 @@ interface IDLogos {
     struct Backer {
         address addr;
         address referrer;
+        bool votesToReject;
         uint256 amount;
     }
 

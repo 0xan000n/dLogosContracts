@@ -293,7 +293,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             Backer memory b = Backer({
                 addr: msgSender,
                 referrer: _referrer, // Zero address possible
-                amount: msg.value
+                amount: msg.value,
+                votesToReject: false
             });
             bool added = _logoBackerAddresses[_logoId].add(msgSender);
 
@@ -370,10 +371,13 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (!isBacker) revert U();
 
         Backer memory backer = logoBackers[_logoId][msgSender];
+        // Backer can not reject more than once
+        if (backer.votesToReject) revert BAR();
         // Increase rejected funds.
         unchecked {
             logoRejectedFunds[_logoId] = logoRejectedFunds[_logoId] + backer.amount;
         }
+        logoBackers[_logoId][msgSender].votesToReject = true;
         
         emit RejectionSubmitted(_logoId, msgSender);
     }

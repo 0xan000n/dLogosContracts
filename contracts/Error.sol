@@ -108,3 +108,6 @@ error RDNP();
 
 // RejectionDeadlinePassed
 error RDP();
+
+// BackerAlreadyRejected
+error BAR();
