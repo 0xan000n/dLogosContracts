@@ -2,112 +2,104 @@
 pragma solidity ^0.8.24;
 
 // NoRefundConditionsMet
-error NRCM();
+error NoRefundConditionsMet();
 
 // Unauthorized
-error U();
+error Unauthorized();
 
 // EmptyString
-error ES();
+error EmptyString();
 
 // NotZero
-error NZ();
+error NotZero();
 
 // ZeroAddress
-error ZA();
+error ZeroAddress();
 
 // InvalidLogoId
-error ILI();
+error InvalidLogoId();
 
 // InvalidMaxDuration
-error IMD();
+error InvalidMaxDuration();
 
 // CrowdfundDurationExceeded
-error CDE();
+error CrowdfundDurationExceeded();
 
 // InvalidRejectThreshold
-error IRT();
+error InvalidRejectThreshold();
 
 // LogoUploaded
-error LU();
+error LogoUploaded();
 
 // LogoNotUploaded
-error LNU();
+error LogoNotUploaded();
 
 // LogoDistributed
-error LD();
+error LogoDistributed();
 
 // LogoRefunded
-error LR();
+error LogoRefunded();
 
 // LogoNotCrowdfunding
-error LNC();
+error LogoNotCrowdfunding();
+// error LNC();
 
 // InsufficientFunds
-error IF();
+error InsufficientFunds();
 
 // TooManyBackers
-error TMB();
+error TooManyBackers();
 
 // LogoFundsCannotBeWithdrawn
-error LFCBW();
+error LogoFundsCannotBeWithdrawn();
 
 // InsufficientLogoReward
-error ILR();
+error InsufficientLogoReward();
 
 // AddBackerFailed
-error ABF();
+error AddBackerFailed();
 
 // RemoveBackerFailed
-error RBF();
+error RemoveBackerFailed();
 
 // EthTransferFailed
-error ETF();
+error EthTransferFailed();
 
 // InvalidSpeakerNumber
-error ISN();
+error InvalidSpeakerNumber();
 
 // InvalidArrayArguments
-error IAA();
+error InvalidArrayArguments();
 
 // InvalidScheduleTime
-error IST();
+error InvalidScheduleTime();
 
 // InvalidSpeakerStatus
-error ISS();
-
-// TotalAllocationExceeded
-error TAE();
+error InvalidSpeakerStatus();
 
 // FeeExceeded
-error FE();
-
-// ZeroFeeProposer
-error ZFP();
+error FeeExceeded();
 
 // FeeSumNotMatch
-error FSNM();
-
-// AffiliateFeeExceeded
-error AFE();
+error FeeSumNotMatch();
 
 // NotAllSpeakersAccepted
-error NASA();
+error NotAllSpeakersAccepted();
 
 // CrowdfundEnded
-error CE();
+error CrowdfundEnded();
 
 // AffiliateRewardsExceeded
-error ARE();
+error AffiliateRewardsExceeded();
 
 // InvalidRejectionWindow
-error IRW();
+error InvalidRejectionWindow();
 
 // RejectionDeadlineNotPassed
-error RDNP();
+error RejectionDeadlineNotPassed();
 
 // RejectionDeadlinePassed
-error RDP();
+error RejectionDeadlinePassed();
 
 // BackerAlreadyRejected
-error BAR();
+error BackerAlreadyRejected();

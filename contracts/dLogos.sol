@@ -8,8 +8,8 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/ut
 import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IDLogos} from "./interfaces/IdLogos.sol";
-import {IPushSplitFactory} from "./splitsV2/interfaces/IPushSplitFactory.sol";
-import {IPushSplit} from "./splitsV2/interfaces/IPushSplit.sol";
+import {IDLogosStorage} from "./interfaces/IdLogosStorage.sol";
+import {DLogosLib} from "./libraries/dLogosLib.sol";
 import {SplitV2Lib} from "./splitsV2/libraries/SplitV2.sol";
 import "./Error.sol";
 
@@ -56,23 +56,12 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// CONSTANTS
-    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // Address of native token, inline with ERC7528
     uint256 public constant PERCENTAGE_SCALE = 1e6;
     uint256 public constant MAX_AFFILIATE_FEE = 2 * 1e5; // Max 20%
 
     /// STORAGE
-    address public pushSplitFactory;
-    address public dLogos;
-    address public community;
-    uint256 public dLogosFee; // DLogos (Labs) fee
-    uint256 public communityFee; // Community fee
-    uint256 public affiliateFee; // Affiliate fee
-    uint256 public override logoId; // Global Logo ID
-    uint16 public override rejectThreshold; // Backer rejection threshold in BPS
-    uint8 public override maxDuration; // Max crowdfunding duration
-    uint8 public rejectionWindow; // Reject deadline in days
-    address private _trustedForwarder; // Customized trusted forwarder address
-    EnumerableSet.AddressSet private _zeroFeeProposers; // List of proposers who dLogos does not charge fees
+    address public dLogosStorage;
+    address private _trustedForwarder; // Customized trusted forwarder address    
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
@@ -83,129 +72,33 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     // The contract does not use trustedForwarder that is defined in ERC2771ContextUpgradeable
     constructor() ERC2771ContextUpgradeable(address(0)) {}
 
-    function initialize(
-        address _pushSplitFactory,
-        address _dLogos,
-        address _community,
+    function initialize(        
+        address _dLogosStorage,
         address trustedForwarder_
-    ) external override initializer {
+    ) external initializer {
         // Initialize tx is not gasless
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
         
-        if (
-            _pushSplitFactory == address(0) || 
-            _dLogos == address(0) || 
-            _community == address(0) || 
-            trustedForwarder_ == address(0)
-        ) revert ZA();
+        if (_dLogosStorage == address(0) || trustedForwarder_ == address(0)) revert ZeroAddress();
 
-        pushSplitFactory = _pushSplitFactory;
-        dLogos = _dLogos;
-        community = _community;
+        dLogosStorage = _dLogosStorage;
         _trustedForwarder = trustedForwarder_;
-        dLogosFee = 1e5; // 10%
-        communityFee = 1e5; // 10%
-        affiliateFee = 5 * 1e4; // 5%        
-        logoId = 1; // Starting from 1
-        rejectThreshold = 5000; // 50%
-        maxDuration = 60; // 60 days
-        rejectionWindow = 7; // 7 days        
     }
 
     /// MODIFIERS
     modifier validLogoId(uint256 _logoId) {
-        if (_logoId >= logoId) revert ILI();
+        if (_logoId >= IDLogosStorage(dLogosStorage).logoId()) revert InvalidLogoId();
         _;
     }
 
     modifier onlyLogoProposer(uint256 _logoId) {
-        if (logos[_logoId].proposer != _msgSender()) revert U();
+        if (logos[_logoId].proposer != _msgSender()) revert Unauthorized();
         _;
     }
 
     /// FUNCTIONS
-    
-    /**
-     * @dev Set reject threshold for dLogos.
-     */
-    function setRejectThreshold(
-        uint16 _rejectThreshold
-    ) external override onlyOwner {
-        if (_rejectThreshold == 0 || _rejectThreshold > 10000) revert IRT();
-        
-        rejectThreshold = _rejectThreshold;
-        emit RejectThresholdUpdated(rejectThreshold);
-    }
-
-    /**
-     * @dev Set crowdfund duration limit
-     */
-    function setMaxDuration(uint8 _maxDuration) external override onlyOwner {
-        if (_maxDuration == 0 || _maxDuration >= 100) revert IMD();
-
-        maxDuration = _maxDuration;
-        emit MaxDurationUpdated(_maxDuration);
-    }
-
-    function setRejectionWindow(uint8 _rejectionWindow) external onlyOwner {
-        // Zero possible
-        rejectionWindow = _rejectionWindow;
-        emit RejectinoWindowUpdated(_rejectionWindow);
-    }
-
-    function setDLogosAddress(address _dLogos) external onlyOwner {
-        if (_dLogos == address(0)) revert ZA();
-
-        dLogos = _dLogos;
-        emit DLogosAddressUpdated(_dLogos);
-    }
-
-    function setCommunityAddress(address _community) external onlyOwner {
-        if (_community == address(0)) revert ZA();
-
-        community = _community;
-        emit CommunityAddressUpdated(_community);
-    }
-
-    function setDLogosFee(uint256 _dLogosFee) external onlyOwner {
-        if (_dLogosFee > PERCENTAGE_SCALE) revert FE();
-
-        dLogosFee = _dLogosFee;
-        emit DLogosFeeUpdated(_dLogosFee);
-    }
-
-    function setCommunityFee(uint256 _communityFee) external onlyOwner {
-        if (_communityFee + dLogosFee > PERCENTAGE_SCALE) revert FE();
-
-        communityFee = _communityFee;
-        emit CommunityFeeUpdated(_communityFee);
-    }  
-
-    function setAffiliateFee(uint256 _affiliateFee) external onlyOwner {
-        if (_affiliateFee > MAX_AFFILIATE_FEE) revert FE();
-
-        affiliateFee = _affiliateFee;
-        emit AffiliateFeeUpdated(_affiliateFee);
-    }
-
-    function setZeroFeeProposers(
-        address[] calldata _proposers,
-        bool[] calldata _statuses
-    ) external onlyOwner {
-        if (_proposers.length != _statuses.length) revert IAA();
-
-        for (uint256 i = 0; i < _proposers.length; i++) {
-            if (_statuses[i] && !_isZeroFeeProposer(_proposers[i])) {
-                _zeroFeeProposers.add(_proposers[i]);
-            } else if (!_statuses[i] && _isZeroFeeProposer(_proposers[i])) {
-                _zeroFeeProposers.remove(_proposers[i]);
-            }
-        }
-
-        emit ZeroFeeProposersSet(_proposers, _statuses);
-    }
 
     /**
      * @dev Create a new Logo onchain.
@@ -215,16 +108,18 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         string calldata _title,
         uint8 _crowdfundNumberOfDays
     ) external override whenNotPaused returns (uint256) {
-        if (bytes(_title).length == 0) revert ES();
-        if (_crowdfundNumberOfDays > maxDuration) revert CDE();
+        if (bytes(_title).length == 0) revert EmptyString();
+        if (_crowdfundNumberOfDays > IDLogosStorage(dLogosStorage).maxDuration()) revert CrowdfundDurationExceeded();
         address msgSender = _msgSender();
-        if (_isZeroFeeProposer(msgSender)) {
-            if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FE();
+        uint256 communityFee = IDLogosStorage(dLogosStorage).communityFee();
+        uint256 dLogosFee = IDLogosStorage(dLogosStorage).dLogosFee();
+        if (IDLogosStorage(dLogosStorage).isZeroFeeProposer(msgSender)) {
+            if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
         } else {
-            if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FE();
+            if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
         }
 
-        uint256 _logoId = logoId;
+        uint256 _logoId = IDLogosStorage(dLogosStorage).logoId();
         logos[_logoId] = Logo({
             id: _logoId,
             title: _title,
@@ -247,7 +142,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         });
         emit LogoCreated(msgSender, _logoId, block.timestamp);
         emit CrowdfundToggled(msgSender, true);
-        return logoId++; // Return and Increment Global Logo ID
+        IDLogosStorage(dLogosStorage).increaseLogoId();
+        return _logoId++; // Return and Increment Global Logo ID
     }
 
     /**
@@ -257,7 +153,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint256 _logoId
     ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
-        if (l.scheduledAt != 0) revert CE();
+        if (l.scheduledAt != 0) revert CrowdfundEnded();
         
         logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
         emit CrowdfundToggled(_msgSender(), !l.status.isCrowdfunding);
@@ -272,8 +168,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     ) external override payable nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
 
-        if (!l.status.isCrowdfunding) revert LNC();
-        if (msg.value < l.minimumPledge) revert IF();
+        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (msg.value < l.minimumPledge) revert InsufficientFunds();
         
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
@@ -286,7 +182,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             }
         } else {
             // Record the value sent to the address.
-            if (_logoBackerAddresses[_logoId].length() >= 1000) revert TMB();
+            if (_logoBackerAddresses[_logoId].length() >= 1000) revert TooManyBackers();
 
             Backer memory b = Backer({
                 addr: msgSender,
@@ -296,7 +192,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             });
             bool added = _logoBackerAddresses[_logoId].add(msgSender);
 
-            if (!added) revert ABF();
+            if (!added) revert AddBackerFailed();
             
             logoBackers[_logoId][msgSender] = b;
         }
@@ -316,8 +212,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint256 _minimumPledge
     ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
-        if (!l.status.isCrowdfunding) revert LNC();
-        if (_minimumPledge == 0) revert NZ();
+        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (_minimumPledge == 0) revert NotZero();
 
         logos[_logoId].minimumPledge = _minimumPledge;
         emit MinimumPledgeSet(_msgSender(), _minimumPledge);
@@ -331,28 +227,28 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (
             (l.scheduledAt != 0 && !l.status.isRefunded) ||
             l.status.isDistributed
-        ) revert LFCBW();
+        ) revert LogoFundsCannotBeWithdrawn();
         
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
 
-        if (!isBacker) revert U();
+        if (!isBacker) revert Unauthorized();
 
         Backer memory backer = logoBackers[_logoId][msgSender];
         
-        if (backer.amount == 0) revert IF();
-        if (logoRewards[_logoId] < backer.amount) revert ILR();
+        if (backer.amount == 0) revert InsufficientFunds();
+        if (logoRewards[_logoId] < backer.amount) revert InsufficientLogoReward();
         
         bool removed = _logoBackerAddresses[_logoId].remove(msgSender);
 
-        if (!removed) revert RBF();
+        if (!removed) revert RemoveBackerFailed();
         
         delete logoBackers[_logoId][msgSender];
         // Decrease total rewards of Logo.
         logoRewards[_logoId] = logoRewards[_logoId] - backer.amount;
         (bool success, ) = payable(msgSender).call{value: backer.amount}("");
 
-        if (!success) revert ETF();
+        if (!success) revert EthTransferFailed();
         
         emit FundsWithdrawn(msgSender, backer.amount);
     }
@@ -361,16 +257,16 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      * @dev Allows a backer to reject an uploaded asset.
      */
     function reject(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
-        if (block.timestamp > logos[_logoId].rejectionDeadline) revert RDP();
+        if (block.timestamp > logos[_logoId].rejectionDeadline) revert RejectionDeadlinePassed();
 
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
 
-        if (!isBacker) revert U();
+        if (!isBacker) revert Unauthorized();
 
         Backer memory backer = logoBackers[_logoId][msgSender];
         // Backer can not reject more than once
-        if (backer.votesToReject) revert BAR();
+        if (backer.votesToReject) revert BackerAlreadyRejected();
         // Increase rejected funds.
         unchecked {
             logoRejectedFunds[_logoId] = logoRejectedFunds[_logoId] + backer.amount;
@@ -385,16 +281,21 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      */
     function refund(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        if (l.status.isDistributed) revert LD();
+        if (l.status.isDistributed) revert LogoDistributed();
 
-        bool c1 = l.proposer == _msgSender(); // Case 1: Logo proposer can refund whenever.
-        bool c2 = block.timestamp > l.crowdfundEndAt; // Case 2: Crowdfund end date reached and not distributed.
-        bool c3 = l.scheduledAt != 0 &&
-            (block.timestamp > l.scheduledAt + 7 * 1 days) &&
-            !l.status.isUploaded; // Case 3: >7 days have passed since schedule date and no asset uploaded.
-        bool c4 = _pollBackersForRefund(_logoId); // Case 4: >50% of backer funds reject upload.
+        // Case 1: Logo proposer can refund whenever.
+        bool c1 = l.proposer == _msgSender();
+        // Case 2: Crowdfund end date reached and not distributed.
+        bool c2 = block.timestamp > l.crowdfundEndAt;
+        // Case 3: >7 days have passed since schedule date and no asset uploaded.
+        bool c3 = l.scheduledAt != 0 && (block.timestamp > l.scheduledAt + 7 * 1 days) && !l.status.isUploaded;
+        // Case 4: >50% of backer funds reject upload.
+        bool c4 = 
+            logoRejectedFunds[_logoId] * 10_000 / logoRewards[_logoId]
+            > 
+            IDLogosStorage(dLogosStorage).rejectThreshold();
         
-        if (!c1 && !c2 && !c3 && !c4) revert NRCM();
+        if (!c1 && !c2 && !c3 && !c4) revert NoRefundConditionsMet();
 
         logos[_logoId].status.isRefunded = true;
 
@@ -404,7 +305,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /**
      * @dev Return the list of backers for a Logo.
      */
-    function getBackersForLogo(uint256 _logoId) external override view returns (Backer[] memory) {
+    function getBackersForLogo(uint256 _logoId) public override view returns (Backer[] memory) {
         EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
         address[] memory backerArray = backerAddresses.values();
         Backer[] memory backers = new Backer[](backerArray.length);
@@ -418,51 +319,51 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
      * @dev Set speakers for a Logo.
      */
     function setSpeakers(
-        uint256 _logoId,
-        address[] calldata _speakers,
-        uint256[] calldata _fees,
-        string[] calldata _providers,
-        string[] calldata _handles
-    ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
-        if (!logos[_logoId].status.isCrowdfunding) revert LNC();
-        if (_speakers.length == 0 || _speakers.length >= 100) revert ISN();
+        SetSpeakersParam calldata _param
+    ) external override whenNotPaused validLogoId(_param.logoId) onlyLogoProposer(_param.logoId) {
+        Logo memory l = logos[_param.logoId];
+        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (_param.speakers.length == 0 || _param.speakers.length >= 100) revert InvalidSpeakerNumber();
         if (
-            _speakers.length != _fees.length ||
-            _fees.length != _providers.length ||
-            _providers.length != _handles.length
-        ) revert IAA();
+            _param.speakers.length != _param.fees.length ||
+            _param.fees.length != _param.providers.length ||
+            _param.providers.length != _param.handles.length
+        ) revert InvalidArrayArguments();
         
-        delete logoSpeakers[_logoId]; // Reset to default (no speakers)
+        delete logoSpeakers[_param.logoId]; // Reset to default (no speakers)
 
         uint256 speakerFeesSum;
-        for (uint i = 0; i < _speakers.length; i++) {
-            speakerFeesSum += _fees[i];
+        for (uint i = 0; i < _param.speakers.length; i++) {
+            speakerFeesSum += _param.fees[i];
             Speaker memory s = Speaker({
-                addr: _speakers[i],
-                fee: _fees[i],
-                provider: _providers[i],
-                handle: _handles[i],
+                addr: _param.speakers[i],
+                fee: _param.fees[i],
+                provider: _param.providers[i],
+                handle: _param.handles[i],
                 status: SpeakerStatus.Pending
             });
-            logoSpeakers[_logoId].push(s);
+            logoSpeakers[_param.logoId].push(s);
         }
 
         // Use `_msgSender()` twice to avoid stack too deep error
-        if (_isZeroFeeProposer(_msgSender())) {
-            if (
-                communityFee + logos[_logoId].proposerFee + speakerFeesSum 
-                != 
-                PERCENTAGE_SCALE
-            ) revert FSNM();
-        } else {
-            if (
-                dLogosFee + communityFee + logos[_logoId].proposerFee + speakerFeesSum 
-                != 
-                PERCENTAGE_SCALE
-            ) revert FSNM();
+        {
+            uint256 communityFee = IDLogosStorage(dLogosStorage).communityFee();
+            if (IDLogosStorage(dLogosStorage).isZeroFeeProposer(_msgSender())) {
+                if (
+                    communityFee + l.proposerFee + speakerFeesSum 
+                    != 
+                    PERCENTAGE_SCALE
+                ) revert FeeSumNotMatch();
+            } else {
+                if (
+                    IDLogosStorage(dLogosStorage).dLogosFee() + communityFee + l.proposerFee + speakerFeesSum
+                    != 
+                    PERCENTAGE_SCALE
+                ) revert FeeSumNotMatch();
+            }
         }
 
-        emit SpeakersSet(_msgSender(), _speakers, _fees, _providers, _handles);
+        emit SpeakersSet(_msgSender(), _param.speakers, _param.fees, _param.providers, _param.handles);
     }
 
     /**
@@ -473,8 +374,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint8 _speakerStatus
     ) external override whenNotPaused validLogoId(_logoId) {
         // Speaker status should be either Accepted or Rejected
-        if (_speakerStatus == 0) revert ISS();
-        if (!logos[_logoId].status.isCrowdfunding) revert LNC();
+        if (_speakerStatus == 0) revert InvalidSpeakerStatus();
+        if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
 
         address msgSender = _msgSender();
         Speaker[] memory speakers = logoSpeakers[_logoId];
@@ -502,17 +403,17 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint _scheduledAt
     ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
-        if (l.status.isUploaded) revert LU();
-        if (l.status.isDistributed) revert LD();
-        if (l.status.isRefunded) revert LR();
-        if (_scheduledAt <= block.timestamp) revert IST();
+        if (l.status.isUploaded) revert LogoUploaded();
+        if (l.status.isDistributed) revert LogoDistributed();
+        if (l.status.isRefunded) revert LogoRefunded();
+        if (_scheduledAt <= block.timestamp) revert InvalidScheduleTime();
 
         Speaker[] memory speakers = logoSpeakers[_logoId];
         // Need to be sure the logo has more than one speaker
-        if (speakers.length == 0) revert ISN();
+        if (speakers.length == 0) revert InvalidSpeakerNumber();
         // Need to be sure all speakers accepted
         for (uint256 i = 0; i < speakers.length; i++) {
-            if (speakers[i].status != SpeakerStatus.Accepted) revert NASA();
+            if (speakers[i].status != SpeakerStatus.Accepted) revert NotAllSpeakersAccepted();
         }
         
         logos[_logoId].scheduledAt = _scheduledAt;
@@ -528,14 +429,14 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         string calldata _mediaAssetURL
     ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory ml = logos[_logoId];
-        if (ml.status.isDistributed) revert LD();
-        if (ml.status.isRefunded) revert LR();
+        if (ml.status.isDistributed) revert LogoDistributed();
+        if (ml.status.isRefunded) revert LogoRefunded();
         
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
         sl.status.isCrowdfunding = false; // Close crowdfund.
         sl.status.isUploaded = true;
-        sl.rejectionDeadline = block.timestamp + rejectionWindow * 1 days;
+        sl.rejectionDeadline = block.timestamp + IDLogosStorage(dLogosStorage).rejectionWindow() * 1 days;
 
         emit MediaAssetSet(_msgSender(), _mediaAssetURL);
     }
@@ -548,10 +449,10 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint256 _logoId
     ) external override nonReentrant whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
         Logo memory l = logos[_logoId];
-        if (l.status.isDistributed) revert LD();
-        if (l.status.isRefunded) revert LR();
-        if (!l.status.isUploaded) revert LNU();
-        if (block.timestamp < l.rejectionDeadline) revert RDNP();
+        if (l.status.isDistributed) revert LogoDistributed();
+        if (l.status.isRefunded) revert LogoRefunded();
+        if (!l.status.isUploaded) revert LogoNotUploaded();
+        if (block.timestamp < l.rejectionDeadline) revert RejectionDeadlineNotPassed();
 
         address msgSender = _msgSender();
         uint256 totalRewards = logoRewards[_logoId];
@@ -559,83 +460,36 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         address splitForSpeaker;        
 
         if (totalRewards != 0) {
-            SplitV2Lib.Split memory splitParams;
+            SplitV2Lib.Split memory splitParam;
             // PushSplit for affiliate fee distribution
-            (
-                uint256 totalRefRewards, 
-                address[] memory referrers, 
-                uint256[] memory refAllocations
-            ) = _getAffiliates(_logoId);
+            uint256 totalRefRewards;
 
-            if (totalRewards < totalRefRewards) revert ARE();
+            {
+                // Prepare params to call DLogosLib
+                (totalRefRewards, splitParam) = DLogosLib.getAffiliatesSplitInfo(
+                    getBackersForLogo(_logoId), 
+                    IDLogosStorage(dLogosStorage).affiliateFee()
+                );
 
-            splitParams = SplitV2Lib.Split({
-                recipients: referrers,
-                allocations: refAllocations,
-                totalAllocation: PERCENTAGE_SCALE,
-                distributionIncentive: 0 // set to 0
-            });
-            // Deploy
-            splitForAffiliate = IPushSplitFactory(pushSplitFactory).createSplit(splitParams, owner(), address(this));
-            emit SplitForAffiliateCreated(splitForAffiliate, splitParams, owner(), address(this));
-            // Send Eth to PushSplit
-            (bool success, ) = payable(splitForAffiliate).call{value: totalRefRewards}("");        
-            if (!success) revert ETF();
-            // Distribute
-            IPushSplit(splitForAffiliate).distribute(
-                splitParams,
-                NATIVE_TOKEN,
-                address(0) // distributor address
-            );
+                if (totalRewards < totalRefRewards) revert AffiliateRewardsExceeded();
+            }
+
+            splitForAffiliate = DLogosLib.deploySplitV2AndDistribute(splitParam, totalRefRewards);
 
             // PushSplit for dlogos, community and speaker fee distribution
-            Speaker[] memory speakers = logoSpeakers[_logoId];
-            address[] memory recipients = new address[](3 + speakers.length);
-            uint256[] memory allocations = new uint256[](3 + speakers.length);
-            // Assign recipients array
-            recipients[0] = dLogos;
-            recipients[1] = community;
-            recipients[2] = l.proposer;
-            for (uint256 i = 0; i < speakers.length; i++) {
-                recipients[i + 3] = speakers[i].addr;
-            }
-            // Assign allocations array
-            uint256 totalAllocation;
-            if (_isZeroFeeProposer(msgSender)) {
-                allocations[0] = 0;
-            } else {
-                allocations[0] = dLogosFee;
-            }
-            allocations[1] = communityFee;
-            allocations[2] = l.proposerFee;
-            totalAllocation += dLogosFee + communityFee + l.proposerFee;
-            for (uint256 i = 0; i < speakers.length; i++) {
-                allocations[i + 3] = speakers[i].fee;
-                totalAllocation += speakers[i].fee;
-            }
-            // Check total allocation equals to 1e6
-            if (totalAllocation != PERCENTAGE_SCALE) revert TAE();
+            DLogosLib.GetSpeakersSplitInfoParam memory param = DLogosLib.GetSpeakersSplitInfoParam({
+                speakers: logoSpeakers[_logoId],
+                dLogos: IDLogosStorage(dLogosStorage).dLogos(),
+                community: IDLogosStorage(dLogosStorage).community(),
+                proposer: l.proposer,
+                isZeroFeeProposer: IDLogosStorage(dLogosStorage).isZeroFeeProposer(msgSender),
+                dLogosFee: IDLogosStorage(dLogosStorage).dLogosFee(),
+                communityFee: IDLogosStorage(dLogosStorage).communityFee(),
+                proposerFee: l.proposerFee
 
-            splitParams = SplitV2Lib.Split({
-                recipients: recipients,
-                allocations: allocations,
-                totalAllocation: PERCENTAGE_SCALE,
-                distributionIncentive: 0 // set to 0
             });
-            // Deploy
-            // Split owner can pause and unpause the contract
-            // Split creator does not mean anything
-            splitForSpeaker = IPushSplitFactory(pushSplitFactory).createSplit(splitParams, owner(), address(this));
-            emit SplitForSpeakerCreated(splitForSpeaker, splitParams, owner(), address(this));
-            // Send Eth to PushSplit
-            (success, ) = payable(splitForSpeaker).call{value: totalRewards - totalRefRewards}("");        
-            if (!success) revert ETF();
-            // Distribute
-            IPushSplit(splitForSpeaker).distribute(
-                splitParams,
-                NATIVE_TOKEN,
-                address(0) // distributor address
-            );
+            splitParam = DLogosLib.getSpeakersSplitInfo(param);
+            splitForSpeaker = DLogosLib.deploySplitV2AndDistribute(splitParam, totalRewards - totalRefRewards);
         }     
         
         Logo storage sl = logos[_logoId];
@@ -647,85 +501,21 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     }    
 
     /**
-     * @dev Pause the contract
+     * @dev Pause or unpause the contract
      * Only `owner` can call
      */
-    function pause() external override onlyOwner {
-        super._pause();
-    }
-
-    /**
-     * @dev Unpause the contract
-     * Only `owner` can call
-     */
-    function unpause() external override onlyOwner {
-        super._unpause();
-    }
-
-    /**
-     * @dev Query zero fee proposer status
-     */
-    function isZeroFeeProposer(address _proposer) external view returns(bool) {
-        return _isZeroFeeProposer(_proposer);
-    }
-
-    /**
-     * @dev Private function for polling backers, weighted by capital.
-     */
-    function _pollBackersForRefund(uint256 _logoId) private view returns (bool) {
-        uint256 threshold = logoRejectedFunds[_logoId] * 10_000 / logoRewards[_logoId]; // BPS
-        return threshold > rejectThreshold;
-    }
-
-    function _isZeroFeeProposer(address _proposer) private view returns (bool) {
-        return _zeroFeeProposers.contains(_proposer);
-    }
-
-    function _getAffiliates(uint256 _logoId) private view returns (
-        uint256 totalRefRewards,
-        address[] memory referrers,
-        uint256[] memory allocations
-    ) {
-        EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
-        address[] memory backerArray = backerAddresses.values();
-        referrers = new address[](backerArray.length + 1);
-        allocations  = new uint256[](backerArray.length + 1);
-        uint256[] memory refRewards  = new uint256[](backerArray.length + 1);
-
-        uint256 _totalAllocation;
-
-        unchecked {
-            for (uint256 i = 0; i < backerArray.length; i++) {
-                Backer memory b = logoBackers[_logoId][backerArray[i]];
-                address r = b.referrer;
-                referrers[i] = r;
-                if (r == address(0)) {
-                    refRewards[i] = 0;
-                } else {
-                    refRewards[i] = b.amount * affiliateFee / PERCENTAGE_SCALE;
-                }
-
-                totalRefRewards += refRewards[i];
-            }
-
-            for (uint256 i = 0; i < backerArray.length; i++) {
-                allocations[i] = refRewards[i] * PERCENTAGE_SCALE / totalRefRewards;
-                _totalAllocation += allocations[i];
-            }
-
-            // Slippage
-            if (_totalAllocation < PERCENTAGE_SCALE) {
-                // TODO check n+1 referrer address
-                referrers[backerArray.length] = address(this);
-                allocations[backerArray.length] = PERCENTAGE_SCALE - _totalAllocation;
-            }            
+    function pauseOrUnpause(bool _pause) external override onlyOwner {
+        if (_pause) {
+            super._pause();
+        } else {
+            super._unpause();
         }
     }
 
     // ----------------------------------------------Biconomy meta tx helpers----------------------------------------------
 
     function setTrustedForwarder(address trustedForwarder_) external onlyOwner {
-        if (trustedForwarder_ == address(0)) revert ZA();
+        if (trustedForwarder_ == address(0)) revert ZeroAddress();
 
         _trustedForwarder = trustedForwarder_;
         emit TrustedForwarderUpdated(trustedForwarder_);
