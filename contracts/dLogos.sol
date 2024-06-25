@@ -126,8 +126,6 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     }
 
     /// FUNCTIONS
-    // TODO allow direct Eth deposit? will decide after meta tx r&d is complete
-    receive() external payable {}
     
     /**
      * @dev Set reject threshold for dLogos.
