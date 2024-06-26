@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import {IDLogos} from "./interfaces/IdLogos.sol";
-import {IDLogosStorage} from "./interfaces/IdLogosStorage.sol";
+import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
+import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
-import {DLogosLib} from "./libraries/dLogosLib.sol";
+import {DLogosSplitsHelper} from "./libraries/dLogosSplitsHelper.sol";
 import {SplitV2Lib} from "./splitsV2/libraries/SplitV2.sol";
 import "./Error.sol";
 
@@ -53,27 +52,24 @@ import "./Error.sol";
 */
 /// @title Core DLogos contract
 /// @author 0xan000n
-contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable, ERC2771ContextUpgradeable {
-    using EnumerableSet for EnumerableSet.AddressSet;
-
+contract DLogosCore is IDLogosCore, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable, ERC2771ContextUpgradeable {
     /// CONSTANTS
     uint256 public constant PERCENTAGE_SCALE = 1e6;
-    uint256 public constant MAX_AFFILIATE_FEE = 2 * 1e5; // Max 20%
 
     /// STORAGE
-    address public dLogosStorage;
+    address public dLogosOwner;
     address public dLogosBacker;
     address private _trustedForwarder; // Customized trusted forwarder address    
     uint256 public override logoId; // Global Logo ID
-    mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
-    
+
+    mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info    
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
 
     // The contract does not use trustedForwarder that is defined in ERC2771ContextUpgradeable
     constructor() ERC2771ContextUpgradeable(address(0)) {}
 
     function initialize(        
-        address _dLogosStorage,
+        address _dLogosOwner,
         address _dLogosBacker,
         address trustedForwarder_
     ) external initializer {
@@ -82,9 +78,10 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         __Pausable_init();
         __ReentrancyGuard_init();
         
-        if (_dLogosStorage == address(0) || _dLogosBacker == address(0) || trustedForwarder_ == address(0)) revert ZeroAddress();
+        if (_dLogosOwner == address(0) || _dLogosBacker == address(0) || trustedForwarder_ == address(0)) 
+            revert ZeroAddress();
 
-        dLogosStorage = _dLogosStorage;
+        dLogosOwner = _dLogosOwner;
         dLogosBacker = _dLogosBacker;
         _trustedForwarder = trustedForwarder_;
         logoId = 1; // Starting from 1
@@ -116,11 +113,11 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         uint8 _crowdfundNumberOfDays
     ) external override whenNotPaused returns (uint256) {
         if (bytes(_title).length == 0) revert EmptyString();
-        if (_crowdfundNumberOfDays > IDLogosStorage(dLogosStorage).maxDuration()) revert CrowdfundDurationExceeded();
+        if (_crowdfundNumberOfDays > IDLogosOwner(dLogosOwner).maxDuration()) revert CrowdfundDurationExceeded();
         address msgSender = _msgSender();
-        uint256 communityFee = IDLogosStorage(dLogosStorage).communityFee();
-        uint256 dLogosFee = IDLogosStorage(dLogosStorage).dLogosFee();
-        if (IDLogosStorage(dLogosStorage).isZeroFeeProposer(msgSender)) {
+        uint256 communityFee = IDLogosOwner(dLogosOwner).communityFee();
+        uint256 dLogosFee = IDLogosOwner(dLogosOwner).dLogosFee();
+        if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender)) {
             if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
         } else {
             if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
@@ -140,7 +137,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             splitForAffiliate: address(0),
             splitForSpeaker: address(0),
             rejectionDeadline: 0,
-            status: Status({
+            status: LogoStatus({
                 isCrowdfunding: true,
                 isUploaded: false,
                 isDistributed: false,
@@ -199,7 +196,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         bool c4 = 
             logoRejectedFunds * 10_000 / logoRewards
             > 
-            IDLogosStorage(dLogosStorage).rejectThreshold();
+            IDLogosOwner(dLogosOwner).rejectThreshold();
         
         if (!c1 && !c2 && !c3 && !c4) revert NoRefundConditionsMet();
 
@@ -240,8 +237,8 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
 
         address msgSender = _msgSender();
         {
-            uint256 communityFee = IDLogosStorage(dLogosStorage).communityFee();
-            if (IDLogosStorage(dLogosStorage).isZeroFeeProposer(msgSender)) {
+            uint256 communityFee = IDLogosOwner(dLogosOwner).communityFee();
+            if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender)) {
                 if (
                     communityFee + l.proposerFee + speakerFeesSum 
                     != 
@@ -249,7 +246,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
                 ) revert FeeSumNotMatch();
             } else {
                 if (
-                    IDLogosStorage(dLogosStorage).dLogosFee() + communityFee + l.proposerFee + speakerFeesSum
+                    IDLogosOwner(dLogosOwner).dLogosFee() + communityFee + l.proposerFee + speakerFeesSum
                     != 
                     PERCENTAGE_SCALE
                 ) revert FeeSumNotMatch();
@@ -329,7 +326,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         sl.mediaAssetURL = _mediaAssetURL;
         sl.status.isCrowdfunding = false; // Close crowdfund.
         sl.status.isUploaded = true;
-        sl.rejectionDeadline = block.timestamp + IDLogosStorage(dLogosStorage).rejectionWindow() * 1 days;
+        sl.rejectionDeadline = block.timestamp + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days;
 
         emit MediaAssetSet(_msgSender(), _mediaAssetURL);
     }
@@ -358,31 +355,31 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             uint256 totalRefRewards;
 
             {
-                // Prepare params to call DLogosLib
-                (totalRefRewards, splitParam) = DLogosLib.getAffiliatesSplitInfo(
+                // Prepare params to call DLogosSplitsHelper
+                (totalRefRewards, splitParam) = DLogosSplitsHelper.getAffiliatesSplitInfo(
                     IDLogosBacker(dLogosBacker).getBackersForLogo(_logoId), 
-                    IDLogosStorage(dLogosStorage).affiliateFee()
+                    IDLogosOwner(dLogosOwner).affiliateFee()
                 );
 
                 if (totalRewards < totalRefRewards) revert AffiliateRewardsExceeded();
             }
 
-            splitForAffiliate = DLogosLib.deploySplitV2AndDistribute(splitParam, totalRefRewards);
+            splitForAffiliate = DLogosSplitsHelper.deploySplitV2AndDistribute(splitParam, totalRefRewards);
 
             // PushSplit for dlogos, community and speaker fee distribution
-            DLogosLib.GetSpeakersSplitInfoParam memory param = DLogosLib.GetSpeakersSplitInfoParam({
+            DLogosSplitsHelper.GetSpeakersSplitInfoParam memory param = DLogosSplitsHelper.GetSpeakersSplitInfoParam({
                 speakers: logoSpeakers[_logoId],
-                dLogos: IDLogosStorage(dLogosStorage).dLogos(),
-                community: IDLogosStorage(dLogosStorage).community(),
+                dLogos: IDLogosOwner(dLogosOwner).dLogos(),
+                community: IDLogosOwner(dLogosOwner).community(),
                 proposer: l.proposer,
-                isZeroFeeProposer: IDLogosStorage(dLogosStorage).isZeroFeeProposer(msgSender),
-                dLogosFee: IDLogosStorage(dLogosStorage).dLogosFee(),
-                communityFee: IDLogosStorage(dLogosStorage).communityFee(),
+                isZeroFeeProposer: IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender),
+                dLogosFee: IDLogosOwner(dLogosOwner).dLogosFee(),
+                communityFee: IDLogosOwner(dLogosOwner).communityFee(),
                 proposerFee: l.proposerFee
 
             });
-            splitParam = DLogosLib.getSpeakersSplitInfo(param);
-            splitForSpeaker = DLogosLib.deploySplitV2AndDistribute(splitParam, totalRewards - totalRefRewards);
+            splitParam = DLogosSplitsHelper.getSpeakersSplitInfo(param);
+            splitForSpeaker = DLogosSplitsHelper.deploySplitV2AndDistribute(splitParam, totalRewards - totalRefRewards);
         }     
         
         Logo storage sl = logos[_logoId];

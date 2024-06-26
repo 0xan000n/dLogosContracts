@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - affiliate fees in DLogos
 - rejectionWindow in DLogos
 - meta tx in DLogos
+- DLogosCore, DLogosOwner, DLogosBacker, DLogosSplitsHelper
 
 ## [2.0.1] - 2024-06-03
 ### Added

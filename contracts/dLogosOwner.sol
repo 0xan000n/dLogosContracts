@@ -3,10 +3,10 @@ pragma solidity ^0.8.24;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {IDLogosStorage} from "./interfaces/IdLogosStorage.sol";
+import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import "./Error.sol";
 
-contract DLogosStorage is IDLogosStorage, Ownable2StepUpgradeable {
+contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// CONSTANTS

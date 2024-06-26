@@ -5,10 +5,8 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import {IDLogos} from "./interfaces/IdLogos.sol";
+import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
 import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
-import {IDLogosStorage} from "./interfaces/IdLogosStorage.sol";
-import {DLogos} from "./dLogos.sol";
 import "./Error.sol";
 
 // TODO biconomy support
@@ -17,8 +15,8 @@ contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgrade
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// STORAGE
-    address public dLogosStorage;
-    address public dLogos;
+    address public dLogosOwner;
+    address public dLogosCore;
 
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
@@ -26,24 +24,18 @@ contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgrade
     mapping(uint256 => uint256) public override logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
     
     function initialize(        
-        address _dLogosStorage,
-        address _dLogos
+        address _dLogosOwner,
+        address _dLogosCore
     ) external initializer {
         // Initialize tx is not gasless
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
         
-        if (_dLogosStorage == address(0) || _dLogos == address(0)) revert ZeroAddress();
+        if (_dLogosOwner == address(0) || _dLogosCore == address(0)) revert ZeroAddress();
 
-        dLogosStorage = _dLogosStorage;
-        dLogos = _dLogos;
-    }
-
-    /// MODIFIERS
-    modifier validLogoId(uint256 _logoId) {
-        if (_logoId >= IDLogos(dLogos).logoId()) revert InvalidLogoId();
-        _;
+        dLogosOwner = _dLogosOwner;
+        dLogosCore = _dLogosCore;
     }
 
     /**
@@ -52,8 +44,8 @@ contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgrade
     function crowdfund(
         uint256 _logoId,
         address _referrer
-    ) external override payable nonReentrant whenNotPaused validLogoId(_logoId) {
-        IDLogos.Logo memory l = IDLogos(dLogos).getLogo(_logoId);
+    ) external override payable nonReentrant whenNotPaused {
+        IDLogosCore.Logo memory l = _getValidLogo(_logoId);
         
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (msg.value < l.minimumPledge) revert InsufficientFunds();
@@ -94,8 +86,8 @@ contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgrade
     /**
      * @dev Withdraw your pledge from a Logo.
      */
-    function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused validLogoId(_logoId) {
-        IDLogos.Logo memory l = IDLogos(dLogos).getLogo(_logoId);
+    function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused {
+        IDLogosCore.Logo memory l = _getValidLogo(_logoId);
         if (
             (l.scheduledAt != 0 && !l.status.isRefunded) ||
             l.status.isDistributed
@@ -128,8 +120,8 @@ contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgrade
     /**
      * @dev Allows a backer to reject an uploaded asset.
      */
-    function reject(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
-        IDLogos.Logo memory l = IDLogos(dLogos).getLogo(_logoId);
+    function reject(uint256 _logoId) external override whenNotPaused {
+        IDLogosCore.Logo memory l = _getValidLogo(_logoId);
         if (block.timestamp > l.rejectionDeadline) revert RejectionDeadlinePassed();
 
         address msgSender = _msgSender();
@@ -160,5 +152,10 @@ contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgrade
             backers[i] = logoBackers[_logoId][backerArray[i]];
         }
         return backers;
+    }
+
+    function _getValidLogo(uint256 _logoId) private view returns (IDLogosCore.Logo memory l) {
+        l = IDLogosCore(dLogosCore).getLogo(_logoId);
+        if (l.proposer == address(0)) revert InvalidLogoId();
     }
 }

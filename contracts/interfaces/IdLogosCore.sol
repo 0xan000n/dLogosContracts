@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {SplitV2Lib} from "../splitsV2/libraries/SplitV2.sol";
 
-interface IDLogos {
+interface IDLogosCore {
     enum SpeakerStatus {
         Pending,
         Accepted,
@@ -20,7 +20,7 @@ interface IDLogos {
 
     // isUploaded && isDistributed for a successful logo
     // isUploaded && isRefunded for an uploaded and refunded logo
-    struct Status {
+    struct LogoStatus {
         bool isCrowdfunding;
         bool isUploaded;
         bool isDistributed;
@@ -41,7 +41,7 @@ interface IDLogos {
         uint256 rejectionDeadline;
         address splitForSpeaker; // PUshSplit address for dlogos, community, speakers
         address splitForAffiliate; // PUshSplit address for affiliates
-        Status status;
+        LogoStatus status;
     }
 
     struct SetSpeakersParam {

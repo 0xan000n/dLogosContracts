@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IDLogosStorage {
+interface IDLogosOwner {
     /// EVENTS
     event DLogosAddressUpdated(address _dLogos);
     event CommunityAddressUpdated(address _community);

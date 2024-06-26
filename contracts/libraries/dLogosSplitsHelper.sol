@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import {IDLogos} from "../interfaces/IdLogos.sol";
+import {IDLogosCore} from "../interfaces/IdLogosCore.sol";
 import {IDLogosBacker} from "../interfaces/IdLogosBacker.sol";
 import {SplitV2Lib} from "../splitsV2/libraries/SplitV2.sol";
 import {IPushSplitFactory} from "../splitsV2/interfaces/IPushSplitFactory.sol";
 import {IPushSplit} from "../splitsV2/interfaces/IPushSplit.sol";
 
-library DLogosLib {
+library DLogosSplitsHelper {
     // Address of native token, inline with ERC7528
     address internal constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     uint256 internal constant PERCENTAGE_SCALE = 1e6;
     address internal constant PUSH_SPLIT_FACTORY = 0xaDC87646f736d6A82e9a6539cddC488b2aA07f38; // Base
 
     struct GetSpeakersSplitInfoParam {
-        IDLogos.Speaker[] speakers;
+        IDLogosCore.Speaker[] speakers;
         address dLogos;
         address community;
         address proposer;
