@@ -62,6 +62,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     /// STORAGE
     address public dLogosStorage;
     address private _trustedForwarder; // Customized trusted forwarder address    
+    uint256 public logoId; // Global Logo ID
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
@@ -85,11 +86,12 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
 
         dLogosStorage = _dLogosStorage;
         _trustedForwarder = trustedForwarder_;
+        logoId = 1; // Starting from 1
     }
 
     /// MODIFIERS
     modifier validLogoId(uint256 _logoId) {
-        if (_logoId >= IDLogosStorage(dLogosStorage).logoId()) revert InvalidLogoId();
+        if (_logoId >= logoId) revert InvalidLogoId();
         _;
     }
 
@@ -119,7 +121,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
         }
 
-        uint256 _logoId = IDLogosStorage(dLogosStorage).logoId();
+        uint256 _logoId = logoId;
         logos[_logoId] = Logo({
             id: _logoId,
             title: _title,
@@ -142,8 +144,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         });
         emit LogoCreated(msgSender, _logoId, block.timestamp);
         emit CrowdfundToggled(msgSender, true);
-        IDLogosStorage(dLogosStorage).increaseLogoId();
-        return _logoId++; // Return and Increment Global Logo ID
+        return logoId++; // Return and Increment Global Logo ID
     }
 
     /**
@@ -345,10 +346,10 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             logoSpeakers[_param.logoId].push(s);
         }
 
-        // Use `_msgSender()` twice to avoid stack too deep error
+        address msgSender = _msgSender();
         {
             uint256 communityFee = IDLogosStorage(dLogosStorage).communityFee();
-            if (IDLogosStorage(dLogosStorage).isZeroFeeProposer(_msgSender())) {
+            if (IDLogosStorage(dLogosStorage).isZeroFeeProposer(msgSender)) {
                 if (
                     communityFee + l.proposerFee + speakerFeesSum 
                     != 
@@ -363,7 +364,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             }
         }
 
-        emit SpeakersSet(_msgSender(), _param.speakers, _param.fees, _param.providers, _param.handles);
+        emit SpeakersSet(msgSender, _param.speakers, _param.fees, _param.providers, _param.handles);
     }
 
     /**

@@ -18,7 +18,6 @@ interface IDLogosStorage {
     function dLogosFee() external view returns (uint256);
     function communityFee() external view returns (uint256);
     function affiliateFee() external view returns (uint256);
-    function logoId() external view returns (uint256);
     function rejectThreshold() external view returns (uint16);
     function maxDuration() external view returns (uint8);
     function rejectionWindow() external view returns (uint8);
@@ -34,6 +33,5 @@ interface IDLogosStorage {
         address[] calldata,
         bool[] calldata
     ) external;
-    function increaseLogoId() external;
     function isZeroFeeProposer(address) external view returns (bool);
 }

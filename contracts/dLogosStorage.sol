@@ -17,8 +17,7 @@ contract DLogosStorage is IDLogosStorage, Ownable2StepUpgradeable {
     address public override community;
     uint256 public override dLogosFee; // DLogos (Labs) fee
     uint256 public override communityFee; // Community fee
-    uint256 public override affiliateFee; // Affiliate fee
-    uint256 public override logoId; // Global Logo ID
+    uint256 public override affiliateFee; // Affiliate fee    
     uint16 public override rejectThreshold; // Backer rejection threshold in BPS
     uint8 public override maxDuration; // Max crowdfunding duration
     uint8 public override rejectionWindow; // Reject deadline in days
@@ -31,17 +30,14 @@ contract DLogosStorage is IDLogosStorage, Ownable2StepUpgradeable {
     ) external initializer {
         __Ownable_init(msg.sender);
 
-        if (
-            _dLogos == address(0) || 
-            _community == address(0)
-        ) revert ZeroAddress();
+        if (_dLogos == address(0) || _community == address(0)) revert ZeroAddress();
 
         dLogos = _dLogos;
         community = _community;
         dLogosFee = 1e5; // 10%
         communityFee = 1e5; // 10%
         affiliateFee = 5 * 1e4; // 5%        
-        logoId = 1; // Starting from 1
+        
         rejectThreshold = 5000; // 50%
         maxDuration = 60; // 60 days
         rejectionWindow = 7; // 7 days        
@@ -125,10 +121,6 @@ contract DLogosStorage is IDLogosStorage, Ownable2StepUpgradeable {
         }
 
         emit ZeroFeeProposersSet(_proposers, _statuses);
-    }
-
-    function increaseLogoId() external override onlyOwner {
-        logoId++;
     }
 
     /**
