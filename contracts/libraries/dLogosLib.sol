@@ -24,12 +24,8 @@ library DLogosLib {
         uint256 proposerFee;
     }
 
-    // SplitForAffiliateCreated
-    event SFAC(address indexed split, SplitV2Lib.Split, address owner, address creator);
-
-    // TotalAllocationExceeded
-    error TAE();
-    // EthTransferFailed
+    event SplitForAffiliateCreated(address indexed split, SplitV2Lib.Split, address owner, address creator);
+    error TotalAllocationExceeded();
     error EthTransferFailed();
 
     function getAffiliatesSplitInfo(
@@ -121,7 +117,7 @@ library DLogosLib {
             totalAllocation += param.speakers[i].fee;
         }
         // Check total allocation equals to 1e6
-        if (totalAllocation != PERCENTAGE_SCALE) revert TAE();
+        if (totalAllocation != PERCENTAGE_SCALE) revert TotalAllocationExceeded();
 
         splitParam = SplitV2Lib.Split({
             recipients: recipients,
@@ -140,7 +136,7 @@ library DLogosLib {
             address(this), // We do not need to set split owner 
             address(this)
         );
-        emit SFAC(split, splitParam, address(this), address(this));
+        emit SplitForAffiliateCreated(split, splitParam, address(this), address(this));
         // Send Eth to PushSplit
         (bool success, ) = payable(split).call{value: amount}("");        
         if (!success) revert EthTransferFailed();
