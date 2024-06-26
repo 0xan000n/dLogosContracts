@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IDLogos} from "../interfaces/IdLogos.sol";
+import {IDLogosBacker} from "../interfaces/IdLogosBacker.sol";
 import {SplitV2Lib} from "../splitsV2/libraries/SplitV2.sol";
 import {IPushSplitFactory} from "../splitsV2/interfaces/IPushSplitFactory.sol";
 import {IPushSplit} from "../splitsV2/interfaces/IPushSplit.sol";
@@ -32,7 +33,7 @@ library DLogosLib {
     error EthTransferFailed();
 
     function getAffiliatesSplitInfo(
-        IDLogos.Backer[] memory backers,
+        IDLogosBacker.Backer[] memory backers,
         uint256 affiliateFee
     ) external pure returns (
         uint256 totalRefRewards,
@@ -46,7 +47,7 @@ library DLogosLib {
 
         unchecked {
             for (uint256 i = 0; i < backers.length; i++) {
-                IDLogos.Backer memory b = backers[i];
+                IDLogosBacker.Backer memory b = backers[i];
                 address r = b.referrer;
                 referrers[i] = r;
                 if (r == address(0)) {

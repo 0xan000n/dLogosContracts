@@ -9,6 +9,7 @@ import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/met
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IDLogos} from "./interfaces/IdLogos.sol";
 import {IDLogosStorage} from "./interfaces/IdLogosStorage.sol";
+import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
 import {DLogosLib} from "./libraries/dLogosLib.sol";
 import {SplitV2Lib} from "./splitsV2/libraries/SplitV2.sol";
 import "./Error.sol";
@@ -61,20 +62,19 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
 
     /// STORAGE
     address public dLogosStorage;
+    address public dLogosBacker;
     address private _trustedForwarder; // Customized trusted forwarder address    
-    uint256 public logoId; // Global Logo ID
+    uint256 public override logoId; // Global Logo ID
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info
-    mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
-    mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
+    
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
-    mapping(uint256 => uint256) public logoRewards; // Mapping of Logo ID to accumulated rewards
-    mapping(uint256 => uint256) public logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
 
     // The contract does not use trustedForwarder that is defined in ERC2771ContextUpgradeable
     constructor() ERC2771ContextUpgradeable(address(0)) {}
 
     function initialize(        
         address _dLogosStorage,
+        address _dLogosBacker,
         address trustedForwarder_
     ) external initializer {
         // Initialize tx is not gasless
@@ -82,9 +82,10 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         __Pausable_init();
         __ReentrancyGuard_init();
         
-        if (_dLogosStorage == address(0) || trustedForwarder_ == address(0)) revert ZeroAddress();
+        if (_dLogosStorage == address(0) || _dLogosBacker == address(0) || trustedForwarder_ == address(0)) revert ZeroAddress();
 
         dLogosStorage = _dLogosStorage;
+        dLogosBacker = _dLogosBacker;
         _trustedForwarder = trustedForwarder_;
         logoId = 1; // Starting from 1
     }
@@ -101,6 +102,10 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
     }
 
     /// FUNCTIONS
+
+    function getLogo(uint256 _logoId) external override view returns (Logo memory l) {
+        l = logos[_logoId];
+    }
 
     /**
      * @dev Create a new Logo onchain.
@@ -158,52 +163,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         
         logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
         emit CrowdfundToggled(_msgSender(), !l.status.isCrowdfunding);
-    }
-
-    /**
-     * @dev Crowdfund.
-     */
-    function crowdfund(
-        uint256 _logoId,
-        address _referrer
-    ) external override payable nonReentrant whenNotPaused validLogoId(_logoId) {
-        Logo memory l = logos[_logoId];
-
-        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
-        if (msg.value < l.minimumPledge) revert InsufficientFunds();
-        
-        address msgSender = _msgSender();
-        bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
-
-        if (isBacker) {
-            // Ignore `_referrer` because it was already set
-            Backer storage backer = logoBackers[_logoId][msgSender];
-            unchecked {
-                backer.amount += msg.value;
-            }
-        } else {
-            // Record the value sent to the address.
-            if (_logoBackerAddresses[_logoId].length() >= 1000) revert TooManyBackers();
-
-            Backer memory b = Backer({
-                addr: msgSender,
-                referrer: _referrer, // Zero address possible
-                amount: msg.value,
-                votesToReject: false
-            });
-            bool added = _logoBackerAddresses[_logoId].add(msgSender);
-
-            if (!added) revert AddBackerFailed();
-            
-            logoBackers[_logoId][msgSender] = b;
-        }
-
-        // Increase total rewards of Logo.
-        unchecked {
-            logoRewards[_logoId] = logoRewards[_logoId] + msg.value;
-        }
-        emit Crowdfund(_logoId, msgSender, msg.value);
-    }
+    }   
 
     /**
      * @dev Set minimum pledge for a conversation.
@@ -219,64 +179,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         logos[_logoId].minimumPledge = _minimumPledge;
         emit MinimumPledgeSet(_msgSender(), _minimumPledge);
     }
-
-    /**
-     * @dev Withdraw your pledge from a Logo.
-     */
-    function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused validLogoId(_logoId) {
-        Logo memory l = logos[_logoId];
-        if (
-            (l.scheduledAt != 0 && !l.status.isRefunded) ||
-            l.status.isDistributed
-        ) revert LogoFundsCannotBeWithdrawn();
-        
-        address msgSender = _msgSender();
-        bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
-
-        if (!isBacker) revert Unauthorized();
-
-        Backer memory backer = logoBackers[_logoId][msgSender];
-        
-        if (backer.amount == 0) revert InsufficientFunds();
-        if (logoRewards[_logoId] < backer.amount) revert InsufficientLogoReward();
-        
-        bool removed = _logoBackerAddresses[_logoId].remove(msgSender);
-
-        if (!removed) revert RemoveBackerFailed();
-        
-        delete logoBackers[_logoId][msgSender];
-        // Decrease total rewards of Logo.
-        logoRewards[_logoId] = logoRewards[_logoId] - backer.amount;
-        (bool success, ) = payable(msgSender).call{value: backer.amount}("");
-
-        if (!success) revert EthTransferFailed();
-        
-        emit FundsWithdrawn(msgSender, backer.amount);
-    }
-
-    /**
-     * @dev Allows a backer to reject an uploaded asset.
-     */
-    function reject(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
-        if (block.timestamp > logos[_logoId].rejectionDeadline) revert RejectionDeadlinePassed();
-
-        address msgSender = _msgSender();
-        bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
-
-        if (!isBacker) revert Unauthorized();
-
-        Backer memory backer = logoBackers[_logoId][msgSender];
-        // Backer can not reject more than once
-        if (backer.votesToReject) revert BackerAlreadyRejected();
-        // Increase rejected funds.
-        unchecked {
-            logoRejectedFunds[_logoId] = logoRejectedFunds[_logoId] + backer.amount;
-        }
-        logoBackers[_logoId][msgSender].votesToReject = true;
-        
-        emit RejectionSubmitted(_logoId, msgSender);
-    }
-
+    
     /**
      * @dev Issue refund of the Logo.
      */
@@ -291,8 +194,10 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         // Case 3: >7 days have passed since schedule date and no asset uploaded.
         bool c3 = l.scheduledAt != 0 && (block.timestamp > l.scheduledAt + 7 * 1 days) && !l.status.isUploaded;
         // Case 4: >50% of backer funds reject upload.
+        uint256 logoRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
+        uint256 logoRejectedFunds = IDLogosBacker(dLogosBacker).logoRejectedFunds(_logoId);
         bool c4 = 
-            logoRejectedFunds[_logoId] * 10_000 / logoRewards[_logoId]
+            logoRejectedFunds * 10_000 / logoRewards
             > 
             IDLogosStorage(dLogosStorage).rejectThreshold();
         
@@ -301,20 +206,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         logos[_logoId].status.isRefunded = true;
 
         emit RefundInitiated(_logoId, c1, c2, c3, c4);
-    }
-
-    /**
-     * @dev Return the list of backers for a Logo.
-     */
-    function getBackersForLogo(uint256 _logoId) public override view returns (Backer[] memory) {
-        EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
-        address[] memory backerArray = backerAddresses.values();
-        Backer[] memory backers = new Backer[](backerArray.length);
-        for (uint256 i = 0; i < backerArray.length; i++) {
-            backers[i] = logoBackers[_logoId][backerArray[i]];
-        }
-        return backers;
-    }
+    }    
 
     /**
      * @dev Set speakers for a Logo.
@@ -456,7 +348,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
         if (block.timestamp < l.rejectionDeadline) revert RejectionDeadlineNotPassed();
 
         address msgSender = _msgSender();
-        uint256 totalRewards = logoRewards[_logoId];
+        uint256 totalRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
         address splitForAffiliate;
         address splitForSpeaker;        
 
@@ -468,7 +360,7 @@ contract DLogos is IDLogos, Ownable2StepUpgradeable, PausableUpgradeable, Reentr
             {
                 // Prepare params to call DLogosLib
                 (totalRefRewards, splitParam) = DLogosLib.getAffiliatesSplitInfo(
-                    getBackersForLogo(_logoId), 
+                    IDLogosBacker(dLogosBacker).getBackersForLogo(_logoId), 
                     IDLogosStorage(dLogosStorage).affiliateFee()
                 );
 

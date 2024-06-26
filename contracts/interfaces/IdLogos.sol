@@ -4,13 +4,6 @@ pragma solidity ^0.8.24;
 import {SplitV2Lib} from "../splitsV2/libraries/SplitV2.sol";
 
 interface IDLogos {
-    struct Backer {
-        address addr;
-        address referrer;
-        bool votesToReject;
-        uint256 amount;
-    }
-
     enum SpeakerStatus {
         Pending,
         Accepted,
@@ -66,16 +59,10 @@ interface IDLogos {
     );
     event ProposerFeeUpdated(address indexed _proposer, uint256 indexed _logoId, uint256 _proposerFee);
     event MinimumPledgeSet(address indexed _owner, uint256 indexed _minimumPledge);
-    event Crowdfund(
-        uint256 indexed _logoId,
-        address indexed _owner, 
-        uint256 indexed _amount
-    );
     event CrowdfundToggled(
         address indexed _owner,
         bool indexed _crowdfundIsOpen
-    );
-    event FundsWithdrawn(address indexed _owner, uint256 indexed _amount);
+    );    
     event SpeakersSet(
         address indexed _owner,
         address[] _speakers,
@@ -91,8 +78,7 @@ interface IDLogos {
         address _splitForAffiliate, 
         uint256 _totalRewards
     );
-    event SpeakerStatusSet(uint256 indexed _logoId, address indexed _speaker, uint256 indexed _status);
-    event RejectionSubmitted(uint256 indexed _logoId, address indexed _backer);
+    event SpeakerStatusSet(uint256 indexed _logoId, address indexed _speaker, uint256 indexed _status);    
     event RefundInitiated(
         uint256 indexed _logoId, 
         bool _case1,
@@ -114,21 +100,17 @@ interface IDLogos {
     );
     event TrustedForwarderUpdated(address trustedForwarder_);
 
+    function logoId() external view returns (uint256);
+
+    function getLogo(uint256) external view returns (Logo memory);
+
     function createLogo(uint256, string calldata, uint8) external returns (uint256);  
 
     function toggleCrowdfund(uint256) external;
 
-    function crowdfund(uint256, address) external payable;
-
     function setMinimumPledge(uint256, uint256) external;
 
-    function withdrawFunds(uint256) external;
-
-    function reject(uint256) external;
-
     function refund(uint256) external;
-
-    function getBackersForLogo(uint256) external view returns (Backer[] memory);
 
     function setSpeakers(SetSpeakersParam calldata) external;
 
