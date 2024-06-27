@@ -56,6 +56,52 @@ describe("DLogosOwner Tests", () => {
           "InvalidInitialization()"
         );
       });
+
+      it("Should revert when call {initialize} function twice", async () => {
+        const env = await loadFixture(prepEnv);
+
+        await expect(
+          env.dLogosOwner.initialize(
+            ZERO_ADDRESS,
+            ZERO_ADDRESS
+          )
+        ).to.be.revertedWithCustomError(
+          env.dLogosOwner,
+          "InvalidInitialization()"
+        );
+      });
+    });
+  });
+
+  describe("{setRejectThreshold} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithRejectThreshold);
+
+      expect(await env.dLogosOwner.rejectThreshold()).equals(env.rejectThreshold);
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithRejectThreshold);
+
+      await expect(env.setRejectThresholdTx)
+        .emit(env.dLogosOwner, "RejectThresholdUpdated")
+        .withArgs(env.rejectThreshold);
+    });
+
+    describe("Reverts", () => {
+      it("Should revert when not allowed user", async () => {
+        const env = await loadFixture(prepEnvWithRejectThreshold);
+
+        // random user
+        await expect(
+          env.dLogosOwner
+            .connect(env.alice)
+            .setRejectThreshold(0)
+        ).to.be.revertedWithCustomError(
+          env.dLogosOwner,
+          "OwnableUnauthorizedAccount"
+        ).withArgs(env.alice.address);
+      });
     });
   });
 });
@@ -85,5 +131,21 @@ async function prepEnv() {
     dLogosOwnerF,
     dLogosOwnerProxy,
     dLogosOwner,
+  };
+};
+
+async function prepEnvWithRejectThreshold() {
+  const prevEnv = await loadFixture(prepEnv);
+
+  const rejectThreshold = 6000;
+  const setRejectThresholdTx = await prevEnv.dLogosOwner
+    .connect(prevEnv.deployer)
+    .setRejectThreshold(rejectThreshold);
+
+  return {
+    ...prevEnv,
+
+    rejectThreshold,
+    setRejectThresholdTx,
   };
 };
