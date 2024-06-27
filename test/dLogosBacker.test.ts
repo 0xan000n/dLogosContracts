@@ -1,12 +1,13 @@
 import { ethers, upgrades } from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 
-import { 
+import {
   ZERO_ADDRESS,
   BIGINT_1E14,
   BIGINT_1E13,
-  BIGINT_1E12
+  BIGINT_1E12,
+  ONE_DAY,
 } from "./_helpers/constants";
 
 // TODO meta tx testing
@@ -58,7 +59,7 @@ describe("DLogosBacker Tests", () => {
     });
   });
 
-  describe("{crowdfund} function", () => {
+  describe("{crowdfund}, {getBackersForLogo} function", () => {
     it("Should make changes to the storage", async () => {
       const env = await loadFixture(prepEnvWithCrowdfund);
 
@@ -98,7 +99,7 @@ describe("DLogosBacker Tests", () => {
     describe("Reverts", () => {
       it("Should revert when logo is not created", async () => {
         const env = await loadFixture(prepEnvWithCrowdfund);
-        
+
         await expect(
           env.dLogosBacker
             .connect(env.backer1)
@@ -114,27 +115,25 @@ describe("DLogosBacker Tests", () => {
 
       it("Should revert when contract is paused", async () => {
         const env = await loadFixture(prepEnvWithCrowdfund);
-        
-        await env.dLogosBacker
-          .connect(env.deployer)
-          .pauseOrUnpause(true);
+
+        const env1 = await prepEnvWithPauseOrUnpauseTrue(env);
 
         await expect(
-          env.dLogosBacker
-            .connect(env.backer1)
+          env1.dLogosBacker
+            .connect(env1.backer1)
             .crowdfund(
-              1,
-              env.referrer1
+              0,
+              ZERO_ADDRESS
             )
         ).to.be.revertedWithCustomError(
-          env.dLogosBacker,
+          env1.dLogosBacker,
           "EnforcedPause()"
         );
       });
 
       it("Should revert when crowdfund is not happening", async () => {
         const env = await loadFixture(prepEnvWithCrowdfund);
-        
+
         await expect(
           env.dLogosBacker
             .connect(env.backer1)
@@ -150,7 +149,7 @@ describe("DLogosBacker Tests", () => {
 
       it("Should revert when pledge < {minimumPledge}", async () => {
         const env = await loadFixture(prepEnvWithCrowdfund);
-        
+
         await expect(
           env.dLogosBacker
             .connect(env.backer1)
@@ -165,11 +164,11 @@ describe("DLogosBacker Tests", () => {
           env.dLogosBacker,
           "InsufficientFunds()"
         );
-      });      
+      });
     });
   });
 
-  describe("{withdrawFunds} function", () => {
+  describe("{withdrawFunds}, {getBackersForLogo} function", () => {
     it("Should make changes to the storage", async () => {
       const env = await loadFixture(prepEnvWithWithdrawFunds);
 
@@ -195,9 +194,26 @@ describe("DLogosBacker Tests", () => {
     });
 
     describe("Reverts", () => {
+      it("Should revert when contract is paused", async () => {
+        const env = await loadFixture(prepEnvWithWithdrawFunds);
+
+        const env1 = await prepEnvWithPauseOrUnpauseTrue(env);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env1.backer1)
+            .withdrawFunds(
+              0
+            )
+        ).to.be.revertedWithCustomError(
+          env1.dLogosBacker,
+          "EnforcedPause()"
+        );
+      });
+
       it("Should revert when logo is not created", async () => {
         const env = await loadFixture(prepEnvWithWithdrawFunds);
-        
+
         await expect(
           env.dLogosBacker
             .connect(env.backer1)
@@ -209,12 +225,253 @@ describe("DLogosBacker Tests", () => {
           "InvalidLogoId()"
         );
       });
+
+      it("Should revert when logo is {isUploaded} and not {isRefunded}", async () => {
+        const env = await loadFixture(prepEnvWithWithdrawFunds);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.backer1)
+            .withdrawFunds(
+              4
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "LogoFundsCannotBeWithdrawn()"
+        );
+      });
+
+      it("Should revert when logo is {isDistributed}", async () => {
+        const env = await loadFixture(prepEnvWithWithdrawFunds);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.backer1)
+            .withdrawFunds(
+              5
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "LogoFundsCannotBeWithdrawn()"
+        );
+      });
+
+      it("Should revert when caller is not backer", async () => {
+        const env = await loadFixture(prepEnvWithWithdrawFunds);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.backer2)
+            .withdrawFunds(
+              1
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "Unauthorized()"
+        );
+      });
+    });
+  });
+
+  describe("{reject} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithReject);
+
+      expect(await env.dLogosBacker.logoRejectedFunds(1)).equals(
+        BIGINT_1E14
+      );
+      const backers = await env.dLogosBacker.getBackersForLogo(1);
+      expect(backers[0].votesToReject).equals(
+        true
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithReject);
+
+      await expect(env.rejectTx)
+        .emit(env.dLogosBacker, "RejectionSubmitted")
+        .withArgs(
+          1,
+          env.backer1.address
+        );
+    });
+
+    describe("Reverts", async () => {
+      it("Should revert when contract is paused", async () => {
+        const env = await loadFixture(prepEnvWithReject);
+
+        const env1 = await prepEnvWithPauseOrUnpauseTrue(env);
+
+        await expect(
+          env1.dLogosBacker
+            .connect(env1.backer1)
+            .reject(
+              0
+            )
+        ).to.be.revertedWithCustomError(
+          env1.dLogosBacker,
+          "EnforcedPause()"
+        );
+      });
+
+      it("Should revert when logo is not created", async () => {
+        const env = await loadFixture(prepEnvWithReject);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.backer1)
+            .reject(3)
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "InvalidLogoId()"
+        );
+      });
+
+      it("Should revert when logo rejection deadline passed", async () => {
+        const env = await loadFixture(prepEnvWithReject);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.backer1)
+            .reject(2)
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "RejectionDeadlinePassed()"
+        );
+      });
+
+      it("Should revert when caller is not backer", async () => {
+        const env = await loadFixture(prepEnvWithReject);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.backer2)
+            .reject(1)
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "Unauthorized()"
+        );
+      });
+
+      it("Should revert when backer tries to reject twice", async () => {
+        const env = await loadFixture(prepEnvWithReject);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.backer1)
+            .reject(1)
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "BackerAlreadyRejected()"
+        );
+      });
+    });
+  });
+
+  describe("{pauseOrUnpause(true)} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithPauseOrUnpauseTrue);
+
+      expect(await env.dLogosBacker.paused()).equals(
+        true
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithPauseOrUnpauseTrue);
+
+      await expect(env.pauseTx)
+        .emit(env.dLogosBacker, "Paused")
+        .withArgs(
+          env.deployer.address
+        );
+    });
+
+    describe("Reverts", async () => {
+      it("Should revert when not allowed user", async () => {
+        const env = await loadFixture(prepEnvWithPauseOrUnpauseTrue);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.nonDeployer)
+            .pauseOrUnpause(true)
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "OwnableUnauthorizedAccount"
+        ).withArgs(
+          env.nonDeployer.address
+        );
+      });
+
+      it("Should revert when contract is paused", async () => {
+        const env = await loadFixture(prepEnvWithPauseOrUnpauseTrue);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.deployer)
+            .pauseOrUnpause(true)
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "EnforcedPause()"
+        );
+      });
+    });
+  });
+
+  describe("{pauseOrUnpause(false)} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithPauseOrUnpauseFalse);
+
+      expect(await env.dLogosBacker.paused()).equals(
+        false
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithPauseOrUnpauseFalse);
+
+      await expect(env.unpauseTx)
+        .emit(env.dLogosBacker, "Unpaused")
+        .withArgs(
+          env.deployer.address
+        );
+    });
+
+    describe("Reverts", async () => {
+      it("Should revert when not allowed user", async () => {
+        const env = await loadFixture(prepEnvWithPauseOrUnpauseFalse);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.nonDeployer)
+            .pauseOrUnpause(false)
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "OwnableUnauthorizedAccount"
+        ).withArgs(
+          env.nonDeployer.address
+        );
+      });
+
+      it("Should revert when contract is not paused", async () => {
+        const env = await loadFixture(prepEnvWithPauseOrUnpauseFalse);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.deployer)
+            .pauseOrUnpause(false)
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "ExpectedPause()"
+        );
+      });
     });
   });
 });
 
 async function prepEnv() {
-  const [deployer, backer1, referrer1, ...otherSigners] = await ethers.getSigners();
+  const [deployer, nonDeployer, backer1, referrer1, backer2, referrer2, ...otherSigners] = await ethers.getSigners();
 
   // deploy and init DLogosCore mock
   const dLogosCoreF = await ethers.getContractFactory("DLogosCoreMock");
@@ -235,8 +492,11 @@ async function prepEnv() {
 
   return {
     deployer,
+    nonDeployer,
     backer1,
     referrer1,
+    backer2,
+    referrer2,
 
     dLogosCore,
 
@@ -278,5 +538,52 @@ async function prepEnvWithWithdrawFunds() {
     ...prevEnv,
 
     withdrawFundsTx
+  };
+}
+
+async function prepEnvWithReject() {
+  const prevEnv = await loadFixture(prepEnvWithCrowdfund);
+
+  // advance time by 4 days
+  await time.increase(ONE_DAY * 4);
+
+  const rejectTx = await prevEnv.dLogosBacker
+    .connect(prevEnv.backer1)
+    .reject(1);
+
+  return {
+    ...prevEnv,
+
+    rejectTx,
+  }
+}
+
+async function prepEnvWithPauseOrUnpauseTrue(prevEnv?: any) {
+  if (prevEnv == undefined) {
+    prevEnv = await loadFixture(prepEnv);
+  }
+
+  const pauseTx = await prevEnv.dLogosBacker
+    .connect(prevEnv.deployer)
+    .pauseOrUnpause(true);
+
+  return {
+    ...prevEnv,
+
+    pauseTx,
+  };
+}
+
+async function prepEnvWithPauseOrUnpauseFalse() {
+  const prevEnv = await loadFixture(prepEnvWithPauseOrUnpauseTrue);
+
+  const unpauseTx = await prevEnv.dLogosBacker
+    .connect(prevEnv.deployer)
+    .pauseOrUnpause(false);
+
+  return {
+    ...prevEnv,
+
+    unpauseTx,
   };
 }
