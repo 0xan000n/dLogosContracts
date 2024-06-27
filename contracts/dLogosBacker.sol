@@ -23,9 +23,7 @@ contract DLogosBacker is
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// STORAGE
-    address public dLogosOwner;
     address public dLogosCore;
-
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
     mapping(uint256 => uint256) public override logoRewards; // Mapping of Logo ID to accumulated rewards
@@ -38,7 +36,6 @@ contract DLogosBacker is
 
     function initialize(        
         address trustedForwarder_,
-        address _dLogosOwner,
         address _dLogosCore
     ) external initializer {
         // Initialize tx is not gasless
@@ -47,9 +44,8 @@ contract DLogosBacker is
         __ReentrancyGuard_init();
         __ForwarderSetterUpgradeable_init(trustedForwarder_);
         
-        if (_dLogosOwner == address(0) || _dLogosCore == address(0)) revert ZeroAddress();
+        if (_dLogosCore == address(0)) revert ZeroAddress();
 
-        dLogosOwner = _dLogosOwner;
         dLogosCore = _dLogosCore;
     }
 
