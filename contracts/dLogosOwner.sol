@@ -24,6 +24,11 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
 
     EnumerableSet.AddressSet private _zeroFeeProposers; // List of proposers who dLogos does not charge fees
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _dLogos,
         address _community

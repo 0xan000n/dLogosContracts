@@ -66,7 +66,10 @@ contract DLogosCore is IDLogosCore, Ownable2StepUpgradeable, PausableUpgradeable
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
 
     // The contract does not use trustedForwarder that is defined in ERC2771ContextUpgradeable
-    constructor() ERC2771ContextUpgradeable(address(0)) {}
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() ERC2771ContextUpgradeable(address(0)) {
+        _disableInitializers();
+    }
 
     function initialize(        
         address _dLogosOwner,

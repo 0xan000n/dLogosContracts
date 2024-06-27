@@ -23,6 +23,11 @@ contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgrade
     mapping(uint256 => uint256) public override logoRewards; // Mapping of Logo ID to accumulated rewards
     mapping(uint256 => uint256) public override logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
     
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(        
         address _dLogosOwner,
         address _dLogosCore
