@@ -98,7 +98,6 @@ interface IDLogosCore {
         address _owner, 
         address _creator
     );
-    event TrustedForwarderUpdated(address trustedForwarder_);
 
     function logoId() external view returns (uint256);
 

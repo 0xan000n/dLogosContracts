@@ -5,13 +5,21 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
 import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
+import {ForwarderSetterUpgradeable} from "./utils/ForwarderSetterUpgradeable.sol";
 import "./Error.sol";
 
-// TODO biconomy support
-
-contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
+contract DLogosBacker is 
+    IDLogosBacker,
+    Ownable2StepUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    ERC2771ContextUpgradeable,
+    ForwarderSetterUpgradeable 
+{
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// STORAGE
@@ -24,11 +32,12 @@ contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgrade
     mapping(uint256 => uint256) public override logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
     
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor() ERC2771ContextUpgradeable(address(0)) {
         _disableInitializers();
     }
 
     function initialize(        
+        address trustedForwarder_,
         address _dLogosOwner,
         address _dLogosCore
     ) external initializer {
@@ -36,6 +45,7 @@ contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgrade
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
+        __ForwarderSetterUpgradeable_init(trustedForwarder_);
         
         if (_dLogosOwner == address(0) || _dLogosCore == address(0)) revert ZeroAddress();
 
@@ -162,5 +172,25 @@ contract DLogosBacker is IDLogosBacker, Ownable2StepUpgradeable, PausableUpgrade
     function _getValidLogo(uint256 _logoId) private view returns (IDLogosCore.Logo memory l) {
         l = IDLogosCore(dLogosCore).getLogo(_logoId);
         if (l.proposer == address(0)) revert InvalidLogoId();
+    }
+
+    // ----------------------------------------------Biconomy meta tx helpers----------------------------------------------
+    /**
+     * @dev Override of `trustedForwarder()`
+     */
+    function trustedForwarder() public view override(ERC2771ContextUpgradeable, ForwarderSetterUpgradeable) returns (address) {
+        return ForwarderSetterUpgradeable.trustedForwarder();
+    }
+    
+    function _msgSender() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address) {
+        return ERC2771ContextUpgradeable._msgSender();
+    }
+
+    function _msgData() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+        return ERC2771ContextUpgradeable._msgData();
+    }
+
+    function _contextSuffixLength() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (uint256) {
+        return ERC2771ContextUpgradeable._contextSuffixLength();
     }
 }

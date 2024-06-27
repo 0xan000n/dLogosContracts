@@ -10,6 +10,7 @@ import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
 import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
 import {DLogosSplitsHelper} from "./libraries/dLogosSplitsHelper.sol";
+import {ForwarderSetterUpgradeable} from "./utils/ForwarderSetterUpgradeable.sol";
 import {SplitV2Lib} from "./splitsV2/libraries/SplitV2.sol";
 import "./Error.sol";
 
@@ -52,41 +53,46 @@ import "./Error.sol";
 */
 /// @title Core DLogos contract
 /// @author 0xan000n
-contract DLogosCore is IDLogosCore, Ownable2StepUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable, ERC2771ContextUpgradeable {
+contract DLogosCore is 
+    IDLogosCore, 
+    Ownable2StepUpgradeable, 
+    PausableUpgradeable, 
+    ReentrancyGuardUpgradeable, 
+    ERC2771ContextUpgradeable, 
+    ForwarderSetterUpgradeable 
+{
     /// CONSTANTS
     uint256 public constant PERCENTAGE_SCALE = 1e6;
 
     /// STORAGE
     address public dLogosOwner;
     address public dLogosBacker;
-    address private _trustedForwarder; // Customized trusted forwarder address    
     uint256 public override logoId; // Global Logo ID
-
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info    
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
 
-    // The contract does not use trustedForwarder that is defined in ERC2771ContextUpgradeable
+    // The contract does not use `trustedForwarder` that is defined in ERC2771ContextUpgradeable
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0)) {
         _disableInitializers();
     }
 
     function initialize(        
+        address trustedForwarder_,
         address _dLogosOwner,
-        address _dLogosBacker,
-        address trustedForwarder_
+        address _dLogosBacker
     ) external initializer {
         // Initialize tx is not gasless
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
+        __ForwarderSetterUpgradeable_init(trustedForwarder_);
         
-        if (_dLogosOwner == address(0) || _dLogosBacker == address(0) || trustedForwarder_ == address(0)) 
+        if (_dLogosOwner == address(0) || _dLogosBacker == address(0)) 
             revert ZeroAddress();
 
         dLogosOwner = _dLogosOwner;
         dLogosBacker = _dLogosBacker;
-        _trustedForwarder = trustedForwarder_;
         logoId = 1; // Starting from 1
     }
 
@@ -406,19 +412,11 @@ contract DLogosCore is IDLogosCore, Ownable2StepUpgradeable, PausableUpgradeable
     }
 
     // ----------------------------------------------Biconomy meta tx helpers----------------------------------------------
-
-    function setTrustedForwarder(address trustedForwarder_) external onlyOwner {
-        if (trustedForwarder_ == address(0)) revert ZeroAddress();
-
-        _trustedForwarder = trustedForwarder_;
-        emit TrustedForwarderUpdated(trustedForwarder_);
-    }
-
     /**
-     * @dev Override of `trustedForwarder()` in ERC2771ContextUpgradeable
+     * @dev Override of `trustedForwarder()`
      */
-    function trustedForwarder() public view override returns (address) {
-        return _trustedForwarder;
+    function trustedForwarder() public view override(ERC2771ContextUpgradeable, ForwarderSetterUpgradeable) returns (address) {
+        return ForwarderSetterUpgradeable.trustedForwarder();
     }
     
     function _msgSender() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address) {
