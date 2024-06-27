@@ -14,8 +14,15 @@ interface IDLogosBacker {
         address indexed _owner, 
         uint256 indexed _amount
     );
-    event FundsWithdrawn(address indexed _owner, uint256 indexed _amount);
-    event RejectionSubmitted(uint256 indexed _logoId, address indexed _backer);
+    event FundsWithdrawn(
+        uint256 indexed _logoId,
+        address indexed _owner, 
+        uint256 indexed _amount
+    );
+    event RejectionSubmitted(
+        uint256 indexed _logoId, 
+        address indexed _backer
+    );
 
     function logoRewards(uint256) external view returns (uint256);
 
@@ -28,4 +35,6 @@ interface IDLogosBacker {
     function reject(uint256) external;
 
     function getBackersForLogo(uint256) external view returns (Backer[] memory);
+
+    function pauseOrUnpause(bool) external;
 }

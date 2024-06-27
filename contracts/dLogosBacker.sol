@@ -125,7 +125,7 @@ contract DLogosBacker is
 
         if (!success) revert EthTransferFailed();
         
-        emit FundsWithdrawn(msgSender, backer.amount);
+        emit FundsWithdrawn(_logoId, msgSender, backer.amount);
     }
 
     /**
@@ -168,6 +168,18 @@ contract DLogosBacker is
     function _getValidLogo(uint256 _logoId) private view returns (IDLogosCore.Logo memory l) {
         l = IDLogosCore(dLogosCore).getLogo(_logoId);
         if (l.proposer == address(0)) revert InvalidLogoId();
+    }
+
+    /**
+     * @dev Pause or unpause the contract
+     * Only `owner` can call
+     */
+    function pauseOrUnpause(bool _pause) external override onlyOwner {
+        if (_pause) {
+            super._pause();
+        } else {
+            super._unpause();
+        }
     }
 
     // ----------------------------------------------Biconomy meta tx helpers----------------------------------------------
