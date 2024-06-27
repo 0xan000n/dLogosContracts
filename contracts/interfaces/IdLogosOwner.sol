@@ -10,7 +10,7 @@ interface IDLogosOwner {
     event AffiliateFeeUpdated(uint256 _affiliateFee);
     event RejectThresholdUpdated(uint16 indexed _fee);
     event MaxDurationUpdated(uint8 _maxDuration);
-    event RejectinoWindowUpdated(uint8 _rejectionWindow);
+    event RejectionWindowUpdated(uint8 _rejectionWindow);
     event ZeroFeeProposersSet(address[] _proposers, bool[] _statuses);
 
     function dLogos() external view returns (address);
