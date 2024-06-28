@@ -9,7 +9,7 @@ export const BIGINT_1E14 = 100000000000000n;
 export const BIGINT_1E13 = 10000000000000n;
 export const BIGINT_1E12 = 1000000000000n;
 
-export const ONE_MINUTE = 60;
-export const ONE_HOUR = ONE_MINUTE * 60;
-export const ONE_DAY = ONE_HOUR * 24;
-export const ONE_MONTH = ONE_DAY * 30;
+export const ONE_MINUTE = 60n;
+export const ONE_HOUR = ONE_MINUTE * 60n;
+export const ONE_DAY = ONE_HOUR * 24n;
+export const ONE_MONTH = ONE_DAY * 30n;
