@@ -347,7 +347,7 @@ describe("DLogosOwner Tests", () => {
         await expect(
           env.dLogosOwner
             .connect(env.deployer)
-            .setDLogosFee(PERCENTAGE_SCALE + 1)
+            .setDLogosFee(PERCENTAGE_SCALE + 1n)
         ).to.be.revertedWithCustomError(
           env.dLogosOwner,
           "FeeExceeded()"
@@ -392,7 +392,7 @@ describe("DLogosOwner Tests", () => {
         await expect(
           env.dLogosOwner
             .connect(env.deployer)
-            .setCommunityFee(PERCENTAGE_SCALE - env.dLogosFee + 1)
+            .setCommunityFee(PERCENTAGE_SCALE - env.dLogosFee + 1n)
         ).to.be.revertedWithCustomError(
           env.dLogosOwner,
           "FeeExceeded()"
@@ -437,7 +437,7 @@ describe("DLogosOwner Tests", () => {
         await expect(
           env.dLogosOwner
             .connect(env.deployer)
-            .setAffiliateFee(MAX_AFFILIATE_FEE + 1)
+            .setAffiliateFee(MAX_AFFILIATE_FEE + 1n)
         ).to.be.revertedWithCustomError(
           env.dLogosOwner,
           "FeeExceeded()"
@@ -618,7 +618,7 @@ async function prepEnvWithCommunityAddress() {
 async function prepEnvWithDLogosFee() {
   const prevEnv = await loadFixture(prepEnvWithCommunityAddress);
 
-  const dLogosFee = 200000; // 20%
+  const dLogosFee = 200000n; // 20%
   const setDLogosFeeTx = await prevEnv.dLogosOwner
     .connect(prevEnv.deployer)
     .setDLogosFee(dLogosFee);

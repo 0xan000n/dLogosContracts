@@ -545,7 +545,7 @@ async function prepEnvWithReject() {
   const prevEnv = await loadFixture(prepEnvWithCrowdfund);
 
   // advance time by 4 days
-  await time.increase(ONE_DAY * 4);
+  await time.increase(ONE_DAY * 4n);
 
   const rejectTx = await prevEnv.dLogosBacker
     .connect(prevEnv.backer1)
