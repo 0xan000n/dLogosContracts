@@ -2,6 +2,15 @@
 pragma solidity ^0.8.24;
 
 contract DLogosOwnerMock {
+    mapping(address => bool) public zeroFeeProposers;
+
+    function setZeroFeeProposer(
+        address _proposer,
+        bool _status
+    ) external {
+        zeroFeeProposers[_proposer] = _status;
+    }
+
     function maxDuration() external pure returns (uint256) {
         return 60;
     }
@@ -14,8 +23,8 @@ contract DLogosOwnerMock {
         return 1e5;
     }
 
-    function isZeroFeeProposer(address) external pure returns (bool) {
-        return true;
+    function isZeroFeeProposer(address _proposer) external view returns (bool) {
+        return zeroFeeProposers[_proposer];
     }
 
     function rejectThreshold() external pure returns (uint256) {

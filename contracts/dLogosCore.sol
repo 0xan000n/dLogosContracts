@@ -163,7 +163,7 @@ contract DLogosCore is
         address msgSender = _msgSender();
         if (l.proposer != msgSender) revert Unauthorized();
         if (l.scheduledAt != 0) revert CrowdfundClosed();
-        if (l.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
+        if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         
         logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
         emit CrowdfundToggled(msgSender, !l.status.isCrowdfunding);
@@ -180,7 +180,7 @@ contract DLogosCore is
         address msgSender = _msgSender();
         if (l.proposer != msgSender) revert Unauthorized();
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
-        if (l.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
+        if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (_minimumPledge == 0) revert NotZero();
 
         logos[_logoId].minimumPledge = _minimumPledge;
@@ -231,7 +231,7 @@ contract DLogosCore is
         address msgSender = _msgSender();
         if (l.proposer != msgSender) revert Unauthorized();
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
-        if (l.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
+        if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (_param.speakers.length == 0 || _param.speakers.length >= 100) revert InvalidSpeakerNumber();
         if (
             _param.speakers.length != _param.fees.length ||
@@ -284,7 +284,7 @@ contract DLogosCore is
         if (_speakerStatus == 0) revert InvalidSpeakerStatus();
         Logo memory l = logos[_logoId];
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
-        if (l.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
+        if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
 
         address msgSender = _msgSender();
         Speaker[] memory speakers = logoSpeakers[_logoId];
@@ -317,7 +317,7 @@ contract DLogosCore is
         if (l.status.isUploaded) revert LogoUploaded();
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
-        if (l.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
+        if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (_scheduledAt <= block.timestamp) revert InvalidScheduleTime();
 
         Speaker[] memory speakers = logoSpeakers[_logoId];
@@ -346,7 +346,7 @@ contract DLogosCore is
         if (ml.status.isDistributed) revert LogoDistributed();
         if (ml.status.isRefunded) revert LogoRefunded();
         if (ml.scheduledAt == 0) revert LogoNotScheduled();
-        if (ml.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
+        if (ml.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
