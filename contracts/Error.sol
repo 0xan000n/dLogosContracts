@@ -59,6 +59,8 @@ error NotAllSpeakersAccepted();
 
 error CrowdfundEnded();
 
+error CrowdfundClosed();
+
 error AffiliateRewardsExceeded();
 
 error InvalidRejectionWindow();

@@ -103,7 +103,7 @@ contract DLogosBacker is
             (l.scheduledAt != 0 && !l.status.isRefunded) ||
             l.status.isDistributed
         ) revert LogoFundsCannotBeWithdrawn();
-        
+
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
 

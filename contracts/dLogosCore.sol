@@ -100,12 +100,7 @@ contract DLogosCore is
     modifier validLogoId(uint256 _logoId) {
         if (_logoId >= logoId) revert InvalidLogoId();
         _;
-    }
-
-    modifier onlyLogoProposer(uint256 _logoId) {
-        if (logos[_logoId].proposer != _msgSender()) revert Unauthorized();
-        _;
-    }
+    }    
 
     /// FUNCTIONS
 
@@ -163,12 +158,15 @@ contract DLogosCore is
      */
     function toggleCrowdfund(
         uint256 _logoId
-    ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        if (l.scheduledAt != 0) revert CrowdfundEnded();
+        address msgSender = _msgSender();
+        if (l.proposer != msgSender) revert Unauthorized();
+        if (l.scheduledAt != 0) revert CrowdfundClosed();
+        if (l.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
         
         logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
-        emit CrowdfundToggled(_msgSender(), !l.status.isCrowdfunding);
+        emit CrowdfundToggled(msgSender, !l.status.isCrowdfunding);
     }   
 
     /**
@@ -177,13 +175,16 @@ contract DLogosCore is
     function setMinimumPledge(
         uint256 _logoId,
         uint256 _minimumPledge
-    ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
+        address msgSender = _msgSender();
+        if (l.proposer != msgSender) revert Unauthorized();
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (l.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
         if (_minimumPledge == 0) revert NotZero();
 
         logos[_logoId].minimumPledge = _minimumPledge;
-        emit MinimumPledgeSet(_msgSender(), _minimumPledge);
+        emit MinimumPledgeSet(msgSender, _minimumPledge);
     }
     
     /**
@@ -192,6 +193,7 @@ contract DLogosCore is
     function refund(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.status.isDistributed) revert LogoDistributed();
+        if (l.status.isRefunded) revert LogoRefunded();
 
         // Case 1: Logo proposer can refund whenever.
         bool c1 = l.proposer == _msgSender();
@@ -224,9 +226,12 @@ contract DLogosCore is
      */
     function setSpeakers(
         SetSpeakersParam calldata _param
-    ) external override whenNotPaused validLogoId(_param.logoId) onlyLogoProposer(_param.logoId) {
+    ) external override whenNotPaused validLogoId(_param.logoId) {
         Logo memory l = logos[_param.logoId];
+        address msgSender = _msgSender();
+        if (l.proposer != msgSender) revert Unauthorized();
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (l.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
         if (_param.speakers.length == 0 || _param.speakers.length >= 100) revert InvalidSpeakerNumber();
         if (
             _param.speakers.length != _param.fees.length ||
@@ -247,9 +252,7 @@ contract DLogosCore is
                 status: SpeakerStatus.Pending
             });
             logoSpeakers[_param.logoId].push(s);
-        }
-
-        address msgSender = _msgSender();
+        }        
         {
             uint256 communityFee = IDLogosOwner(dLogosOwner).communityFee();
             if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender)) {
@@ -279,7 +282,9 @@ contract DLogosCore is
     ) external override whenNotPaused validLogoId(_logoId) {
         // Speaker status should be either Accepted or Rejected
         if (_speakerStatus == 0) revert InvalidSpeakerStatus();
-        if (!logos[_logoId].status.isCrowdfunding) revert LogoNotCrowdfunding();
+        Logo memory l = logos[_logoId];
+        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (l.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
 
         address msgSender = _msgSender();
         Speaker[] memory speakers = logoSpeakers[_logoId];
@@ -305,11 +310,14 @@ contract DLogosCore is
     function setDate(
         uint256 _logoId,
         uint _scheduledAt
-    ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
+        address msgSender = _msgSender();
+        if (l.proposer != msgSender) revert Unauthorized();
         if (l.status.isUploaded) revert LogoUploaded();
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
+        if (l.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
         if (_scheduledAt <= block.timestamp) revert InvalidScheduleTime();
 
         Speaker[] memory speakers = logoSpeakers[_logoId];
@@ -322,7 +330,7 @@ contract DLogosCore is
         
         logos[_logoId].scheduledAt = _scheduledAt;
         logos[_logoId].status.isCrowdfunding = false; // Close crowdfund.
-        emit DateSet(_msgSender(), _scheduledAt);
+        emit DateSet(msgSender, _scheduledAt);
     }
 
     /**
@@ -331,18 +339,21 @@ contract DLogosCore is
     function setMediaAsset(
         uint256 _logoId,
         string calldata _mediaAssetURL
-    ) external override whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory ml = logos[_logoId];
+        address msgSender = _msgSender();
+        if (ml.proposer != msgSender) revert Unauthorized();
         if (ml.status.isDistributed) revert LogoDistributed();
         if (ml.status.isRefunded) revert LogoRefunded();
         if (ml.scheduledAt == 0) revert LogoNotScheduled();
+        if (ml.crowdfundEndAt > block.timestamp) revert CrowdfundEnded();
         
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
         sl.status.isUploaded = true;
         sl.rejectionDeadline = block.timestamp + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days;
 
-        emit MediaAssetSet(_msgSender(), _mediaAssetURL);
+        emit MediaAssetSet(msgSender, _mediaAssetURL);
     }
 
     /**
@@ -351,14 +362,15 @@ contract DLogosCore is
      */
     function distributeRewards(
         uint256 _logoId
-    ) external override nonReentrant whenNotPaused validLogoId(_logoId) onlyLogoProposer(_logoId) {
+    ) external override nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
+        address msgSender = _msgSender();
+        if (l.proposer != msgSender) revert Unauthorized();
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
         if (!l.status.isUploaded) revert LogoNotUploaded();
         if (block.timestamp < l.rejectionDeadline) revert RejectionDeadlineNotPassed();
 
-        address msgSender = _msgSender();
         uint256 totalRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
         address splitForAffiliate;
         address splitForSpeaker;        
