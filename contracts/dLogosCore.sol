@@ -335,10 +335,10 @@ contract DLogosCore is
         Logo memory ml = logos[_logoId];
         if (ml.status.isDistributed) revert LogoDistributed();
         if (ml.status.isRefunded) revert LogoRefunded();
+        if (ml.scheduledAt == 0) revert LogoNotScheduled();
         
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
-        sl.status.isCrowdfunding = false; // Close crowdfund.
         sl.status.isUploaded = true;
         sl.rejectionDeadline = block.timestamp + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days;
 
