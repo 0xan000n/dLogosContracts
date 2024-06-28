@@ -198,7 +198,12 @@ contract DLogosCore is
         // Case 2: Crowdfund end date reached and not distributed.
         bool c2 = block.timestamp > l.crowdfundEndAt;
         // Case 3: >7 days have passed since schedule date and no asset uploaded.
-        bool c3 = l.scheduledAt != 0 && (block.timestamp > l.scheduledAt + 7 * 1 days) && !l.status.isUploaded;
+        bool c3 = 
+            l.scheduledAt != 0 
+            && 
+            block.timestamp > l.scheduledAt + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days
+            && 
+            !l.status.isUploaded;
         // Case 4: >50% of backer funds reject upload.
         uint256 logoRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
         uint256 logoRejectedFunds = IDLogosBacker(dLogosBacker).logoRejectedFunds(_logoId);
