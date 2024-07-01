@@ -24,7 +24,7 @@ contract DLogosBackerMock {
             addr: 0x80f1B766817D04870f115fEBbcCADF8DBF75E017,
             referrer: 0x6291497D1206618fC810900d2e7e9AF6Aa1F1b99,
             votesToReject: false,
-            amount: 2 * 1e14
+            amount: 9 * 1e14
         });
     }
 }

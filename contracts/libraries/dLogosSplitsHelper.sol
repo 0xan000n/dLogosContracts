@@ -65,6 +65,7 @@ library DLogosSplitsHelper {
             }
 
             // Slippage
+            // {_totalAllocation} SHOULD not be greater than {PERCENTAGE_SCALE}
             if (_totalAllocation < PERCENTAGE_SCALE) {
                 // TODO check n+1 referrer address
                 referrers[backers.length] = address(0);
@@ -106,12 +107,11 @@ library DLogosSplitsHelper {
         if (param.isZeroFeeProposer) {
             allocations[0] = 0;
         } else {
-            allocations[0] = 0;
-            // allocations[0] = dLogosFee;
+            allocations[0] = param.dLogosFee;
         }
         allocations[1] = param.communityFee;
         allocations[2] = param.proposerFee;
-        totalAllocation += param.dLogosFee + param.communityFee + param.proposerFee;
+        totalAllocation += allocations[0] + allocations[1] + allocations[2];
         for (i = 0; i < param.speakers.length; i++) {
             allocations[i + 3] = param.speakers[i].fee;
             totalAllocation += param.speakers[i].fee;
@@ -134,7 +134,7 @@ library DLogosSplitsHelper {
         split = IPushSplitFactory(PUSH_SPLIT_FACTORY).createSplit(
             splitParam, 
             address(this), // We do not need to set split owner 
-            address(this)
+            address(this) // creator
         );
         emit SplitForAffiliateCreated(split, splitParam, address(this), address(this));
         // Send Eth to PushSplit
