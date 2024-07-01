@@ -1149,6 +1149,175 @@ describe("DLogosCore Testing", () => {
       });      
     });
   });
+
+  describe("{setMediaAsset}, {getLogo} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithSetMediaAsset);
+
+      const logo = await env.dLogosCore.getLogo(1);
+      expect(logo.mediaAssetURL).equals(
+        env.logo1MediaAssetURL,
+      );
+      expect(logo.status.isUploaded).equals(
+        true,
+      );
+      expect(logo.rejectionDeadline).equals(
+        BigInt(await time.latest()) + await env.dLogosOwner.rejectionWindow() * ONE_DAY,
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithSetMediaAsset);
+
+      await expect(env.setMediaAssetTx)
+        .emit(env.dLogosCore, "MediaAssetSet")
+        .withArgs(
+          env.proposer1.address,
+          env.logo1MediaAssetURL,
+        );
+    });
+
+    describe("Reverts", () => {
+      it("Should revert when contract is paused", async () => {
+        const env = await prepEnvWithPauseOrUnpauseTrue(
+          await loadFixture(prepEnvWithSetMediaAsset)
+        );
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setMediaAsset(
+              1,
+              "",
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "EnforcedPause()"
+        );
+      });
+
+      it("Should revert when logo id is not valid", async () => {
+        const env = await loadFixture(prepEnvWithSetMediaAsset);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setMediaAsset(
+              2,
+              "",
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "InvalidLogoId()"
+        );
+      });
+
+      it("Should revert when caller is not proposer", async () => {
+        const env = await loadFixture(prepEnvWithSetMediaAsset);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer2)
+            .setMediaAsset(
+              1,
+              "",
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "Unauthorized()"
+        );
+      });      
+
+      it("Should revert when logo is distributed", async () => {
+        // TODO
+        // const env = await prepEnvWithToggleCrowdfund(
+        //   await loadFixture(prepEnvWithSetMediaAsset)
+        // );
+
+        // await expect(
+        //   env.dLogosCore
+        //     .connect(env.proposer1)
+        //     .setMediaAsset(
+        //       1,
+        //       1,
+        //     )
+        // ).to.be.revertedWithCustomError(
+        //   env.dLogosCore,
+        //   "LogoNotCrowdfunding()"
+        // );
+      });
+
+      it("Should revert when logo is refunded", async () => {
+        // TODO
+        // const env = await prepEnvWithToggleCrowdfund(
+        //   await loadFixture(prepEnvWithSetMediaAsset)
+        // );
+
+        // await expect(
+        //   env.dLogosCore
+        //     .connect(env.proposer1)
+        //     .setMediaAsset(
+        //       1,
+        //       1,
+        //     )
+        // ).to.be.revertedWithCustomError(
+        //   env.dLogosCore,
+        //   "LogoNotCrowdfunding()"
+        // );
+      });
+
+      it("Should revert when logo crowdfund deadline is passed", async () => {
+        const env = await loadFixture(prepEnvWithSetMediaAsset);
+
+        await time.increase(env.logo1CrowdfundNumberOfDays * ONE_DAY);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setMediaAsset(
+              1,
+              "",
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "CrowdfundEnded()"
+        );
+      });
+
+      it("Should revert when logo's {scheduledAt} is 0", async () => {
+        const env = await loadFixture(prepEnvWithCreateLogo);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setMediaAsset(
+              1,
+              "",
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoNotScheduled()"
+        );
+      });      
+
+      // mainnet
+      // it("Should revert when logo's {scheduledAt} is not passed", async () => {
+      //   const env = await loadFixture(prepEnvWithSetMediaAsset);
+
+      //   await expect(
+      //     env.dLogosCore
+      //       .connect(env.proposer1)
+      //       .setMediaAsset(
+      //         1,
+      //         "",
+      //       )
+      //   ).to.be.revertedWithCustomError(
+      //     env.dLogosCore,
+      //     "ConvoNotHappened()"
+      //   );
+      // });
+    });
+  });
 });
 
 async function prepEnv() {
@@ -1432,5 +1601,27 @@ async function prepEnvWithSetDate() {
 
     logo1ScheduledAt,
     setDateTx,
+  };
+}
+
+async function prepEnvWithSetMediaAsset() {
+  const prevEnv = await loadFixture(prepEnvWithSetDate);
+
+  // increase time for mainnet
+  // await time.increaseTo(prevEnv.logo1ScheduledAt);
+
+  const logo1MediaAssetURL = "http://dlogos.com/assets/1";
+  const setMediaAssetTx = await prevEnv.dLogosCore
+    .connect(prevEnv.proposer1)
+    .setMediaAsset(
+      1,
+      logo1MediaAssetURL,
+    );
+
+  return {
+    ...prevEnv,
+
+    logo1MediaAssetURL,
+    setMediaAssetTx,
   };
 }

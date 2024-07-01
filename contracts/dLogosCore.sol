@@ -349,6 +349,7 @@ contract DLogosCore is
         if (ml.status.isDistributed) revert LogoDistributed();
         if (ml.status.isRefunded) revert LogoRefunded();
         if (ml.scheduledAt == 0) revert LogoNotScheduled();
+        // if (ml.scheduledAt > block.timestamp) revert ConvoNotHappened();
         if (ml.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         
         Logo storage sl = logos[_logoId];

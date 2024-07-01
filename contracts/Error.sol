@@ -72,3 +72,5 @@ error RejectionDeadlinePassed();
 error BackerAlreadyRejected();
 
 error LogoNotScheduled();
+
+error ConvoNotHappened();
