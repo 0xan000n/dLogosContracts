@@ -610,59 +610,57 @@ describe("DLogosCore Testing", () => {
   //   });
   // });
 
-  describe("{setSpeakers}, {getLogo} function", () => {
+  describe("{setSpeakers}, {getSpeakersForLogo} function", () => {
     it("Should make changes to the storage", async () => {
       const env = await loadFixture(prepEnvWithSetSpeakers);
 
-      const s1 = await env.dLogosCore.logoSpeakers(1, 0);
-      const s2 = await env.dLogosCore.logoSpeakers(1, 1);
-      const s3 = await env.dLogosCore.logoSpeakers(1, 2);
+      const speakers = await env.dLogosCore.getSpeakersForLogo(1);
       // speaker1
-      expect(s1.addr).equals(
+      expect(speakers[0].addr).equals(
         env.speaker1.address
       );
-      expect(s1.fee).equals(
+      expect(speakers[0].fee).equals(
         env.speaker1Fee
       );
-      expect(s1.provider).equals(
+      expect(speakers[0].provider).equals(
         env.speakerProvider
       );
-      expect(s1.handle).equals(
+      expect(speakers[0].handle).equals(
         env.speaker1Handle
       );
-      expect(s1.status).equals(
+      expect(speakers[0].status).equals(
         0
       );
       // speaker2
-      expect(s2.addr).equals(
+      expect(speakers[1].addr).equals(
         env.speaker2.address
       );
-      expect(s2.fee).equals(
+      expect(speakers[1].fee).equals(
         env.speaker2Fee
       );
-      expect(s2.provider).equals(
+      expect(speakers[1].provider).equals(
         env.speakerProvider
       );
-      expect(s2.handle).equals(
+      expect(speakers[1].handle).equals(
         env.speaker2Handle
       );
-      expect(s2.status).equals(
+      expect(speakers[1].status).equals(
         0
       );
       // speaker3
-      expect(s3.addr).equals(
+      expect(speakers[2].addr).equals(
         env.speaker3.address
       );
-      expect(s3.fee).equals(
+      expect(speakers[2].fee).equals(
         env.speaker3Fee
       );
-      expect(s3.provider).equals(
+      expect(speakers[2].provider).equals(
         env.speakerProvider
       );
-      expect(s3.handle).equals(
+      expect(speakers[2].handle).equals(
         env.speaker3Handle
       );
-      expect(s3.status).equals(
+      expect(speakers[2].status).equals(
         0
       );
     });
@@ -856,13 +854,13 @@ describe("DLogosCore Testing", () => {
     });
   });
 
-  describe("{setSpeakerStatus}, {getLogo} function", () => {
+  describe("{setSpeakerStatus}, {getSpeakersForLogo} function", () => {
     it("Should make changes to the storage", async () => {
       const env = await loadFixture(prepEnvWithSetSpeakerStatus);
 
-      const s1 = await env.dLogosCore.logoSpeakers(1, 0);
+      const speakers = await env.dLogosCore.getSpeakersForLogo(1);
       // speaker1
-      expect(s1.status).equals(
+      expect(speakers[0].status).equals(
         1,
       );
     });
@@ -965,6 +963,190 @@ describe("DLogosCore Testing", () => {
           "CrowdfundEnded()"
         );
       });
+
+      it("Should revert when caller is not speaker", async () => {
+        const env = await loadFixture(prepEnvWithSetSpeakerStatus);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setSpeakerStatus(
+              1,
+              1,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "Unauthorized()"
+        );
+      });
+    });
+  });
+
+  describe("{setDate}, {getLogo} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithSetDate);
+
+      const logo = await env.dLogosCore.getLogo(1);
+      expect(logo.scheduledAt).equals(
+        env.logo1ScheduledAt,
+      );
+      expect(logo.status.isCrowdfunding).equals(
+        false,
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithSetDate);
+
+      await expect(env.setDateTx)
+        .emit(env.dLogosCore, "DateSet")
+        .withArgs(
+          env.proposer1.address,
+          env.logo1ScheduledAt,
+        );
+    });
+
+    describe("Reverts", () => {
+      it("Should revert when contract is paused", async () => {
+        const env = await prepEnvWithPauseOrUnpauseTrue(
+          await loadFixture(prepEnvWithSetDate)
+        );
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setDate(
+              1,
+              0
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "EnforcedPause()"
+        );
+      });
+
+      it("Should revert when logo id is not valid", async () => {
+        const env = await loadFixture(prepEnvWithSetDate);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setDate(
+              2,
+              0
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "InvalidLogoId()"
+        );
+      });
+
+      it("Should revert when caller is not proposer", async () => {
+        const env = await loadFixture(prepEnvWithSetDate);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer2)
+            .setDate(
+              1,
+              0,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "Unauthorized()"
+        );
+      });
+
+      it("Should revert when logo is uploaded", async () => {
+        // TODO
+        // const env = await prepEnvWithToggleCrowdfund(
+        //   await loadFixture(prepEnvWithSetDate)
+        // );
+
+        // await expect(
+        //   env.dLogosCore
+        //     .connect(env.proposer1)
+        //     .setDate(
+        //       1,
+        //       1,
+        //     )
+        // ).to.be.revertedWithCustomError(
+        //   env.dLogosCore,
+        //   "LogoNotCrowdfunding()"
+        // );
+      });
+
+      it("Should revert when logo is distributed", async () => {
+        // TODO
+        // const env = await prepEnvWithToggleCrowdfund(
+        //   await loadFixture(prepEnvWithSetDate)
+        // );
+
+        // await expect(
+        //   env.dLogosCore
+        //     .connect(env.proposer1)
+        //     .setDate(
+        //       1,
+        //       1,
+        //     )
+        // ).to.be.revertedWithCustomError(
+        //   env.dLogosCore,
+        //   "LogoNotCrowdfunding()"
+        // );
+      });
+
+      it("Should revert when logo is refunded", async () => {
+        // TODO
+        // const env = await prepEnvWithToggleCrowdfund(
+        //   await loadFixture(prepEnvWithSetDate)
+        // );
+
+        // await expect(
+        //   env.dLogosCore
+        //     .connect(env.proposer1)
+        //     .setDate(
+        //       1,
+        //       1,
+        //     )
+        // ).to.be.revertedWithCustomError(
+        //   env.dLogosCore,
+        //   "LogoNotCrowdfunding()"
+        // );
+      });
+
+      it("Should revert when logo crowdfund deadline is passed", async () => {
+        const env = await loadFixture(prepEnvWithSetDate);
+
+        await time.increase(env.logo1CrowdfundNumberOfDays * ONE_DAY);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setDate(
+              1,
+              0,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "CrowdfundEnded()"
+        );
+      });
+
+      it("Should revert when param {_scheduledAt} <= {block.timestamp}", async () => {
+        const env = await loadFixture(prepEnvWithSetDate);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setDate(
+              1,
+              0,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "InvalidScheduleTime()"
+        );
+      });      
     });
   });
 });
@@ -1213,9 +1395,42 @@ async function prepEnvWithSetSpeakerStatus() {
       1, // accepted
     );
 
+  await prevEnv.dLogosCore
+    .connect(prevEnv.speaker2)
+    .setSpeakerStatus(
+      1,
+      1, // accepted
+    );
+
+  await prevEnv.dLogosCore
+    .connect(prevEnv.speaker3)
+    .setSpeakerStatus(
+      1,
+      1, // accepted
+    );
+
   return {
     ...prevEnv,
 
     setSpeakerStatusTx,
+  };
+}
+
+async function prepEnvWithSetDate() {
+  const prevEnv = await loadFixture(prepEnvWithSetSpeakerStatus);
+
+  const logo1ScheduledAt = BigInt(await time.latest()) + 10n * ONE_DAY;
+  const setDateTx = await prevEnv.dLogosCore
+    .connect(prevEnv.proposer1)
+    .setDate(
+      1,
+      logo1ScheduledAt,
+    );
+
+  return {
+    ...prevEnv,
+
+    logo1ScheduledAt,
+    setDateTx,
   };
 }

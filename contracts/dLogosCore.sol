@@ -288,13 +288,16 @@ contract DLogosCore is
 
         address msgSender = _msgSender();
         Speaker[] memory speakers = logoSpeakers[_logoId];
-        for (uint256 i = 0; i < speakers.length; i++) {
+        uint256 i;
+        for (i = 0; i < speakers.length; i++) {
             if (address(speakers[i].addr) == msgSender) {
                 logoSpeakers[_logoId][i].status = SpeakerStatus(_speakerStatus);
                 emit SpeakerStatusSet(_logoId, msgSender, _speakerStatus);
                 break;
             }
         }
+
+        if (i == speakers.length) revert Unauthorized();
     }
 
     /**
