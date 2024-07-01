@@ -8,7 +8,7 @@ contract DLogosBackerMock {
         return 1e15;
     }
 
-    function logoRejectedFunds() external pure returns (uint256) {
+    function logoRejectedFunds(uint256) external pure returns (uint256) {
         return 4 * 1e14;
     }
 
