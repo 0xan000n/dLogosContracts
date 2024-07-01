@@ -210,7 +210,7 @@ contract DLogosCore is
         uint256 logoRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
         uint256 logoRejectedFunds = IDLogosBacker(dLogosBacker).logoRejectedFunds(_logoId);
         bool c4 = 
-            logoRejectedFunds * 10_000 / logoRewards
+            logoRejectedFunds * PERCENTAGE_SCALE / logoRewards
             > 
             IDLogosOwner(dLogosOwner).rejectThreshold();
         

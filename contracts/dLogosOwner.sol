@@ -18,7 +18,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     uint256 public override dLogosFee; // DLogos (Labs) fee
     uint256 public override communityFee; // Community fee
     uint256 public override affiliateFee; // Affiliate fee    
-    uint16 public override rejectThreshold; // Backer rejection threshold in BPS
+    uint32 public override rejectThreshold; // Backer rejection threshold
     uint8 public override maxDuration; // Max crowdfunding duration
     uint8 public override rejectionWindow; // Reject deadline in days
 
@@ -43,7 +43,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         communityFee = 1e5; // 10%
         affiliateFee = 5 * 1e4; // 5%        
         
-        rejectThreshold = 5000; // 50%
+        rejectThreshold = 5 * 1e5; // 50%
         maxDuration = 60; // 60 days
         rejectionWindow = 7; // 7 days        
     }
@@ -52,9 +52,9 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
      * @dev Set reject threshold for dLogos.
      */
     function setRejectThreshold(
-        uint16 _rejectThreshold
+        uint32 _rejectThreshold
     ) external override onlyOwner {
-        if (_rejectThreshold == 0 || _rejectThreshold > 10000) revert InvalidRejectThreshold();
+        if (_rejectThreshold == 0 || _rejectThreshold > PERCENTAGE_SCALE) revert InvalidRejectThreshold();
         
         rejectThreshold = _rejectThreshold;
         emit RejectThresholdUpdated(rejectThreshold);

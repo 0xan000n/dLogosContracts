@@ -9,7 +9,7 @@ contract DLogosBackerMock {
     }
 
     function logoRejectedFunds(uint256) external pure returns (uint256) {
-        return 4 * 1e14;
+        return 6 * 1e14;
     }
 
     function getBackersForLogo(uint256) external pure returns (IDLogosBacker.Backer[] memory backers) {

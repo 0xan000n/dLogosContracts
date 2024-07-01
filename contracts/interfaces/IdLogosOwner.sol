@@ -8,7 +8,7 @@ interface IDLogosOwner {
     event DLogosFeeUpdated(uint256 _dLogosFee);
     event CommunityFeeUpdated(uint256 _communityFee);
     event AffiliateFeeUpdated(uint256 _affiliateFee);
-    event RejectThresholdUpdated(uint16 indexed _fee);
+    event RejectThresholdUpdated(uint32 indexed _fee);
     event MaxDurationUpdated(uint8 _maxDuration);
     event RejectionWindowUpdated(uint8 _rejectionWindow);
     event ZeroFeeProposersSet(address[] _proposers, bool[] _statuses);
@@ -18,10 +18,10 @@ interface IDLogosOwner {
     function dLogosFee() external view returns (uint256);
     function communityFee() external view returns (uint256);
     function affiliateFee() external view returns (uint256);
-    function rejectThreshold() external view returns (uint16);
+    function rejectThreshold() external view returns (uint32);
     function maxDuration() external view returns (uint8);
     function rejectionWindow() external view returns (uint8);
-    function setRejectThreshold(uint16) external;
+    function setRejectThreshold(uint32) external;
     function setMaxDuration(uint8) external;
     function setRejectionWindow(uint8) external;
     function setDLogosAddress(address) external;
