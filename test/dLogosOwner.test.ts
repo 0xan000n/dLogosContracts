@@ -34,7 +34,7 @@ describe("DLogosOwner Tests", () => {
       50000
     );
     expect(await env.dLogosOwner.rejectThreshold()).equals(
-      5000
+      500000
     );
     expect(await env.dLogosOwner.maxDuration()).equals(
       60
@@ -120,11 +120,11 @@ describe("DLogosOwner Tests", () => {
           "InvalidRejectThreshold()"
         );
 
-        // 10001
+        // 1000001
         await expect(
           env.dLogosOwner
             .connect(env.deployer)
-            .setRejectThreshold(10001)
+            .setRejectThreshold(PERCENTAGE_SCALE + 1n)
         ).to.be.revertedWithCustomError(
           env.dLogosOwner,
           "InvalidRejectThreshold()"
