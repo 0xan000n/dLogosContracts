@@ -1,11 +1,11 @@
-import { 
-  ethers, 
-  upgrades 
+import {
+  ethers,
+  upgrades
 } from "hardhat";
-import { 
-  loadFixture, 
-  time, 
-  setBalance 
+import {
+  loadFixture,
+  time,
+  setBalance
 } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import {
@@ -571,7 +571,7 @@ describe("DLogosCore Testing", () => {
           false,
           true, // because of owner mock
         );
-        
+
     });
 
     describe("Reverts", () => {
@@ -605,7 +605,7 @@ describe("DLogosCore Testing", () => {
           env.dLogosCore,
           "InvalidLogoId()"
         );
-      });      
+      });
 
       it("Should revert when logo is distributed", async () => {
         const env = await loadFixture(prepEnvWithDistributeRewards);
@@ -635,7 +635,7 @@ describe("DLogosCore Testing", () => {
           env.dLogosCore,
           "LogoRefunded()"
         );
-      });      
+      });
     });
   });
 
@@ -1150,7 +1150,7 @@ describe("DLogosCore Testing", () => {
           env.dLogosCore,
           "InvalidScheduleTime()"
         );
-      });      
+      });
     });
   });
 
@@ -1230,7 +1230,7 @@ describe("DLogosCore Testing", () => {
           env.dLogosCore,
           "Unauthorized()"
         );
-      });      
+      });
 
       it("Should revert when logo is distributed", async () => {
         const env = await loadFixture(prepEnvWithDistributeRewards);
@@ -1296,7 +1296,7 @@ describe("DLogosCore Testing", () => {
           env.dLogosCore,
           "LogoNotScheduled()"
         );
-      });      
+      });
 
       // mainnet
       // it("Should revert when logo's {scheduledAt} is not passed", async () => {
@@ -1368,7 +1368,7 @@ describe("DLogosCore Testing", () => {
       expect(await ethers.provider.getBalance(env.community.address)).equals(
         env.communityBal + BigInt("94999999999999")
       );
-      
+
       // check warehouse balance
       expect(await ethers.provider.getBalance(env.splitWarehouse)).equals(
         env.warehouseBal
@@ -1379,7 +1379,7 @@ describe("DLogosCore Testing", () => {
       const env = await loadFixture(prepEnvWithDistributeRewards);
 
       console.log(
-        "DistributeRewards gas fee:", 
+        "DistributeRewards gas fee:",
         (env.callerBal - await ethers.provider.getBalance(env.nonDeployer.address)) / env.distributeRewardsTx.gasPrice
       );
     });
@@ -1495,6 +1495,106 @@ describe("DLogosCore Testing", () => {
       });
     });
   });
+
+  describe("{pauseOrUnpause(true)} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithPauseOrUnpauseTrue);
+
+      expect(await env.dLogosCore.paused()).equals(
+        true
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithPauseOrUnpauseTrue);
+
+      await expect(env.pauseTx)
+        .emit(env.dLogosCore, "Paused")
+        .withArgs(
+          env.deployer.address
+        );
+    });
+
+    describe("Reverts", async () => {
+      it("Should revert when not allowed user", async () => {
+        const env = await loadFixture(prepEnvWithPauseOrUnpauseTrue);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .pauseOrUnpause(true)
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "OwnableUnauthorizedAccount"
+        ).withArgs(
+          env.nonDeployer.address
+        );
+      });
+
+      it("Should revert when contract is paused", async () => {
+        const env = await loadFixture(prepEnvWithPauseOrUnpauseTrue);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .pauseOrUnpause(true)
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "EnforcedPause()"
+        );
+      });
+    });
+  });
+
+  describe("{pauseOrUnpause(false)} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithPauseOrUnpauseFalse);
+
+      expect(await env.dLogosCore.paused()).equals(
+        false
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithPauseOrUnpauseFalse);
+
+      await expect(env.unpauseTx)
+        .emit(env.dLogosCore, "Unpaused")
+        .withArgs(
+          env.deployer.address
+        );
+    });
+
+    describe("Reverts", async () => {
+      it("Should revert when not allowed user", async () => {
+        const env = await loadFixture(prepEnvWithPauseOrUnpauseFalse);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .pauseOrUnpause(false)
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "OwnableUnauthorizedAccount"
+        ).withArgs(
+          env.nonDeployer.address
+        );
+      });
+
+      it("Should revert when contract is not paused", async () => {
+        const env = await loadFixture(prepEnvWithPauseOrUnpauseFalse);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .pauseOrUnpause(false)
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "ExpectedPause()"
+        );
+      });
+    });
+  });
 });
 
 async function prepEnv() {
@@ -1526,7 +1626,7 @@ async function prepEnv() {
   const dLogosBackerF = await ethers.getContractFactory("DLogosBackerMock");
   const dLogosBacker = await dLogosBackerF.deploy();
   await dLogosBacker.setReferrers(
-    referrer1.address, 
+    referrer1.address,
     referrer2.address
   );
 
@@ -1557,7 +1657,7 @@ async function prepEnv() {
 
   // set balance of dLogosCore contract
   await setBalance(await dLogosCore.getAddress(), BIGINT_1E15);
-  
+
   return {
     deployer,
     nonDeployer,
@@ -1871,7 +1971,7 @@ async function prepEnvWithDistributeRewards() {
     .connect(prevEnv.nonDeployer)
     .distributeRewards(
       1
-    );   
+    );
 
   return {
     ...prevEnv,
@@ -1888,5 +1988,19 @@ async function prepEnvWithDistributeRewards() {
     callerBal,
 
     distributeRewardsTx,
+  };
+}
+
+async function prepEnvWithPauseOrUnpauseFalse() {
+  const prevEnv = await loadFixture(prepEnvWithPauseOrUnpauseTrue);
+
+  const unpauseTx = await prevEnv.dLogosCore
+    .connect(prevEnv.deployer)
+    .pauseOrUnpause(false);
+
+  return {
+    ...prevEnv,
+
+    unpauseTx,
   };
 }
