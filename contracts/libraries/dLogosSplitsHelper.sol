@@ -31,7 +31,7 @@ library DLogosSplitsHelper {
     function getAffiliatesSplitInfo(
         IDLogosBacker.Backer[] memory backers,
         uint256 affiliateFee
-    ) external pure returns (
+    ) external view returns (
         uint256 totalRefRewards,
         SplitV2Lib.Split memory splitParam
     ) {
@@ -67,8 +67,8 @@ library DLogosSplitsHelper {
             // Slippage
             // {_totalAllocation} SHOULD not be greater than {PERCENTAGE_SCALE}
             if (_totalAllocation < PERCENTAGE_SCALE) {
-                // TODO check n+1 referrer address
-                referrers[backers.length] = address(0);
+                // return to distributor
+                referrers[backers.length] = msg.sender;
                 allocations[backers.length] =
                     PERCENTAGE_SCALE -
                     _totalAllocation;

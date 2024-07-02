@@ -10,7 +10,6 @@ import {
   ONE_DAY,
 } from "./_helpers/constants";
 
-// TODO meta tx testing
 describe("DLogosBacker Tests", () => {
   it("Test prepEnv", async () => {
     const env = await loadFixture(prepEnv);
