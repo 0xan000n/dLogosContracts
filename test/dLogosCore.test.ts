@@ -8,7 +8,6 @@ import {
   setBalance 
 } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-
 import {
   ZERO_ADDRESS,
   BIGINT_1E15,
@@ -223,7 +222,7 @@ describe("DLogosCore Testing", () => {
 
           await expect(
             env.dLogosCore
-              .connect(env.proposer2)
+              .connect(env.nonDeployer)
               .createLogo(
                 PERCENTAGE_SCALE - await env.dLogosOwner.dLogosFee() - await env.dLogosOwner.communityFee() + 1n,
                 env.logo1Title,
@@ -307,7 +306,7 @@ describe("DLogosCore Testing", () => {
 
         await expect(
           env.dLogosCore
-            .connect(env.proposer2)
+            .connect(env.nonDeployer)
             .toggleCrowdfund(
               1,
             )
@@ -324,7 +323,7 @@ describe("DLogosCore Testing", () => {
 
         await expect(
           env.dLogosCore
-            .connect(env.proposer2)
+            .connect(env.nonDeployer)
             .toggleCrowdfund(
               1,
             )
@@ -416,7 +415,7 @@ describe("DLogosCore Testing", () => {
 
         await expect(
           env.dLogosCore
-            .connect(env.proposer2)
+            .connect(env.nonDeployer)
             .setMinimumPledge(
               1,
               0,
@@ -609,22 +608,18 @@ describe("DLogosCore Testing", () => {
       });      
 
       it("Should revert when logo is distributed", async () => {
-        // TODO
-        // const env = await prepEnvWithToggleCrowdfund(
-        //   await loadFixture(prepEnvWithRefund)
-        // );
+        const env = await loadFixture(prepEnvWithDistributeRewards);
 
-        // await expect(
-        //   env.dLogosCore
-        //     .connect(env.proposer1)
-        //     .refund(
-        //       1,
-        //       0,
-        //     )
-        // ).to.be.revertedWithCustomError(
-        //   env.dLogosCore,
-        //   "LogoNotCrowdfunding()"
-        // );
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .refund(
+              1,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoDistributed()"
+        );
       });
 
       it("Should revert when logo is refunded", async () => {
@@ -786,7 +781,7 @@ describe("DLogosCore Testing", () => {
 
         await expect(
           env.dLogosCore
-            .connect(env.proposer2)
+            .connect(env.nonDeployer)
             .setSpeakers(dummyParam)
         ).to.be.revertedWithCustomError(
           env.dLogosCore,
@@ -1080,7 +1075,7 @@ describe("DLogosCore Testing", () => {
 
         await expect(
           env.dLogosCore
-            .connect(env.proposer2)
+            .connect(env.nonDeployer)
             .setDate(
               1,
               0,
@@ -1092,41 +1087,19 @@ describe("DLogosCore Testing", () => {
       });
 
       it("Should revert when logo is uploaded", async () => {
-        // TODO
-        // const env = await prepEnvWithToggleCrowdfund(
-        //   await loadFixture(prepEnvWithSetDate)
-        // );
+        const env = await loadFixture(prepEnvWithSetMediaAsset);
 
-        // await expect(
-        //   env.dLogosCore
-        //     .connect(env.proposer1)
-        //     .setDate(
-        //       1,
-        //       1,
-        //     )
-        // ).to.be.revertedWithCustomError(
-        //   env.dLogosCore,
-        //   "LogoNotCrowdfunding()"
-        // );
-      });
-
-      it("Should revert when logo is distributed", async () => {
-        // TODO
-        // const env = await prepEnvWithToggleCrowdfund(
-        //   await loadFixture(prepEnvWithSetDate)
-        // );
-
-        // await expect(
-        //   env.dLogosCore
-        //     .connect(env.proposer1)
-        //     .setDate(
-        //       1,
-        //       1,
-        //     )
-        // ).to.be.revertedWithCustomError(
-        //   env.dLogosCore,
-        //   "LogoNotCrowdfunding()"
-        // );
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setDate(
+              1,
+              0,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoUploaded()"
+        );
       });
 
       it("Should revert when logo is refunded", async () => {
@@ -1248,7 +1221,7 @@ describe("DLogosCore Testing", () => {
 
         await expect(
           env.dLogosCore
-            .connect(env.proposer2)
+            .connect(env.nonDeployer)
             .setMediaAsset(
               1,
               "",
@@ -1260,22 +1233,19 @@ describe("DLogosCore Testing", () => {
       });      
 
       it("Should revert when logo is distributed", async () => {
-        // TODO
-        // const env = await prepEnvWithToggleCrowdfund(
-        //   await loadFixture(prepEnvWithSetMediaAsset)
-        // );
+        const env = await loadFixture(prepEnvWithDistributeRewards);
 
-        // await expect(
-        //   env.dLogosCore
-        //     .connect(env.proposer1)
-        //     .setMediaAsset(
-        //       1,
-        //       1,
-        //     )
-        // ).to.be.revertedWithCustomError(
-        //   env.dLogosCore,
-        //   "LogoNotCrowdfunding()"
-        // );
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setMediaAsset(
+              1,
+              "",
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoDistributed()"
+        );
       });
 
       it("Should revert when logo is refunded", async () => {
@@ -1351,191 +1321,200 @@ describe("DLogosCore Testing", () => {
     it("Should make changes to the storage", async () => {
       const env = await loadFixture(prepEnvWithDistributeRewards);
 
-      // check storage
       const logo1 = await env.dLogosCore.getLogo(1);
+      const splitForSpeaker = logo1.splitForSpeaker;
+      const splitForAffiliate = logo1.splitForAffiliate;
+
+      // check storage
       expect(logo1.status.isDistributed).equals(
         true
       );
-      const l1SplitForSpeaker = logo1.splitForSpeaker;
-      const l1SplitForAffiliate = logo1.splitForAffiliate;
 
       // check core and splits balance
-      expect(await env.provider.getBalance(await env.dLogosCore.getAddress())).equals(
+      expect(await ethers.provider.getBalance(await env.dLogosCore.getAddress())).equals(
         0
       );
-      expect(await env.provider.getBalance(l1SplitForSpeaker)).equals(
-        0
+      expect(await ethers.provider.getBalance(splitForSpeaker)).equals(
+        5
       );
-      expect(await env.provider.getBalance(l1SplitForAffiliate)).equals(
-        0
+      expect(await ethers.provider.getBalance(splitForAffiliate)).equals(
+        2
       );
 
       // check speaker balance
-      // expect(await env.provider.getBalance(env.speaker1.address)).equals(
-      //   env.l1Speaker1Bal + 
-      // );
+      expect(await ethers.provider.getBalance(env.speaker1.address)).equals(
+        env.speaker1Bal + BigInt("284999999999999")
+      );
+      expect(await ethers.provider.getBalance(env.speaker2.address)).equals(
+        env.speaker2Bal + BigInt("284999999999999")
+      );
+      expect(await ethers.provider.getBalance(env.speaker3.address)).equals(
+        env.speaker3Bal + BigInt("189999999999999")
+      );
+
+      // check proposer balance
+      expect(await ethers.provider.getBalance(env.proposer1.address)).equals(
+        env.proposerBal + BigInt("94999999999999")
+      );
+
       // check referrer balance
       const backers = await env.dLogosBacker.getBackersForLogo(1);
-      // expect(await env.provider.getBalance(backers[0].referrer)).equals(
-      //   5n * BIGINT_1E12,
-      // );
-      // 13367299275907738018935
-      expect(await env.provider.getBalance(backers[1].referrer)).equals(
-        45n * BIGINT_1E12,
+      expect(await ethers.provider.getBalance(env.referrer1.address)).equals(
+        env.referrer1Bal + BigInt("4999999999999")
+      );
+      expect(await ethers.provider.getBalance(env.referrer2.address)).equals(
+        env.referrer2Bal + BigInt("44999999999999")
+      );
+      expect(await ethers.provider.getBalance(env.community.address)).equals(
+        env.communityBal + BigInt("94999999999999")
+      );
+      
+      // check warehouse balance
+      expect(await ethers.provider.getBalance(env.splitWarehouse)).equals(
+        env.warehouseBal
       );
     });
 
-    // it("Should emit event", async () => {
-    //   const env = await loadFixture(prepEnvWithSetMediaAsset);
+    it("Estimate gas fee", async () => {
+      const env = await loadFixture(prepEnvWithDistributeRewards);
 
-    //   await expect(env.setMediaAssetTx)
-    //     .emit(env.dLogosCore, "MediaAssetSet")
-    //     .withArgs(
-    //       env.proposer1.address,
-    //       env.logo1MediaAssetURL,
-    //     );
-    // });
+      console.log(
+        "DistributeRewards gas fee:", 
+        (env.callerBal - await ethers.provider.getBalance(env.nonDeployer.address)) / env.distributeRewardsTx.gasPrice
+      );
+    });
 
-    // describe("Reverts", () => {
-    //   it("Should revert when contract is paused", async () => {
-    //     const env = await prepEnvWithPauseOrUnpauseTrue(
-    //       await loadFixture(prepEnvWithSetMediaAsset)
-    //     );
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithDistributeRewards);
 
-    //     await expect(
-    //       env.dLogosCore
-    //         .connect(env.proposer1)
-    //         .setMediaAsset(
-    //           1,
-    //           "",
-    //         )
-    //     ).to.be.revertedWithCustomError(
-    //       env.dLogosCore,
-    //       "EnforcedPause()"
-    //     );
-    //   });
+      const logo1 = await env.dLogosCore.getLogo(1);
+      const splitForSpeaker = logo1.splitForSpeaker;
+      const splitForAffiliate = logo1.splitForAffiliate;
 
-    //   it("Should revert when logo id is not valid", async () => {
-    //     const env = await loadFixture(prepEnvWithSetMediaAsset);
+      await expect(env.distributeRewardsTx)
+        .emit(env.dLogosCore, "RewardsDistributed")
+        .withArgs(
+          env.nonDeployer.address,
+          splitForSpeaker,
+          splitForAffiliate,
+          BIGINT_1E15
+        );
+    });
 
-    //     await expect(
-    //       env.dLogosCore
-    //         .connect(env.proposer1)
-    //         .setMediaAsset(
-    //           2,
-    //           "",
-    //         )
-    //     ).to.be.revertedWithCustomError(
-    //       env.dLogosCore,
-    //       "InvalidLogoId()"
-    //     );
-    //   });
+    describe("Reverts", () => {
+      it("Should revert when contract is paused", async () => {
+        const env = await prepEnvWithPauseOrUnpauseTrue(
+          await loadFixture(prepEnvWithDistributeRewards)
+        );
 
-    //   it("Should revert when caller is not proposer", async () => {
-    //     const env = await loadFixture(prepEnvWithSetMediaAsset);
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .distributeRewards(
+              1,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "EnforcedPause()"
+        );
+      });
 
-    //     await expect(
-    //       env.dLogosCore
-    //         .connect(env.proposer2)
-    //         .setMediaAsset(
-    //           1,
-    //           "",
-    //         )
-    //     ).to.be.revertedWithCustomError(
-    //       env.dLogosCore,
-    //       "Unauthorized()"
-    //     );
-    //   });      
+      it("Should revert when logo id is not valid", async () => {
+        const env = await loadFixture(prepEnvWithDistributeRewards);
 
-    //   it("Should revert when logo is distributed", async () => {
-    //     // TODO
-    //     // const env = await prepEnvWithToggleCrowdfund(
-    //     //   await loadFixture(prepEnvWithSetMediaAsset)
-    //     // );
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .distributeRewards(
+              2
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "InvalidLogoId()"
+        );
+      });
 
-    //     // await expect(
-    //     //   env.dLogosCore
-    //     //     .connect(env.proposer1)
-    //     //     .setMediaAsset(
-    //     //       1,
-    //     //       1,
-    //     //     )
-    //     // ).to.be.revertedWithCustomError(
-    //     //   env.dLogosCore,
-    //     //   "LogoNotCrowdfunding()"
-    //     // );
-    //   });
+      it("Should revert when logo is distributed", async () => {
+        const env = await loadFixture(prepEnvWithDistributeRewards);
 
-    //   it("Should revert when logo is refunded", async () => {
-    //     const env = await loadFixture(prepEnvWithRefundCond1);
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .distributeRewards(
+              1
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoDistributed()"
+        );
+      });
 
-    //     await expect(
-    //       env.dLogosCore
-    //         .connect(env.proposer1)
-    //         .setMediaAsset(
-    //           1,
-    //           "",
-    //         )
-    //     ).to.be.revertedWithCustomError(
-    //       env.dLogosCore,
-    //       "LogoRefunded()",
-    //     );
-    //   });
+      it("Should revert when logo is refunded", async () => {
+        const env = await loadFixture(prepEnvWithRefundCond1);
 
-    //   it("Should revert when logo crowdfund deadline is passed", async () => {
-    //     const env = await loadFixture(prepEnvWithSetMediaAsset);
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .distributeRewards(
+              1,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoRefunded()",
+        );
+      });
 
-    //     await time.increase(env.logo1CrowdfundNumberOfDays * ONE_DAY);
+      it("Should revert when logo is not uploaded", async () => {
+        const env = await loadFixture(prepEnvWithCreateLogo);
 
-    //     await expect(
-    //       env.dLogosCore
-    //         .connect(env.proposer1)
-    //         .setMediaAsset(
-    //           1,
-    //           "",
-    //         )
-    //     ).to.be.revertedWithCustomError(
-    //       env.dLogosCore,
-    //       "CrowdfundEnded()"
-    //     );
-    //   });
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .distributeRewards(
+              1,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoNotUploaded()",
+        );
+      });
 
-    //   it("Should revert when logo's {scheduledAt} is 0", async () => {
-    //     const env = await loadFixture(prepEnvWithCreateLogo);
+      it("Should revert when logo rejection deadline is not passed", async () => {
+        const env = await loadFixture(prepEnvWithSetMediaAsset);
 
-    //     await expect(
-    //       env.dLogosCore
-    //         .connect(env.proposer1)
-    //         .setMediaAsset(
-    //           1,
-    //           "",
-    //         )
-    //     ).to.be.revertedWithCustomError(
-    //       env.dLogosCore,
-    //       "LogoNotScheduled()"
-    //     );
-    //   });      
-    // });
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .distributeRewards(
+              1,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "RejectionDeadlineNotPassed()"
+        );
+      });
+    });
   });
 });
 
 async function prepEnv() {
-  const provider = ethers.getDefaultProvider();
-
   const [
     deployer,
     nonDeployer,
     proposer1,
-    proposer2,
     speaker1,
     speaker2,
     speaker3,
+    referrer1,
+    referrer2,
+    community,
     ...otherSigners
   ] = await ethers.getSigners();
 
-  // deploy DLogosOwner mock
+  // deploy and init DLogosOwner mock
   const dLogosOwnerF = await ethers.getContractFactory("DLogosOwnerMock");
   const dLogosOwner = await dLogosOwnerF.deploy();
+  await dLogosOwner.setCommunity(community.address);
 
   // make proposer1 zero fee
   await dLogosOwner.setZeroFeeProposer(
@@ -1543,9 +1522,13 @@ async function prepEnv() {
     true
   );
 
-  // deploy DLogosBacker mock
+  // deploy and init DLogosBacker mock
   const dLogosBackerF = await ethers.getContractFactory("DLogosBackerMock");
   const dLogosBacker = await dLogosBackerF.deploy();
+  await dLogosBacker.setReferrers(
+    referrer1.address, 
+    referrer2.address
+  );
 
   // deploy DLogosSplitsHelper
   const dLogosSplitsHelperF = await ethers.getContractFactory("DLogosSplitsHelper");
@@ -1573,18 +1556,18 @@ async function prepEnv() {
   const dLogosCore = dLogosCoreF.attach(await dLogosCoreProxy.getAddress());
 
   // set balance of dLogosCore contract
-  await setBalance(await dLogosCoreProxy.getAddress(), BIGINT_1E15);
-
+  await setBalance(await dLogosCore.getAddress(), BIGINT_1E15);
+  
   return {
-    provider,
-
     deployer,
     nonDeployer,
     proposer1,
-    proposer2,
     speaker1,
     speaker2,
     speaker3,
+    referrer1,
+    referrer2,
+    community,
 
     trustedForwarder,
 
@@ -1695,7 +1678,7 @@ async function prepEnvWithRefundCond2() {
 
   await time.increase(prevEnv.logo1CrowdfundNumberOfDays * ONE_DAY);
   const refundTx = await prevEnv.dLogosCore
-    .connect(prevEnv.proposer2)
+    .connect(prevEnv.nonDeployer)
     .refund(
       1
     );
@@ -1712,7 +1695,7 @@ async function prepEnvWithRefundCond3() {
 
   await time.increaseTo(prevEnv.logo1ScheduledAt + await prevEnv.dLogosOwner.rejectionWindow() * ONE_DAY);
   const refundTx = await prevEnv.dLogosCore
-    .connect(prevEnv.proposer2)
+    .connect(prevEnv.nonDeployer)
     .refund(
       1
     );
@@ -1728,7 +1711,7 @@ async function prepEnvWithRefundCond4() {
   const prevEnv = await loadFixture(prepEnvWithCreateLogo);
 
   const refundTx = await prevEnv.dLogosCore
-    .connect(prevEnv.proposer2)
+    .connect(prevEnv.nonDeployer)
     .refund(
       1
     );
@@ -1865,7 +1848,6 @@ async function prepEnvWithSetMediaAsset() {
   };
 }
 
-
 async function prepEnvWithDistributeRewards() {
   const prevEnv = await loadFixture(prepEnvWithSetMediaAsset);
 
@@ -1874,22 +1856,36 @@ async function prepEnvWithDistributeRewards() {
   await time.increaseTo(logo1RejectionDeadline);
 
   // balance
-  const l1Speaker1Bal = await prevEnv.provider.getBalance(prevEnv.speaker1.address);
-  const l1Speaker2Bal = await prevEnv.provider.getBalance(prevEnv.speaker2.address);
-  const l1Speaker3Bal = await prevEnv.provider.getBalance(prevEnv.speaker3.address);
+  const splitWarehouse = "0x8fb66F38cF86A3d5e8768f8F1754A24A6c661Fb8";
+  const proposerBal = await ethers.provider.getBalance(prevEnv.proposer1.address);
+  const speaker1Bal = await ethers.provider.getBalance(prevEnv.speaker1.address);
+  const speaker2Bal = await ethers.provider.getBalance(prevEnv.speaker2.address);
+  const speaker3Bal = await ethers.provider.getBalance(prevEnv.speaker3.address);
+  const referrer1Bal = await ethers.provider.getBalance(prevEnv.referrer1.address);
+  const referrer2Bal = await ethers.provider.getBalance(prevEnv.referrer2.address);
+  const warehouseBal = await ethers.provider.getBalance(splitWarehouse);
+  const communityBal = await ethers.provider.getBalance(prevEnv.community.address);
+  const callerBal = await ethers.provider.getBalance(prevEnv.nonDeployer.address);
 
   const distributeRewardsTx = await prevEnv.dLogosCore
-    .connect(prevEnv.proposer1)
+    .connect(prevEnv.nonDeployer)
     .distributeRewards(
       1
-    );
+    );   
 
   return {
     ...prevEnv,
 
-    l1Speaker1Bal,
-    l1Speaker2Bal,
-    l1Speaker3Bal,
+    splitWarehouse,
+    proposerBal,
+    speaker1Bal,
+    speaker2Bal,
+    speaker3Bal,
+    warehouseBal,
+    referrer1Bal,
+    referrer2Bal,
+    communityBal,
+    callerBal,
 
     distributeRewardsTx,
   };

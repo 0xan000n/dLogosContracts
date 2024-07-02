@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 contract DLogosOwnerMock {
     mapping(address => bool) public zeroFeeProposers;
 
+    address public community;
+
     function setZeroFeeProposer(
         address _proposer,
         bool _status
@@ -43,7 +45,7 @@ contract DLogosOwnerMock {
         return 0xaDC87646f736d6A82e9a6539cddC488b2aA07f38; // random address
     }
 
-    function community() external pure returns (address) {
-        return 0x0285B37453F73f8dE94De0cAEf8108bC8431BE34; // random address
+    function setCommunity(address _community) external {
+        community = _community;
     }
 }

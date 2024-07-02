@@ -318,7 +318,6 @@ contract DLogosCore is
         address msgSender = _msgSender();
         if (l.proposer != msgSender) revert Unauthorized();
         if (l.status.isUploaded) revert LogoUploaded();
-        if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (_scheduledAt <= block.timestamp) revert InvalidScheduleTime();
@@ -368,8 +367,6 @@ contract DLogosCore is
         uint256 _logoId
     ) external override nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        address msgSender = _msgSender();
-        if (l.proposer != msgSender) revert Unauthorized();
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
         if (!l.status.isUploaded) revert LogoNotUploaded();
@@ -402,7 +399,7 @@ contract DLogosCore is
                 dLogos: IDLogosOwner(dLogosOwner).dLogos(),
                 community: IDLogosOwner(dLogosOwner).community(),
                 proposer: l.proposer,
-                isZeroFeeProposer: IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender),
+                isZeroFeeProposer: IDLogosOwner(dLogosOwner).isZeroFeeProposer(l.proposer),
                 dLogosFee: IDLogosOwner(dLogosOwner).dLogosFee(),
                 communityFee: IDLogosOwner(dLogosOwner).communityFee(),
                 proposerFee: l.proposerFee
@@ -417,8 +414,8 @@ contract DLogosCore is
         sl.splitForSpeaker = splitForSpeaker;
         sl.splitForAffiliate = splitForAffiliate;
 
-        emit RewardsDistributed(msgSender, splitForSpeaker, splitForAffiliate, totalRewards);
-    }    
+        emit RewardsDistributed(_msgSender(), splitForSpeaker, splitForAffiliate, totalRewards);
+    }
 
     /**
      * @dev Pause or unpause the contract
