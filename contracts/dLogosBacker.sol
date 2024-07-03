@@ -10,6 +10,7 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
 import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
+import {ILogo} from "./interfaces/ILogo.sol";
 import {ForwarderSetterUpgradeable} from "./utils/ForwarderSetterUpgradeable.sol";
 import "./Error.sol";
 
@@ -97,6 +98,9 @@ contract DLogosBacker is
         unchecked {
             logoRewards[_logoId] = logoRewards[_logoId] + msg.value;
         }
+
+        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
+        ILogo(logoNFT).safeMint(msgSender, _logoId, true);
         emit Crowdfund(_logoId, msgSender, msg.value);
     }
 

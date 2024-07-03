@@ -1,33 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ILogo} from "./interfaces/ILogo.sol";
 import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import "./Error.sol";
 
 /// @custom:security-contact security@dlogos.xyz
-contract Logo is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
-    uint256 public tokenIdCounter; // Starting from 1
-    string public baseURI;
-    address public dLogosOwner;
-
-    enum Status {
-        Backer,
-        Speaker
-    }
-    struct Info {
-        address owner;
-        uint256 logoId;
-        Status status;
-    }
+contract Logo is ILogo, ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
+    uint256 public override tokenIdCounter; // Starting from 1
+    string public override baseURI;
+    address public override dLogosOwner;
 
     mapping(uint256 => Info) public infos;
-
-    event Minted(address indexed _to, uint256 indexed _tokenId, uint256 indexed _logoId, bool _isBacker);
-    event BaseURISet(string _baseURI);
 
     constructor(
         address _dLogosOwner
@@ -36,11 +24,7 @@ contract Logo is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
         IDLogosOwner(_dLogosOwner).setLogoNFT(address(this));
         dLogosOwner = _dLogosOwner;
-    }
-
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI;
-    }
+    }   
 
     function setBaseURI(string calldata baseURI_) external {
         baseURI = baseURI_;
@@ -49,7 +33,6 @@ contract Logo is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
     function safeMint(
         address _to, 
-        string memory _uri,
         uint256 _logoId,
         bool _isBacker
     ) external {
@@ -61,7 +44,6 @@ contract Logo is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
         uint256 tokenId = tokenIdCounter + 1;
         _safeMint(_to, tokenId);
-        _setTokenURI(tokenId, _uri);
         infos[tokenId] = Info({
             owner: _to,
             logoId: _logoId,
@@ -70,6 +52,14 @@ contract Logo is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         tokenIdCounter = tokenId;
 
         emit Minted(_to, tokenId, _logoId, _isBacker);
+    }
+
+    function getInfo(uint256 _tokenId) external override view returns (Info memory i) {
+        i = infos[_tokenId];
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
     }
 
     // The follong functions are overrides required by Solidity.

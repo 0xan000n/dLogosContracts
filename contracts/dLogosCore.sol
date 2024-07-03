@@ -9,6 +9,7 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
 import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
+import {ILogo} from "./interfaces/ILogo.sol";
 import {DLogosSplitsHelper} from "./libraries/dLogosSplitsHelper.sol";
 import {ForwarderSetterUpgradeable} from "./utils/ForwarderSetterUpgradeable.sol";
 import {SplitV2Lib} from "./splitsV2/libraries/SplitV2.sol";
@@ -311,6 +312,8 @@ contract DLogosCore is
         }
 
         if (i == speakers.length) revert Unauthorized();
+        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
+        ILogo(logoNFT).safeMint(msgSender, _logoId, false);
     }
 
     /**
