@@ -65,8 +65,7 @@ contract DLogosCore is
     uint256 public constant PERCENTAGE_SCALE = 1e6;
 
     /// STORAGE
-    address public dLogosOwner;
-    address public dLogosBacker;
+    address public override dLogosOwner;
     uint256 public override logoId; // Global Logo ID
     mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info    
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
@@ -79,24 +78,25 @@ contract DLogosCore is
 
     function initialize(        
         address trustedForwarder_,
-        address _dLogosOwner,
-        address _dLogosBacker
-    ) external initializer {
+        address _dLogosOwner
+    ) external initializer notZeroAddress(_dLogosOwner) {
         // Initialize tx is not gasless
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
         __ForwarderSetterUpgradeable_init(trustedForwarder_);
-        
-        if (_dLogosOwner == address(0) || _dLogosBacker == address(0)) 
-            revert ZeroAddress();
-
+    
+        IDLogosOwner(_dLogosOwner).setDLogosCore(address(this));
         dLogosOwner = _dLogosOwner;
-        dLogosBacker = _dLogosBacker;
         logoId = 1; // Starting from 1
     }
 
     /// MODIFIERS
+    modifier notZeroAddress(address _addr) {
+        if (_addr == address(0)) revert ZeroAddress();
+        _;
+    }
+
     modifier validLogoId(uint256 _logoId) {
         if (_logoId >= logoId) revert InvalidLogoId();
         _;
@@ -195,26 +195,39 @@ contract DLogosCore is
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
 
-        // Case 1: Logo proposer can refund whenever.
-        bool c1 = l.proposer == _msgSender();
-        // Case 2: Crowdfund end date reached and not distributed.
-        bool c2 = block.timestamp > l.crowdfundEndAt;
-        // Case 3: >7 days have passed since schedule date and no asset uploaded.
-        bool c3 = 
-            l.scheduledAt != 0 
-            && 
-            block.timestamp > l.scheduledAt + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days
-            && 
-            !l.status.isUploaded;
-        // Case 4: >50% of backer funds reject upload.
-        uint256 logoRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
-        uint256 logoRejectedFunds = IDLogosBacker(dLogosBacker).logoRejectedFunds(_logoId);
-        bool c4 = 
-            logoRejectedFunds * PERCENTAGE_SCALE / logoRewards
-            > 
-            IDLogosOwner(dLogosOwner).rejectThreshold();
+        bool c1;
+        bool c2;
+        bool c3;
+        bool c4;
         
-        if (!c1 && !c2 && !c3 && !c4) revert NoRefundConditionsMet();
+        // Case 1: Logo proposer can refund whenever.
+        c1 = l.proposer == _msgSender();
+        if (!c1) {
+            // Case 2: Crowdfund end date reached and not distributed.
+            c2 = block.timestamp > l.crowdfundEndAt;
+            if (!c2) {
+                // Case 3: >7 days have passed since schedule date and no asset uploaded.
+                c3 = 
+                    l.scheduledAt != 0 
+                    && 
+                    block.timestamp > l.scheduledAt + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days
+                    && 
+                    !l.status.isUploaded;
+                if (!c3) {
+                    // Case 4: >50% of backer funds reject upload.
+                    address dLogosBacker = IDLogosOwner(dLogosOwner).dLogosBacker();
+                    uint256 logoRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
+                    uint256 logoRejectedFunds = IDLogosBacker(dLogosBacker).logoRejectedFunds(_logoId);
+                    c4 = 
+                        logoRejectedFunds * PERCENTAGE_SCALE / logoRewards
+                        > 
+                        IDLogosOwner(dLogosOwner).rejectThreshold();
+                    if (!c4) {
+                        revert NoRefundConditionsMet();
+                    }
+                }                
+            }
+        }        
 
         logos[_logoId].status.isRefunded = true;
 
@@ -372,6 +385,7 @@ contract DLogosCore is
         if (!l.status.isUploaded) revert LogoNotUploaded();
         if (block.timestamp < l.rejectionDeadline) revert RejectionDeadlineNotPassed();
 
+        address dLogosBacker = IDLogosOwner(dLogosOwner).dLogosBacker();
         uint256 totalRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
         address splitForAffiliate;
         address splitForSpeaker;        

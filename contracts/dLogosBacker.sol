@@ -7,6 +7,7 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Pau
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
 import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
 import {ForwarderSetterUpgradeable} from "./utils/ForwarderSetterUpgradeable.sol";
@@ -23,7 +24,7 @@ contract DLogosBacker is
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// STORAGE
-    address public dLogosCore;
+    address public override dLogosOwner;
     mapping(uint256 => mapping(address => Backer)) public logoBackers; // Mapping of Logo ID to address to Backer
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
     mapping(uint256 => uint256) public override logoRewards; // Mapping of Logo ID to accumulated rewards
@@ -36,17 +37,22 @@ contract DLogosBacker is
 
     function initialize(        
         address trustedForwarder_,
-        address _dLogosCore
-    ) external initializer {
+        address _dLogosOwner
+    ) external initializer notZeroAddress(_dLogosOwner) {
         // Initialize tx is not gasless
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
         __ForwarderSetterUpgradeable_init(trustedForwarder_);
         
-        if (_dLogosCore == address(0)) revert ZeroAddress();
+        IDLogosOwner(_dLogosOwner).setDLogosBacker(address(this));
+        dLogosOwner = _dLogosOwner;
+    }
 
-        dLogosCore = _dLogosCore;
+    /// MODIFIERS
+    modifier notZeroAddress(address _addr) {
+        if (_addr == address(0)) revert ZeroAddress();
+        _;
     }
 
     /**
@@ -166,6 +172,7 @@ contract DLogosBacker is
     }
 
     function _getValidLogo(uint256 _logoId) private view returns (IDLogosCore.Logo memory l) {
+        address dLogosCore = IDLogosOwner(dLogosOwner).dLogosCore();
         l = IDLogosCore(dLogosCore).getLogo(_logoId);
         if (l.proposer == address(0)) revert InvalidLogoId();
     }

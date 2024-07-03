@@ -24,6 +24,8 @@ interface IDLogosBacker {
         address indexed _backer
     );
 
+    function dLogosOwner() external view returns (address);
+    
     function logoRewards(uint256) external view returns (uint256);
 
     function logoRejectedFunds(uint256) external view returns (uint256);

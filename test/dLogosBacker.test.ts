@@ -20,8 +20,14 @@ describe("DLogosBacker Tests", () => {
     );
 
     // check public variables
-    expect(await env.dLogosBacker.dLogosCore()).equals(
+    expect(await env.dLogosBacker.dLogosOwner()).equals(
+      await env.dLogosOwner.getAddress()
+    );
+    expect(await env.dLogosOwner.dLogosCore()).equals(
       await env.dLogosCore.getAddress()
+    );
+    expect(await env.dLogosOwner.dLogosBacker()).equals(
+      await env.dLogosBacker.getAddress()
     );
   });
 
@@ -470,11 +476,24 @@ describe("DLogosBacker Tests", () => {
 });
 
 async function prepEnv() {
-  const [deployer, nonDeployer, backer1, referrer1, backer2, referrer2, ...otherSigners] = await ethers.getSigners();
+  const [
+    deployer, 
+    nonDeployer, 
+    backer1, 
+    referrer1, 
+    backer2, 
+    referrer2, 
+    ...otherSigners
+  ] = await ethers.getSigners();
+
+  // deploy DLogosOwner mock
+  const dLogosOwnerF = await ethers.getContractFactory("DLogosOwnerMock");
+  const dLogosOwner = await dLogosOwnerF.deploy();
 
   // deploy and init DLogosCore mock
   const dLogosCoreF = await ethers.getContractFactory("DLogosCoreMock");
-  const dLogosCore = await dLogosCoreF.deploy();
+  const dLogosOwnerAddr = await dLogosOwner.getAddress();
+  const dLogosCore = await dLogosCoreF.deploy(dLogosOwnerAddr);
   await dLogosCore.init();
 
   // deploy and initialize DLogosBacker
@@ -484,7 +503,7 @@ async function prepEnv() {
     dLogosBackerF,
     [
       trustedForwarder,
-      await dLogosCore.getAddress()
+      dLogosOwnerAddr,
     ]
   );
   const dLogosBacker = dLogosBackerF.attach(await dLogosBackerProxy.getAddress());
@@ -497,6 +516,7 @@ async function prepEnv() {
     backer2,
     referrer2,
 
+    dLogosOwner,
     dLogosCore,
 
     dLogosBackerF,

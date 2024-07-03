@@ -2,9 +2,53 @@
 pragma solidity ^0.8.24;
 
 contract DLogosOwnerMock {
+    address public owner;
+    address public community;
+    address public dLogosCore;
+    address public dLogosBacker;
     mapping(address => bool) public zeroFeeProposers;
 
-    address public community;
+    error Unauthorized();
+    error DirectCallNotAllowed();
+    error ZeroAddress();
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwnerOrigin() {
+        if (owner != tx.origin) revert Unauthorized();
+        _;
+    }
+
+    modifier onlyInternalTx() {
+        if (tx.origin == msg.sender) revert DirectCallNotAllowed();
+        _;
+    }
+
+    modifier notZeroAddress(address _addr) {
+        if (_addr == address(0)) revert ZeroAddress();
+        _;
+    }
+
+    function setDLogosBacker(
+        address _dLogosBacker
+    ) external onlyOwnerOrigin onlyInternalTx notZeroAddress(_dLogosBacker) {
+        dLogosBacker = _dLogosBacker;
+    }
+
+    function setDLogosCore(
+        address _dLogosCore
+    ) external onlyOwnerOrigin onlyInternalTx notZeroAddress(_dLogosCore) {
+        dLogosCore = _dLogosCore;
+    }
+
+    // function setLogoNFT(
+    //     address _logoNFT
+    // ) external onlyOwnerOrigin onlyInternalTx notZeroAddress(_logoNFT) {
+    //     logoNFT = _logoNFT;
+    //     emit LogoNFTUpdated(_logoNFT);
+    // }
 
     function setZeroFeeProposer(
         address _proposer,

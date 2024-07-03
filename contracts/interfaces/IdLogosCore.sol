@@ -99,6 +99,8 @@ interface IDLogosCore {
         address _creator
     );
 
+    function dLogosOwner() external view returns (address);
+    
     function logoId() external view returns (uint256);
 
     function getLogo(uint256) external view returns (Logo memory);

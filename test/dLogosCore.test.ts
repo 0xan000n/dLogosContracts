@@ -31,8 +31,11 @@ describe("DLogosCore Testing", () => {
     expect(await env.dLogosCore.dLogosOwner()).equals(
       await env.dLogosOwner.getAddress()
     );
-    expect(await env.dLogosCore.dLogosBacker()).equals(
+    expect(await env.dLogosOwner.dLogosBacker()).equals(
       await env.dLogosBacker.getAddress()
+    );
+    expect(await env.dLogosOwner.dLogosCore()).equals(
+      await env.dLogosCore.getAddress()
     );
     expect(await env.dLogosCore.logoId()).equals(
       1
@@ -49,7 +52,6 @@ describe("DLogosCore Testing", () => {
           dLogosCore.initialize(
             ZERO_ADDRESS,
             ZERO_ADDRESS,
-            ZERO_ADDRESS,
           )
         ).to.be.revertedWithCustomError(
           dLogosCore,
@@ -62,7 +64,6 @@ describe("DLogosCore Testing", () => {
 
         await expect(
           env.dLogosCore.initialize(
-            ZERO_ADDRESS,
             ZERO_ADDRESS,
             ZERO_ADDRESS,
           )
@@ -530,7 +531,7 @@ describe("DLogosCore Testing", () => {
           true,
           false,
           false,
-          true, // because of owner mock
+          false,
         );
 
       // condition 2
@@ -543,7 +544,7 @@ describe("DLogosCore Testing", () => {
           false,
           true,
           false,
-          true, // because of owner mock
+          false,
         );
 
       // condition 3
@@ -556,7 +557,7 @@ describe("DLogosCore Testing", () => {
           false,
           false,
           true,
-          true, // because of owner mock
+          false,
         );
 
       // condition 4
@@ -1614,8 +1615,8 @@ async function prepEnv() {
   // deploy and init DLogosOwner mock
   const dLogosOwnerF = await ethers.getContractFactory("DLogosOwnerMock");
   const dLogosOwner = await dLogosOwnerF.deploy();
+  const dLogosOwnerAddr = await dLogosOwner.getAddress();
   await dLogosOwner.setCommunity(community.address);
-
   // make proposer1 zero fee
   await dLogosOwner.setZeroFeeProposer(
     await proposer1.getAddress(),
@@ -1624,7 +1625,7 @@ async function prepEnv() {
 
   // deploy and init DLogosBacker mock
   const dLogosBackerF = await ethers.getContractFactory("DLogosBackerMock");
-  const dLogosBacker = await dLogosBackerF.deploy();
+  const dLogosBacker = await dLogosBackerF.deploy(dLogosOwnerAddr);
   await dLogosBacker.setReferrers(
     referrer1.address,
     referrer2.address
@@ -1645,8 +1646,7 @@ async function prepEnv() {
     dLogosCoreF,
     [
       trustedForwarder,
-      await dLogosOwner.getAddress(),
-      await dLogosBacker.getAddress()
+      dLogosOwnerAddr,
     ],
     {
       initializer: "initialize",

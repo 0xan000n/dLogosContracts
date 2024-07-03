@@ -2,8 +2,10 @@
 pragma solidity ^0.8.24;
 
 import {IDLogosCore} from "../interfaces/IdLogosCore.sol";
+import {IDLogosOwner} from "../interfaces/IdLogosOwner.sol";
 
 contract DLogosCoreMock {
+    address public dLogosOwner;
     mapping(uint256 => IDLogosCore.Logo) public logos;
 
     // default logo
@@ -29,6 +31,11 @@ contract DLogosCoreMock {
             }
         )
     });
+
+    constructor(address _dLogosOwner) {
+        IDLogosOwner(_dLogosOwner).setDLogosCore(address(this));
+        dLogosOwner = _dLogosOwner;
+    }
 
     function init() external {
         // 1st logo is default

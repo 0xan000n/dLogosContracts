@@ -458,7 +458,7 @@ describe("DLogosOwner Tests", () => {
       const env = await loadFixture(prepEnvWithZeroFeeProposers);
 
       await expect(env.setZeroFeeProposersTx)
-        .emit(env.dLogosOwner, "ZeroFeeProposersSet")
+        .emit(env.dLogosOwner, "ZeroFeeProposersUpdated")
         .withArgs(
           [env.proposer1Address, env.proposer2Address],
           [env.isP1ZeroFee, env.isP2ZeroFee]

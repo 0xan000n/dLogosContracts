@@ -5,14 +5,14 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import "./Error.sol";
 
 /// @custom:security-contact security@dlogos.xyz
 contract Logo is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     uint256 public tokenIdCounter; // Starting from 1
     string public baseURI;
-    address public dLogosCore;
-    address public dLogosBacker;
+    address public dLogosOwner;
 
     enum Status {
         Backer,
@@ -30,13 +30,12 @@ contract Logo is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     event BaseURISet(string _baseURI);
 
     constructor(
-        address _dLogosCore,
-        address _dLogosBacker
+        address _dLogosOwner
     ) ERC721("Logo", "LOGO") Ownable(msg.sender) {
-        if (_dLogosCore == address(0) || _dLogosBacker == address(0)) revert ZeroAddress();
+        if (_dLogosOwner == address(0)) revert ZeroAddress();
 
-        dLogosCore = _dLogosCore;
-        dLogosBacker = _dLogosBacker;
+        IDLogosOwner(_dLogosOwner).setLogoNFT(address(this));
+        dLogosOwner = _dLogosOwner;
     }
 
     function _baseURI() internal view override returns (string memory) {
@@ -54,7 +53,11 @@ contract Logo is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         uint256 _logoId,
         bool _isBacker
     ) external {
-        if (msg.sender != dLogosBacker && msg.sender != dLogosCore) revert CallerNotDLogos();
+        if (
+            msg.sender != IDLogosOwner(dLogosOwner).dLogosBacker() 
+            && 
+            msg.sender != IDLogosOwner(dLogosOwner).dLogosCore()
+        ) revert CallerNotDLogos();
 
         uint256 tokenId = tokenIdCounter + 1;
         _safeMint(_to, tokenId);
