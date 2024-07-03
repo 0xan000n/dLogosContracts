@@ -1,32 +1,53 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import {ERC721URIStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ILogo} from "./interfaces/ILogo.sol";
 import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import "./Error.sol";
 
 /// @custom:security-contact security@dlogos.xyz
-contract Logo is ILogo, ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
+contract Logo is 
+    ILogo, 
+    ERC721Upgradeable, 
+    ERC721EnumerableUpgradeable, 
+    ERC721URIStorageUpgradeable, 
+    Ownable2StepUpgradeable,
+    PausableUpgradeable 
+{
     uint256 public override tokenIdCounter; // Starting from 1
     string public override baseURI;
     address public override dLogosOwner;
 
     mapping(uint256 => Info) public infos;
 
-    constructor(
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// MODIFIERS
+    modifier notZeroAddress(address _addr) {
+        if (_addr == address(0)) revert ZeroAddress();
+        _;
+    }
+
+    function initialize(        
         address _dLogosOwner
-    ) ERC721("Logo", "LOGO") Ownable(msg.sender) {
-        if (_dLogosOwner == address(0)) revert ZeroAddress();
-
-        IDLogosOwner(_dLogosOwner).setLogoNFT(address(this));
+    ) external initializer notZeroAddress(_dLogosOwner) {
+        __Ownable_init(msg.sender);
+        __ERC721_init("Logo", "LOGO");
+        // __Pausable_init();
+    
+        IDLogosOwner(_dLogosOwner).setDLogosCore(address(this));
         dLogosOwner = _dLogosOwner;
-    }   
+    }
 
-    function setBaseURI(string calldata baseURI_) external {
+    function setBaseURI(string calldata baseURI_) external onlyOwner {
         baseURI = baseURI_;
         emit BaseURISet(baseURI_);
     }
@@ -57,6 +78,18 @@ contract Logo is ILogo, ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
     function getInfo(uint256 _tokenId) external override view returns (Info memory i) {
         i = infos[_tokenId];
     }
+    
+    /**
+     * @dev Pause or unpause the contract
+     * Only `owner` can call
+     */
+    function pauseOrUnpause(bool _pause) external override onlyOwner {
+        if (_pause) {
+            super._pause();
+        } else {
+            super._unpause();
+        }
+    }
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
@@ -67,30 +100,30 @@ contract Logo is ILogo, ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         address to, 
         uint256 tokenId, 
         address auth
-    ) internal override(ERC721, ERC721Enumerable) returns (address) {
-        return ERC721Enumerable._update(to, tokenId, auth);
+    ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) whenNotPaused returns (address) {
+        return ERC721EnumerableUpgradeable._update(to, tokenId, auth);
     }
 
     function _increaseBalance(
         address account, 
         uint128 amount
-    ) internal override(ERC721, ERC721Enumerable) {
-        ERC721Enumerable._increaseBalance(account, amount);
+    ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
+        ERC721EnumerableUpgradeable._increaseBalance(account, amount);
     }
 
     function tokenURI(uint256 tokenId)
         public
         view
-        override(ERC721, ERC721URIStorage)
+        override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
         returns (string memory)
     {
-        return ERC721URIStorage.tokenURI(tokenId);
+        return ERC721URIStorageUpgradeable.tokenURI(tokenId);
     }
 
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable, ERC721URIStorage)
+        override(ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721URIStorageUpgradeable)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
