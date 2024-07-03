@@ -15,8 +15,8 @@ contract DLogosCoreMock {
         proposerFee: 0,
         scheduledAt: 0,
         minimumPledge: 10000000000000, // 0.00001 ETH
-        crowdfundStartAt: 0,
-        crowdfundEndAt: 0,
+        crowdfundStartAt: block.timestamp,
+        crowdfundEndAt: block.timestamp + 40 * 1 days,
         rejectionDeadline: 0,
         splitForSpeaker: address(0),
         splitForAffiliate: address(0),
@@ -46,6 +46,7 @@ contract DLogosCoreMock {
         // 4th logo is uploaded and not refunded
         IDLogosCore.Logo memory l4 = sl;
         l4.scheduledAt = 12345678; // dummy timestamp
+        l4.mediaAssetURL = "http://x.com/dlogos-xyz-1";
         logos[4] = l4;
         // 5th logo is distributed
         IDLogosCore.Logo memory l5 = sl;
