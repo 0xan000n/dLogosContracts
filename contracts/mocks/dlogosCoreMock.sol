@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IDLogosCore} from "../interfaces/IdLogosCore.sol";
 import {IDLogosOwner} from "../interfaces/IdLogosOwner.sol";
+import {ILogo} from "../interfaces/ILogo.sol";
 
 contract DLogosCoreMock {
     address public dLogosOwner;
@@ -63,5 +64,14 @@ contract DLogosCoreMock {
     
     function getLogo(uint256 _logoId) external view returns (IDLogosCore.Logo memory l) {
         l = logos[_logoId];
+    }
+
+    function setSpeakerStatus(
+        address _speaker,
+        uint256 _logoId,
+        uint8
+    ) external {
+        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
+        ILogo(logoNFT).safeMint(_speaker, _logoId, false);
     }
 }

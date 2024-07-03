@@ -43,7 +43,7 @@ contract Logo is
         __ERC721_init("Logo", "LOGO");
         // __Pausable_init();
     
-        IDLogosOwner(_dLogosOwner).setDLogosCore(address(this));
+        IDLogosOwner(_dLogosOwner).setLogoNFT(address(this));
         dLogosOwner = _dLogosOwner;
     }
 

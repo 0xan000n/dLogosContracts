@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IDLogosBacker} from "../interfaces/IdLogosBacker.sol";
 import {IDLogosOwner} from "../interfaces/IdLogosOwner.sol";
+import {ILogo} from "../interfaces/ILogo.sol";
 
 contract DLogosBackerMock {
     address public referrer1;
@@ -43,5 +44,14 @@ contract DLogosBackerMock {
     function setReferrers(address _referrer1, address _referrer2) external {
         referrer1 = _referrer1;
         referrer2 = _referrer2;
+    }
+
+    function crowdfund(
+        address _backer,
+        uint256 _logoId,
+        address
+    ) external {
+        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
+        ILogo(logoNFT).safeMint(_backer, _logoId, true);
     }
 }
