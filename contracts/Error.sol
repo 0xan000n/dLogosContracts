@@ -74,3 +74,5 @@ error BackerAlreadyRejected();
 error LogoNotScheduled();
 
 error ConvoNotHappened();
+
+error CallerNotDLogos();
