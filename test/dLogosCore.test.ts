@@ -37,6 +37,9 @@ describe("DLogosCore Testing", () => {
     expect(await env.dLogosOwner.dLogosCore()).equals(
       await env.dLogosCore.getAddress()
     );
+    expect(await env.dLogosOwner.logoNFT()).equals(
+      await env.logo.getAddress()
+    );
     expect(await env.dLogosCore.logoId()).equals(
       1
     );
@@ -1623,6 +1626,10 @@ async function prepEnv() {
     true
   );
 
+  // deploy Logo NFT mock
+  const logoF = await ethers.getContractFactory("LogoMock");
+  const logo = await logoF.deploy(dLogosOwnerAddr);
+
   // deploy and init DLogosBacker mock
   const dLogosBackerF = await ethers.getContractFactory("DLogosBackerMock");
   const dLogosBacker = await dLogosBackerF.deploy(dLogosOwnerAddr);
@@ -1672,6 +1679,7 @@ async function prepEnv() {
     trustedForwarder,
 
     dLogosOwner,
+    logo,
     dLogosBacker,
 
     dLogosCoreF,

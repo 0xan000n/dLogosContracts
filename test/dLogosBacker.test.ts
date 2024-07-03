@@ -29,6 +29,9 @@ describe("DLogosBacker Tests", () => {
     expect(await env.dLogosOwner.dLogosBacker()).equals(
       await env.dLogosBacker.getAddress()
     );
+    expect(await env.dLogosOwner.logoNFT()).equals(
+      await env.logo.getAddress()
+    );
   });
 
   describe("{initialize} function", () => {
@@ -489,10 +492,14 @@ async function prepEnv() {
   // deploy DLogosOwner mock
   const dLogosOwnerF = await ethers.getContractFactory("DLogosOwnerMock");
   const dLogosOwner = await dLogosOwnerF.deploy();
+  const dLogosOwnerAddr = await dLogosOwner.getAddress();
+
+  // deploy Logo NFT mock
+  const logoF = await ethers.getContractFactory("LogoMock");
+  const logo = await logoF.deploy(dLogosOwnerAddr);
 
   // deploy and init DLogosCore mock
   const dLogosCoreF = await ethers.getContractFactory("DLogosCoreMock");
-  const dLogosOwnerAddr = await dLogosOwner.getAddress();
   const dLogosCore = await dLogosCoreF.deploy(dLogosOwnerAddr);
   await dLogosCore.init();
 
@@ -517,6 +524,7 @@ async function prepEnv() {
     referrer2,
 
     dLogosOwner,
+    logo,
     dLogosCore,
 
     dLogosBackerF,

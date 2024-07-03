@@ -6,6 +6,7 @@ contract DLogosOwnerMock {
     address public community;
     address public dLogosCore;
     address public dLogosBacker;
+    address public logoNFT;
     mapping(address => bool) public zeroFeeProposers;
 
     error Unauthorized();
@@ -43,12 +44,11 @@ contract DLogosOwnerMock {
         dLogosCore = _dLogosCore;
     }
 
-    // function setLogoNFT(
-    //     address _logoNFT
-    // ) external onlyOwnerOrigin onlyInternalTx notZeroAddress(_logoNFT) {
-    //     logoNFT = _logoNFT;
-    //     emit LogoNFTUpdated(_logoNFT);
-    // }
+    function setLogoNFT(
+        address _logoNFT
+    ) external onlyOwnerOrigin onlyInternalTx notZeroAddress(_logoNFT) {
+        logoNFT = _logoNFT;
+    }
 
     function setZeroFeeProposer(
         address _proposer,
