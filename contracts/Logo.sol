@@ -95,7 +95,7 @@ contract Logo is
         return baseURI;
     }
 
-    // The follong functions are overrides required by Solidity.
+    // The following functions are overrides required by Solidity.
     function _update(
         address to, 
         uint256 tokenId, 
