@@ -39,8 +39,8 @@ interface IDLogosCore {
         uint256 crowdfundStartAt;
         uint256 crowdfundEndAt;
         uint256 rejectionDeadline;
-        address splitForSpeaker; // PUshSplit address for dlogos, community, speakers
-        address splitForAffiliate; // PUshSplit address for affiliates
+        address splitForSpeaker; // PushSplit address for dlogos, community, speakers
+        address splitForAffiliate; // PushSplit address for affiliates
         LogoStatus status;
     }
 
