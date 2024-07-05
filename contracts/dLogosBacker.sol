@@ -56,6 +56,7 @@ contract DLogosBacker is
         _;
     }
 
+    /// FUNCTIONS
     /**
      * @dev Crowdfund.
      */

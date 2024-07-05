@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {SplitV2Lib} from "../splitsV2/libraries/SplitV2.sol";
 
 interface IDLogosCore {
+    /// STRUCTS
     enum SpeakerStatus {
         Pending,
         Accepted,
@@ -51,7 +52,8 @@ interface IDLogosCore {
         string[] providers;
         string[] handles;
     }
-
+    
+    /// EVENTS
     event LogoCreated(
         address indexed _owner,
         uint256 indexed _logoId,
@@ -98,43 +100,20 @@ interface IDLogosCore {
         address _owner, 
         address _creator
     );
-
-    function dLogosOwner() external view returns (address);
     
+    /// FUNCTIONS
+    function dLogosOwner() external view returns (address);
     function logoId() external view returns (uint256);
-
     function getLogo(uint256) external view returns (Logo memory);
-
     function createLogo(uint256, string calldata, uint8) external returns (uint256);  
-
     function toggleCrowdfund(uint256) external;
-
     function setMinimumPledge(uint256, uint256) external;
-
     function refund(uint256) external;
-
     function setSpeakers(SetSpeakersParam calldata) external;
-
-    function setSpeakerStatus(
-        uint256,
-        uint8
-    ) external;
-
+    function setSpeakerStatus(uint256, uint8) external;
     function getSpeakersForLogo(uint256) external view returns (Speaker[] memory);
-
-    function setDate(
-        uint256,
-        uint256
-    ) external;
-
-    function setMediaAsset(
-        uint256,
-        string calldata
-    ) external;
-
-    function distributeRewards(
-        uint256
-    ) external;
-
+    function setDate(uint256, uint256) external;
+    function setMediaAsset(uint256, string calldata) external;
+    function distributeRewards(uint256) external;
     function pauseOrUnpause(bool) external;
 }

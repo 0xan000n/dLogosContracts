@@ -15,7 +15,8 @@ interface IDLogosOwner {
     event MaxDurationUpdated(uint8 indexed _maxDuration);
     event RejectionWindowUpdated(uint8 indexed _rejectionWindow);
     event ZeroFeeProposersUpdated(address[] _proposers, bool[] _statuses);
-
+    
+    /// FUNCTIONS
     function dLogosBacker() external view returns (address);
     function dLogosCore() external view returns (address);
     function logoNFT() external view returns (address);
@@ -38,9 +39,6 @@ interface IDLogosOwner {
     function setDLogosFee(uint256) external;
     function setCommunityFee(uint256) external;
     function setAffiliateFee(uint256) external;
-    function setZeroFeeProposers(
-        address[] calldata,
-        bool[] calldata
-    ) external;
+    function setZeroFeeProposers(address[] calldata, bool[] calldata) external;
     function isZeroFeeProposer(address) external view returns (bool);
 }

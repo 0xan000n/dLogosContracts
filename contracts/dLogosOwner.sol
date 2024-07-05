@@ -12,7 +12,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     /// CONSTANTS
     uint256 public constant PERCENTAGE_SCALE = 1e6;
     uint256 public constant MAX_AFFILIATE_FEE = 2 * 1e5; // Max 20%
-    /// Storage
+    /// STORAGE
     address public override dLogosBacker;
     address public override dLogosCore;
     address public override logoNFT;
@@ -48,6 +48,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         rejectionWindow = 7; // 7 days
     }
 
+    /// MODIFIERS
     modifier onlyOwnerOrigin() {
         if (owner() != tx.origin) revert Unauthorized();
         _;
@@ -63,6 +64,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         _;
     }
 
+    /// FUNCTIONS
     /**
      * @dev This function will be called within the DLogosBacker deployment context.
      */

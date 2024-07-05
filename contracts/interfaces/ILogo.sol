@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 interface ILogo {
+    /// STRUCTS
     enum Status {
         Backer,
         Speaker
@@ -12,10 +13,12 @@ interface ILogo {
         uint256 logoId;
         Status status;
     }
-
+    
+    /// EVENTS
     event Minted(address indexed _to, uint256 indexed _tokenId, uint256 indexed _logoId, bool _isBacker);
     event BaseURISet(string _baseURI);
 
+    /// FUNCTIONS
     function tokenIdCounter() external view returns (uint256);
     function baseURI() external view returns (string memory);
     function dLogosOwner() external view returns (address);

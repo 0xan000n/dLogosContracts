@@ -64,7 +64,6 @@ contract DLogosCore is
 {
     /// CONSTANTS
     uint256 public constant PERCENTAGE_SCALE = 1e6;
-
     /// STORAGE
     address public override dLogosOwner;
     uint256 public override logoId; // Global Logo ID
