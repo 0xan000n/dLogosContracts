@@ -122,7 +122,7 @@ contract DLogosBacker is
         Backer memory backer = logoBackers[_logoId][msgSender];
         
         if (backer.amount == 0) revert InsufficientFunds();
-        if (logoRewards[_logoId] < backer.amount) revert InsufficientLogoReward();
+        if (logoRewards[_logoId] < backer.amount) revert InsufficientLogoRewards();
         
         bool removed = _logoBackerAddresses[_logoId].remove(msgSender);
 

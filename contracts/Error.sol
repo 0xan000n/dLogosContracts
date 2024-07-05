@@ -35,7 +35,7 @@ error TooManyBackers();
 
 error LogoFundsCannotBeWithdrawn();
 
-error InsufficientLogoReward();
+error InsufficientLogoRewards();
 
 error AddBackerFailed();
 

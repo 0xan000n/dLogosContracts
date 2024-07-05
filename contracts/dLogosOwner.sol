@@ -21,11 +21,11 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     uint256 public override dLogosFee; // DLogos (Labs) fee
     uint256 public override communityFee; // Community fee
     uint256 public override affiliateFee; // Affiliate fee
-    uint32 public override rejectThreshold; // Backer rejection threshold
+    uint32 public override rejectThreshold; // Backer rejected funds threshold
     uint8 public override maxDuration; // Max crowdfunding duration
     uint8 public override rejectionWindow; // Reject deadline in days
 
-    EnumerableSet.AddressSet private _zeroFeeProposers; // List of proposers who dLogos does not charge fees
+    EnumerableSet.AddressSet private _zeroFeeProposers; // List of proposers for whom the dLogosFee is waived
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -43,7 +43,6 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         dLogosFee = 1e5; // 10%
         communityFee = 1e5; // 10%
         affiliateFee = 5 * 1e4; // 5%
-
         rejectThreshold = 5 * 1e5; // 50%
         maxDuration = 60; // 60 days
         rejectionWindow = 7; // 7 days
@@ -64,7 +63,9 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         _;
     }
 
-    // we expect this function to be called within DLogosBacker deployment context
+    /**
+     * @dev This function will be called within the DLogosBacker deployment context.
+     */
     function setDLogosBacker(
         address _dLogosBacker
     ) external onlyOwnerOrigin onlyInternalTx notZeroAddress(_dLogosBacker) {
@@ -72,7 +73,9 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         emit DLogosBackerUpdated(_dLogosBacker);
     }
 
-    // we expect this function to be called within DLogosCore deployment context
+    /**
+     * @dev This function will be called within the DLogosCore deployment context.
+     */
     function setDLogosCore(
         address _dLogosCore
     ) external onlyOwnerOrigin onlyInternalTx notZeroAddress(_dLogosCore) {
@@ -80,7 +83,9 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         emit DLogosCoreUpdated(_dLogosCore);
     }
 
-    // we expect this function to be called within LogoNFT deployment context
+    /**
+     * @dev This function will be called within the LogoNFT deployment context.
+     */
     function setLogoNFT(
         address _logoNFT
     ) external onlyOwnerOrigin onlyInternalTx notZeroAddress(_logoNFT) {
@@ -88,9 +93,6 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         emit LogoNFTUpdated(_logoNFT);
     }
 
-    /**
-     * @dev Set reject threshold for dLogos.
-     */
     function setRejectThreshold(
         uint32 _rejectThreshold
     ) external override onlyOwner {
@@ -101,9 +103,6 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         emit RejectThresholdUpdated(rejectThreshold);
     }
 
-    /**
-     * @dev Set crowdfund duration limit
-     */
     function setMaxDuration(uint8 _maxDuration) external override onlyOwner {
         if (_maxDuration == 0 || _maxDuration >= 100)
             revert InvalidMaxDuration();
@@ -178,7 +177,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     }
 
     /**
-     * @dev Query zero fee proposer status
+     * @dev Query zero fee proposer status.
      */
     function isZeroFeeProposer(
         address _proposer

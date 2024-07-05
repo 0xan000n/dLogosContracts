@@ -81,7 +81,6 @@ contract DLogosCore is
         address trustedForwarder_,
         address _dLogosOwner
     ) external initializer notZeroAddress(_dLogosOwner) {
-        // Initialize tx is not gasless
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
@@ -104,7 +103,6 @@ contract DLogosCore is
     }    
 
     /// FUNCTIONS
-
     function getLogo(uint256 _logoId) external override view returns (Logo memory l) {
         l = logos[_logoId];
     }
@@ -155,7 +153,7 @@ contract DLogosCore is
     }
 
     /**
-     * @dev Toggle crowdfund for Logo. Only the proposer of the Logo is allowed to toggle a crowdfund.
+     * @dev Toggle crowdfund for Logo.
      */
     function toggleCrowdfund(
         uint256 _logoId
@@ -237,6 +235,7 @@ contract DLogosCore is
 
     /**
      * @dev Set speakers for a Logo.
+     * @param _param Contains logoId, speakers, fees, providers, and handles.
      */
     function setSpeakers(
         SetSpeakersParam calldata _param
@@ -253,7 +252,7 @@ contract DLogosCore is
             _param.providers.length != _param.handles.length
         ) revert InvalidArrayArguments();
         
-        delete logoSpeakers[_param.logoId]; // Reset to default (no speakers)
+        delete logoSpeakers[_param.logoId]; // Reset to default (no speakers).
 
         uint256 speakerFeesSum;
         for (uint i = 0; i < _param.speakers.length; i++) {
@@ -294,7 +293,7 @@ contract DLogosCore is
         uint256 _logoId,
         uint8 _speakerStatus
     ) external override whenNotPaused validLogoId(_logoId) {
-        // Speaker status should be either Accepted or Rejected
+        // Speaker status should be either Accepted or Rejected.
         if (_speakerStatus == 0) revert InvalidSpeakerStatus();
         Logo memory l = logos[_logoId];
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
@@ -324,7 +323,7 @@ contract DLogosCore is
     }
 
     /**
-     * @dev Set date for a conversation.
+     * @dev Set date for a conversation and close crowdfund.
      */
     function setDate(
         uint256 _logoId,
@@ -339,9 +338,9 @@ contract DLogosCore is
         if (_scheduledAt <= block.timestamp) revert InvalidScheduleTime();
 
         Speaker[] memory speakers = logoSpeakers[_logoId];
-        // Need to be sure the logo has more than one speaker
+        // Make sure the Logo has more than one speaker.
         if (speakers.length == 0) revert InvalidSpeakerNumber();
-        // Need to be sure all speakers accepted
+        // Make sure all speakers have accepted.
         for (uint256 i = 0; i < speakers.length; i++) {
             if (speakers[i].status != SpeakerStatus.Accepted) revert NotAllSpeakersAccepted();
         }
@@ -352,7 +351,7 @@ contract DLogosCore is
     }
 
     /**
-     * @dev Sets media URL for a Logo.
+     * @dev Sets media URL for a Logo and sets a deadline for backers to reject.
      */
     function setMediaAsset(
         uint256 _logoId,
@@ -376,8 +375,7 @@ contract DLogosCore is
     }
 
     /**
-     * @dev Distribute rewards to the Splits contract.
-     * Create splits and distribute in 1 tx.
+     * @dev Create splits for speakers, affiliates, and fees; distribute rewards to the splits contract.
      */
     function distributeRewards(
         uint256 _logoId
