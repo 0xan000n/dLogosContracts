@@ -396,13 +396,14 @@ contract DLogosCore is
             uint256 totalRefRewards;
 
             {
+                uint256 affiliateFee = IDLogosOwner(dLogosOwner).affiliateFee();
                 // Prepare params to call DLogosSplitsHelper
                 (totalRefRewards, splitParam) = DLogosSplitsHelper.getAffiliatesSplitInfo(
                     IDLogosBacker(dLogosBacker).getBackersForLogo(_logoId), 
-                    IDLogosOwner(dLogosOwner).affiliateFee()
+                    affiliateFee
                 );
 
-                if (totalRewards < totalRefRewards) revert AffiliateRewardsExceeded();
+                if (totalRewards * affiliateFee / PERCENTAGE_SCALE < totalRefRewards) revert AffiliateRewardsExceeded();
             }
 
             splitForAffiliate = DLogosSplitsHelper.deploySplitV2AndDistribute(splitParam, totalRefRewards);
