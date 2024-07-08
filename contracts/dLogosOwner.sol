@@ -145,7 +145,9 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     function setCommunityFee(
         uint256 _communityFee
     ) external override onlyOwner {
-        if (_communityFee + dLogosFee > PERCENTAGE_SCALE) revert FeeExceeded();
+        unchecked {
+            if (_communityFee + dLogosFee > PERCENTAGE_SCALE) revert FeeExceeded();
+        }
 
         communityFee = _communityFee;
         emit CommunityFeeUpdated(_communityFee);

@@ -119,33 +119,41 @@ contract DLogosCore is
         address msgSender = _msgSender();
         uint256 communityFee = IDLogosOwner(dLogosOwner).communityFee();
         uint256 dLogosFee = IDLogosOwner(dLogosOwner).dLogosFee();
-        if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender)) {
-            if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
-        } else {
-            if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+        
+        // Math overflow is not possible because {IDLogosOwner} sets fees
+        unchecked {
+            if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender)) {
+                if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+            } else {
+                if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+            }
         }
 
         uint256 _logoId = logoId;
-        logos[_logoId] = Logo({
-            id: _logoId,
-            title: _title,
-            proposer: msgSender,
-            proposerFee: _proposerFee,
-            scheduledAt: 0,
-            mediaAssetURL: "",
-            minimumPledge: 10000000000000, // 0.00001 ETH
-            crowdfundStartAt: block.timestamp,
-            crowdfundEndAt: block.timestamp + _crowdfundNumberOfDays * 1 days,
-            splitForAffiliate: address(0),
-            splitForSpeaker: address(0),
-            rejectionDeadline: 0,
-            status: LogoStatus({
-                isCrowdfunding: true,
-                isUploaded: false,
-                isDistributed: false,
-                isRefunded: false
-            })
-        });
+
+        // Math overflow is not possible with the current timestamp
+        unchecked {
+            logos[_logoId] = Logo({
+                id: _logoId,
+                title: _title,
+                proposer: msgSender,
+                proposerFee: _proposerFee,
+                scheduledAt: 0,
+                mediaAssetURL: "",
+                minimumPledge: 10000000000000, // 0.00001 ETH
+                crowdfundStartAt: block.timestamp,
+                crowdfundEndAt: block.timestamp + _crowdfundNumberOfDays * 1 days,
+                splitForAffiliate: address(0),
+                splitForSpeaker: address(0),
+                rejectionDeadline: 0,
+                status: LogoStatus({
+                    isCrowdfunding: true,
+                    isUploaded: false,
+                    isDistributed: false,
+                    isRefunded: false
+                })
+            });
+        }
         emit LogoCreated(msgSender, _logoId, block.timestamp);
         emit CrowdfundToggled(msgSender, true);
         return logoId++; // Return and Increment Global Logo ID
@@ -205,12 +213,16 @@ contract DLogosCore is
             c2 = block.timestamp > l.crowdfundEndAt;
             if (!c2) {
                 // Case 3: >7 days have passed since schedule date and no asset uploaded.
-                c3 = 
-                    l.scheduledAt != 0 
-                    && 
-                    block.timestamp > l.scheduledAt + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days
-                    && 
-                    !l.status.isUploaded;
+                // Math overflow is not possible with the current timestamp
+                unchecked {
+                    c3 = 
+                        l.scheduledAt != 0 
+                        && 
+                        block.timestamp > l.scheduledAt + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days
+                        && 
+                        !l.status.isUploaded;                    
+                }
+
                 if (!c3) {
                     // Case 4: >50% of backer funds reject upload.
                     address dLogosBacker = IDLogosOwner(dLogosOwner).dLogosBacker();
@@ -254,7 +266,7 @@ contract DLogosCore is
         delete logoSpeakers[_param.logoId]; // Reset to default (no speakers).
 
         uint256 speakerFeesSum;
-        for (uint i = 0; i < _param.speakers.length; i++) {
+        for (uint256 i = 0; i < _param.speakers.length; i++) {
             speakerFeesSum += _param.fees[i];
             Speaker memory s = Speaker({
                 addr: _param.speakers[i],
@@ -267,18 +279,21 @@ contract DLogosCore is
         }        
         {
             uint256 communityFee = IDLogosOwner(dLogosOwner).communityFee();
-            if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender)) {
-                if (
-                    communityFee + l.proposerFee + speakerFeesSum 
-                    != 
-                    PERCENTAGE_SCALE
-                ) revert FeeSumNotMatch();
-            } else {
-                if (
-                    IDLogosOwner(dLogosOwner).dLogosFee() + communityFee + l.proposerFee + speakerFeesSum
-                    != 
-                    PERCENTAGE_SCALE
-                ) revert FeeSumNotMatch();
+            // Math overflow is not possible because {IDLogosOwner} sets fees
+            unchecked {
+                if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender)) {
+                    if (
+                        communityFee + l.proposerFee + speakerFeesSum 
+                        != 
+                        PERCENTAGE_SCALE
+                    ) revert FeeSumNotMatch();
+                } else {
+                    if (
+                        IDLogosOwner(dLogosOwner).dLogosFee() + communityFee + l.proposerFee + speakerFeesSum
+                        != 
+                        PERCENTAGE_SCALE
+                    ) revert FeeSumNotMatch();
+                }                
             }
         }
 
@@ -310,8 +325,6 @@ contract DLogosCore is
         }
 
         if (i == speakers.length) revert Unauthorized();
-        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
-        ILogo(logoNFT).safeMint(msgSender, _logoId, false);
     }
 
     /**
@@ -368,7 +381,10 @@ contract DLogosCore is
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
         sl.status.isUploaded = true;
-        sl.rejectionDeadline = block.timestamp + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days;
+        // Math overflow is not possible with the current timestamp
+        unchecked {
+            sl.rejectionDeadline = block.timestamp + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days;
+        }
 
         emit MediaAssetSet(msgSender, _mediaAssetURL);
     }
@@ -377,7 +393,8 @@ contract DLogosCore is
      * @dev Create splits for speakers, affiliates, and fees; distribute rewards to the splits contract.
      */
     function distributeRewards(
-        uint256 _logoId
+        uint256 _logoId,
+        bool _mintNFT
     ) external override nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.status.isDistributed) revert LogoDistributed();
@@ -385,12 +402,15 @@ contract DLogosCore is
         if (!l.status.isUploaded) revert LogoNotUploaded();
         if (block.timestamp < l.rejectionDeadline) revert RejectionDeadlineNotPassed();
 
-        address dLogosBacker = IDLogosOwner(dLogosOwner).dLogosBacker();
-        uint256 totalRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
-        address splitForAffiliate;
-        address splitForSpeaker;        
+        // Address array, 0 -> dLogosBacker, 1 -> split contract for referrers, 2 -> split contract for speakers
+        address[] memory addressVars = new address[](3);
+        addressVars[0] = IDLogosOwner(dLogosOwner).dLogosBacker();
+        uint256 totalRewards = IDLogosBacker(addressVars[0]).logoRewards(_logoId);
 
         if (totalRewards != 0) {
+            IDLogosBacker.Backer[] memory backers = IDLogosBacker(addressVars[0]).getBackersForLogo(_logoId);
+            Speaker[] memory speakers = logoSpeakers[_logoId];
+
             SplitV2Lib.Split memory splitParam;
             // PushSplit for affiliate fee distribution
             uint256 totalRefRewards;
@@ -399,18 +419,19 @@ contract DLogosCore is
                 uint256 affiliateFee = IDLogosOwner(dLogosOwner).affiliateFee();
                 // Prepare params to call DLogosSplitsHelper
                 (totalRefRewards, splitParam) = DLogosSplitsHelper.getAffiliatesSplitInfo(
-                    IDLogosBacker(dLogosBacker).getBackersForLogo(_logoId), 
+                    backers, 
                     affiliateFee
                 );
-
-                if (totalRewards * affiliateFee / PERCENTAGE_SCALE < totalRefRewards) revert AffiliateRewardsExceeded();
+                unchecked {
+                    if (totalRewards * affiliateFee / PERCENTAGE_SCALE < totalRefRewards) revert AffiliateRewardsExceeded();
+                }
             }
 
-            splitForAffiliate = DLogosSplitsHelper.deploySplitV2AndDistribute(splitParam, totalRefRewards);
+            addressVars[1] = DLogosSplitsHelper.deploySplitV2AndDistribute(splitParam, totalRefRewards);
 
             // PushSplit for dlogos, community and speaker fee distribution
             DLogosSplitsHelper.GetSpeakersSplitInfoParam memory param = DLogosSplitsHelper.GetSpeakersSplitInfoParam({
-                speakers: logoSpeakers[_logoId],
+                speakers: speakers,
                 dLogos: IDLogosOwner(dLogosOwner).dLogos(),
                 community: IDLogosOwner(dLogosOwner).community(),
                 proposer: l.proposer,
@@ -421,15 +442,25 @@ contract DLogosCore is
 
             });
             splitParam = DLogosSplitsHelper.getSpeakersSplitInfo(param);
-            splitForSpeaker = DLogosSplitsHelper.deploySplitV2AndDistribute(splitParam, totalRewards - totalRefRewards);
+            addressVars[2] = DLogosSplitsHelper.deploySplitV2AndDistribute(splitParam, totalRewards - totalRefRewards);
+
+            // Safemint Logo NFTs to backers and speakers
+            if (_mintNFT) {
+                DLogosSplitsHelper.safeMintNFT(
+                    dLogosOwner,
+                    _logoId,
+                    backers,
+                    speakers
+                );
+            }
         }     
         
         Logo storage sl = logos[_logoId];
         sl.status.isDistributed = true;
-        sl.splitForSpeaker = splitForSpeaker;
-        sl.splitForAffiliate = splitForAffiliate;
+        sl.splitForAffiliate = addressVars[1];
+        sl.splitForSpeaker = addressVars[2];
 
-        emit RewardsDistributed(_msgSender(), splitForSpeaker, splitForAffiliate, totalRewards);
+        emit RewardsDistributed(_msgSender(), addressVars[2], addressVars[1], totalRewards);
     }
 
     /**

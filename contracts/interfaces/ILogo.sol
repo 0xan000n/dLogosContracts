@@ -24,6 +24,6 @@ interface ILogo {
     function dLogosOwner() external view returns (address);
     function getInfo(uint256) external view returns (Info memory);
     function setBaseURI(string calldata) external;
-    function safeMint(address, uint256, bool) external;
+    function safeMintBatch(address[] calldata, uint256, bool[] calldata) external;
     function pauseOrUnpause(bool) external;
 }

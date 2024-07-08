@@ -10,7 +10,6 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
 import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
-import {ILogo} from "./interfaces/ILogo.sol";
 import {ForwarderSetterUpgradeable} from "./utils/ForwarderSetterUpgradeable.sol";
 import "./Error.sol";
 
@@ -75,6 +74,7 @@ contract DLogosBacker is
         if (isBacker) {
             // Ignore `_referrer` because it was already set
             Backer storage backer = logoBackers[_logoId][msgSender];
+
             unchecked {
                 backer.amount += msg.value;
             }
@@ -100,8 +100,6 @@ contract DLogosBacker is
             logoRewards[_logoId] = logoRewards[_logoId] + msg.value;
         }
 
-        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
-        ILogo(logoNFT).safeMint(msgSender, _logoId, true);
         emit Crowdfund(_logoId, msgSender, msg.value);
     }
 
@@ -117,13 +115,13 @@ contract DLogosBacker is
 
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
-
-        if (!isBacker) revert Unauthorized();
+        if (!isBacker) revert Unauthorized();        
 
         Backer memory backer = logoBackers[_logoId][msgSender];
-        
         if (backer.amount == 0) revert InsufficientFunds();
-        if (logoRewards[_logoId] < backer.amount) revert InsufficientLogoRewards();
+
+        uint256 logoTotalRewards = logoRewards[_logoId];
+        if (logoTotalRewards < backer.amount) revert InsufficientLogoRewards();
         
         bool removed = _logoBackerAddresses[_logoId].remove(msgSender);
 
@@ -131,7 +129,10 @@ contract DLogosBacker is
         
         delete logoBackers[_logoId][msgSender];
         // Decrease total rewards of Logo.
-        logoRewards[_logoId] = logoRewards[_logoId] - backer.amount;
+        unchecked {
+            logoRewards[_logoId] = logoTotalRewards - backer.amount;
+        }
+        
         (bool success, ) = payable(msgSender).call{value: backer.amount}("");
 
         if (!success) revert EthTransferFailed();

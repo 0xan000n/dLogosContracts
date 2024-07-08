@@ -65,13 +65,4 @@ contract DLogosCoreMock {
     function getLogo(uint256 _logoId) external view returns (IDLogosCore.Logo memory l) {
         l = logos[_logoId];
     }
-
-    function setSpeakerStatus(
-        address _speaker,
-        uint256 _logoId,
-        uint8
-    ) external {
-        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
-        ILogo(logoNFT).safeMint(_speaker, _logoId, false);
-    }
 }

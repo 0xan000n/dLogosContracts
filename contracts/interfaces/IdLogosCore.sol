@@ -114,6 +114,6 @@ interface IDLogosCore {
     function getSpeakersForLogo(uint256) external view returns (Speaker[] memory);
     function setDate(uint256, uint256) external;
     function setMediaAsset(uint256, string calldata) external;
-    function distributeRewards(uint256) external;
+    function distributeRewards(uint256, bool) external;
     function pauseOrUnpause(bool) external;
 }

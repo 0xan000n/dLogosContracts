@@ -52,28 +52,30 @@ contract Logo is
         emit BaseURISet(baseURI_);
     }
 
-    function safeMint(
-        address _to, 
+    function safeMintBatch(
+        address[] calldata _recipients, 
         uint256 _logoId,
-        bool _isBacker
+        bool[] calldata _isBackers
     ) external {
-        if (
-            msg.sender != IDLogosOwner(dLogosOwner).dLogosBacker() 
-            && 
-            msg.sender != IDLogosOwner(dLogosOwner).dLogosCore()
-        ) revert CallerNotDLogos();
+        if (msg.sender != IDLogosOwner(dLogosOwner).dLogosCore()) revert CallerNotDLogos();
+        if (_recipients.length != _isBackers.length) revert InvalidArrayArguments();
 
-        uint256 tokenId = tokenIdCounter + 1;
-        _safeMint(_to, tokenId);
-        infos[tokenId] = Info({
-            owner: _to,
-            logoId: _logoId,
-            status: _isBacker ? Status.Backer : Status.Speaker
-        });
-        tokenIdCounter = tokenId;
-
-        emit Minted(_to, tokenId, _logoId, _isBacker);
+        uint256 _tokenIdCounter = tokenIdCounter;
+        unchecked {
+            for (uint256 i = 0; i < _recipients.length; i++) {
+                _safeMint(_recipients[i], ++_tokenIdCounter);
+                infos[_tokenIdCounter] = Info({
+                    owner: _recipients[i],
+                    logoId: _logoId,
+                    status: _isBackers[i] ? Status.Backer : Status.Speaker
+                });
+                emit Minted(_recipients[i], _tokenIdCounter, _logoId, _isBackers[i]);
+            }
+        }
+        tokenIdCounter = _tokenIdCounter;
     }
+
+    // function 
 
     function getInfo(uint256 _tokenId) external override view returns (Info memory i) {
         i = infos[_tokenId];

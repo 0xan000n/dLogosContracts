@@ -45,13 +45,4 @@ contract DLogosBackerMock {
         referrer1 = _referrer1;
         referrer2 = _referrer2;
     }
-
-    function crowdfund(
-        address _backer,
-        uint256 _logoId,
-        address
-    ) external {
-        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
-        ILogo(logoNFT).safeMint(_backer, _logoId, true);
-    }
 }
