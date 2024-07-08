@@ -7,6 +7,17 @@ import {ILogo} from "../interfaces/ILogo.sol";
 
 contract DLogosCoreMock {
     address public dLogosOwner;
+    address[] public recipients = [
+        0x3E64F4Fa20a0673d982EceECC2D29B2c242c9508,
+        0xcc2Fd4442d7A3AB38144D13565D4489601E73cD5
+    ];
+    bool[] public isBackers = [
+        true, 
+        false
+    ];
+    // Used for safeMintBatch() failure.
+    bool[] private _isBackers = [true];
+
     mapping(uint256 => IDLogosCore.Logo) public logos;
 
     // default logo
@@ -64,5 +75,23 @@ contract DLogosCoreMock {
     
     function getLogo(uint256 _logoId) external view returns (IDLogosCore.Logo memory l) {
         l = logos[_logoId];
+    }
+
+    function distributeRewards(uint256 _logoId, bool) external {
+        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
+        ILogo(logoNFT).safeMintBatch(
+            recipients,
+            _logoId,
+            isBackers
+        );
+    }
+
+    function distributeRewardsToFail(uint256 _logoId, bool) external {
+        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
+        ILogo(logoNFT).safeMintBatch(
+            recipients,
+            _logoId,
+            _isBackers
+        );
     }
 }

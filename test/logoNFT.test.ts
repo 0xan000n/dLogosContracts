@@ -1,13 +1,9 @@
 import { ethers, upgrades } from "hardhat";
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 
 import {
   ZERO_ADDRESS,
-  BIGINT_1E14,
-  BIGINT_1E13,
-  BIGINT_1E12,
-  ONE_DAY,
 } from "./_helpers/constants";
 
 describe("Logo NFT Tests", () => {
@@ -56,61 +52,55 @@ describe("Logo NFT Tests", () => {
     });
   });
 
-  describe("{safeMint}, {getInfo} function", () => {
-    describe("Should make changes to the storage", () => {
-      it("when caller is backer", async () => {
-        const env = await loadFixture(prepEnvWithSafeMintByBacker);
-  
-        expect(await env.logo.tokenIdCounter()).equals(
-          1n
-        );
-        expect(await env.logo.ownerOf(1)).equals(
-          env.backer.address
-        );
-        const info = await env.logo.getInfo(1);
-        expect(info.owner).equals(
-          env.backer.address
-        );
-        expect(info.logoId).equals(
-          env.logoIdByBacker
-        );
-        expect(info.status).equals(
-          0n
-        );
-      });
+  describe("{safeMintBatch}, {getInfo} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithSafeMintBatch);
 
-      it("when caller is speaker", async () => {
-        const env = await loadFixture(prepEnvWithSafeMintBySpeaker);
-  
-        expect(await env.logo.tokenIdCounter()).equals(
-          2n
-        );
-        expect(await env.logo.ownerOf(2)).equals(
-          env.speaker.address
-        );
-        const info = await env.logo.getInfo(2);
-        expect(info.owner).equals(
-          env.speaker.address
-        );
-        expect(info.logoId).equals(
-          env.logoIdBySpeaker
-        );
-        expect(info.status).equals(
-          1n
-        );
-      });
+      expect(await env.logo.tokenIdCounter()).equals(
+        2n,
+      );
+      // token#1
+      expect(await env.logo.ownerOf(1)).equals(
+        env.token1Recipient,
+      );
+      const info1 = await env.logo.getInfo(1);
+      expect(info1.logoId).equals(
+        env.logoId,
+      );
+      expect(info1.status).equals(
+        0n,
+      );
+      // token#2
+      expect(await env.logo.ownerOf(2)).equals(
+        env.token2Recipient,
+      );
+      const info2 = await env.logo.getInfo(2);
+      expect(info2.logoId).equals(
+        env.logoId,
+      );
+      expect(info2.status).equals(
+        1n,
+      );
     });
 
     it("Should emit event", async () => {
-      const env = await loadFixture(prepEnvWithSafeMintByBacker);
+      const env = await loadFixture(prepEnvWithSafeMintBatch);
 
-      await expect(env.safeMintTx)
+      await expect(env.safeMintBatchTx)
         .emit(env.logo, "Minted")
         .withArgs(
-          env.backer.address,
+          env.token1Recipient,
           1,
-          env.logoIdByBacker,
+          env.logoId,
           true,
+        );
+      await expect(env.safeMintBatchTx)
+        .emit(env.logo, "Minted")
+        .withArgs(
+          env.token2Recipient,
+          2,
+          env.logoId,
+          false,
         );
     });
 
@@ -121,12 +111,11 @@ describe("Logo NFT Tests", () => {
         );
 
         await expect(
-          env.dLogosBacker
+          env.dLogosCore
             .connect(env.deployer)
-            .crowdfund(
-              env.backer.address,
+            .distributeRewards(
               0,
-              ZERO_ADDRESS
+              true,
             )
         ).to.be.revertedWithCustomError(
           env.logo,
@@ -134,16 +123,20 @@ describe("Logo NFT Tests", () => {
         );
       });
 
-      it("Should revert when caller is not backer nor core contracts", async () => {
+      it("Should revert when caller is not {DLogosCore} contract", async () => {
         const env = await loadFixture(prepEnv);
 
         await expect(
           env.logo
             .connect(env.deployer)
-            .safeMint(
-              ZERO_ADDRESS,
+            .safeMintBatch(
+              [
+                ZERO_ADDRESS
+              ],
               0,
-              false,
+              [
+                false
+              ],
             )
         ).to.be.revertedWithCustomError(
           env.logo,
@@ -151,24 +144,21 @@ describe("Logo NFT Tests", () => {
         );
       });
 
-        it("Should revert when {_to} is zero address", async () => {
-          const env = await loadFixture(prepEnv);
+      it("Should revert when array param length mismtach", async () => {
+        const env = await loadFixture(prepEnv);
 
-          await expect(
-            env.dLogosBacker
-              .connect(env.deployer)
-              .crowdfund(
-                ZERO_ADDRESS,
-                0,
-                ZERO_ADDRESS,
-              )
-          ).to.be.revertedWithCustomError(
-            env.logo,
-            "ERC721InvalidReceiver"
-          ).withArgs(
-            ZERO_ADDRESS
-          );
-        });
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .distributeRewardsToFail(
+              1,
+              true,
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "InvalidArrayArguments()"
+        );
+      });
     });
   });
 
@@ -267,8 +257,8 @@ describe("Logo NFT Tests", () => {
 
 async function prepEnv() {
   const [
-    deployer, 
-    nonDeployer, 
+    deployer,
+    nonDeployer,
     backer,
     speaker,
     ...otherSigners
@@ -283,10 +273,8 @@ async function prepEnv() {
   const dLogosCoreF = await ethers.getContractFactory("DLogosCoreMock");
   const dLogosCore = await dLogosCoreF.deploy(dLogosOwnerAddr);
   await dLogosCore.init();
-
-  // deploy DLogosBacker mock
-  const dLogosBackerF = await ethers.getContractFactory("DLogosBackerMock");
-  const dLogosBacker = await dLogosBackerF.deploy(dLogosOwnerAddr);
+  const token1Recipient = await dLogosCore.recipients(0);
+  const token2Recipient = await dLogosCore.recipients(1);
 
   // deploy and initialize Logo NFT
   const logoF = await ethers.getContractFactory("Logo");
@@ -305,8 +293,10 @@ async function prepEnv() {
     speaker,
 
     dLogosOwner,
-    dLogosBacker,
     dLogosCore,
+
+    token1Recipient,
+    token2Recipient,
 
     logoF,
     logoProxy,
@@ -314,50 +304,28 @@ async function prepEnv() {
   };
 };
 
-async function prepEnvWithSafeMintByBacker() {
+async function prepEnvWithSafeMintBatch() {
   const prevEnv = await loadFixture(prepEnv);
 
-  const logoIdByBacker = 1;
-  const safeMintTx = await prevEnv.dLogosBacker
+  const logoId = 1;
+  const safeMintBatchTx = await prevEnv.dLogosCore
     .connect(prevEnv.deployer)
-    .crowdfund(
-      prevEnv.backer.address,
-      logoIdByBacker,
-      ZERO_ADDRESS,
+    .distributeRewards(
+      logoId,
+      true,
     );
 
   return {
     ...prevEnv,
 
-    logoIdByBacker,
-    
-    safeMintTx,
-  };
-}
+    logoId,
 
-async function prepEnvWithSafeMintBySpeaker() {
-  const prevEnv = await loadFixture(prepEnvWithSafeMintByBacker);
-
-  const logoIdBySpeaker = 2;
-  const safeMintTx = await prevEnv.dLogosCore
-    .connect(prevEnv.deployer)
-    .setSpeakerStatus(
-      prevEnv.speaker.address,
-      logoIdBySpeaker,
-      0,
-    );
-
-  return {
-    ...prevEnv,
-
-    logoIdBySpeaker,
-    
-    safeMintTx,
+    safeMintBatchTx,
   };
 }
 
 async function prepEnvWithSetBaseURI() {
-  const prevEnv = await loadFixture(prepEnvWithSafeMintBySpeaker);
+  const prevEnv = await loadFixture(prepEnvWithSafeMintBatch);
 
   const baseURI = "http://ipfs.io/";
   const setBaseURITx = await prevEnv.logo
@@ -370,7 +338,7 @@ async function prepEnvWithSetBaseURI() {
     ...prevEnv,
 
     baseURI,
-    
+
     setBaseURITx,
   };
 }

@@ -65,7 +65,6 @@ contract Logo is
             for (uint256 i = 0; i < _recipients.length; i++) {
                 _safeMint(_recipients[i], ++_tokenIdCounter);
                 infos[_tokenIdCounter] = Info({
-                    owner: _recipients[i],
                     logoId: _logoId,
                     status: _isBackers[i] ? Status.Backer : Status.Speaker
                 });

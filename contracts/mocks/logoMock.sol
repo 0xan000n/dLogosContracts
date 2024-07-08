@@ -11,5 +11,9 @@ contract LogoMock {
         dLogosOwner = _dLogosOwner;
     }
 
-    function safeMint(address, uint256, bool) external {}
+    function safeMintBatch(
+        address[] calldata, 
+        uint256, 
+        bool[] calldata
+    ) external {}
 }

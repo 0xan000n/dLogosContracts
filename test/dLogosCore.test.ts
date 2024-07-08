@@ -1416,6 +1416,7 @@ describe("DLogosCore Testing", () => {
             .connect(env.nonDeployer)
             .distributeRewards(
               1,
+              true,
             )
         ).to.be.revertedWithCustomError(
           env.dLogosCore,
@@ -1430,7 +1431,8 @@ describe("DLogosCore Testing", () => {
           env.dLogosCore
             .connect(env.nonDeployer)
             .distributeRewards(
-              2
+              2,
+              true,
             )
         ).to.be.revertedWithCustomError(
           env.dLogosCore,
@@ -1445,7 +1447,8 @@ describe("DLogosCore Testing", () => {
           env.dLogosCore
             .connect(env.nonDeployer)
             .distributeRewards(
-              1
+              1,
+              true,
             )
         ).to.be.revertedWithCustomError(
           env.dLogosCore,
@@ -1461,6 +1464,7 @@ describe("DLogosCore Testing", () => {
             .connect(env.nonDeployer)
             .distributeRewards(
               1,
+              true,
             )
         ).to.be.revertedWithCustomError(
           env.dLogosCore,
@@ -1476,6 +1480,7 @@ describe("DLogosCore Testing", () => {
             .connect(env.nonDeployer)
             .distributeRewards(
               1,
+              true,
             )
         ).to.be.revertedWithCustomError(
           env.dLogosCore,
@@ -1491,6 +1496,7 @@ describe("DLogosCore Testing", () => {
             .connect(env.nonDeployer)
             .distributeRewards(
               1,
+              true,
             )
         ).to.be.revertedWithCustomError(
           env.dLogosCore,
@@ -1978,7 +1984,8 @@ async function prepEnvWithDistributeRewards() {
   const distributeRewardsTx = await prevEnv.dLogosCore
     .connect(prevEnv.nonDeployer)
     .distributeRewards(
-      1
+      1,
+      true,
     );
 
   return {

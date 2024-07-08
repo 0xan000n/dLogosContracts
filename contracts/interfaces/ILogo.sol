@@ -9,7 +9,6 @@ interface ILogo {
     }
     
     struct Info {
-        address owner;
         uint256 logoId;
         Status status;
     }
