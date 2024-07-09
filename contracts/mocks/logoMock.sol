@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IDLogosOwner} from "../interfaces/IdLogosOwner.sol";
+import {ILogo} from "../interfaces/ILogo.sol";
 
 contract LogoMock {
     address public dLogosOwner;
@@ -14,6 +15,6 @@ contract LogoMock {
     function safeMintBatchByDLogosCore(
         address[] calldata, 
         uint256, 
-        bool[] calldata
+        ILogo.Status[] calldata
     ) external {}
 }

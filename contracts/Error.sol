@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
+import {ILogo} from "./interfaces/ILogo.sol";
+
 error NoRefundConditionsMet();
 
 error Unauthorized();
@@ -81,6 +83,8 @@ error DirectCallNotAllowed();
 
 error LogoNotDistributed();
 
-error NoBackerNorSpeaker(address _addr, uint256 _logoId);
+error NotEligibleForMint(address _addr, uint256 _logoId);
 
-error AlreadyMinted(address _addr, uint256 _logoId, bool isBacker);
+error AlreadyMinted(address _addr, uint256 _logoId, ILogo.Status status);
+
+error InvalidStatus();

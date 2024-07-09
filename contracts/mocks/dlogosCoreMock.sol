@@ -9,14 +9,23 @@ contract DLogosCoreMock {
     address public dLogosOwner;
     address[] public recipients = [
         0x3E64F4Fa20a0673d982EceECC2D29B2c242c9508,
-        0xcc2Fd4442d7A3AB38144D13565D4489601E73cD5
+        0xcc2Fd4442d7A3AB38144D13565D4489601E73cD5,
+        0x2F6EfC44c5f00679C57FE2134f51755f9068B517
     ];
-    bool[] public isBackers = [
-        true, 
-        false
+    ILogo.Status[] public statuses = [
+        ILogo.Status.Backer, 
+        ILogo.Status.Speaker,
+        ILogo.Status.Proposer
     ];
-    // Used for safeMintBatch() failure.
-    bool[] private _isBackers = [true];
+    // Used for safeMintBatchByDLogosCore() failure.
+    ILogo.Status[] private _statusesIAA = [
+        ILogo.Status.Backer
+    ];
+    ILogo.Status[] private _statusesIS = [
+        ILogo.Status.Backer, 
+        ILogo.Status.Speaker,
+        ILogo.Status.Undefined
+    ];
 
     mapping(uint256 => IDLogosCore.Logo) public logos;
 
@@ -82,16 +91,27 @@ contract DLogosCoreMock {
         ILogo(logoNFT).safeMintBatchByDLogosCore(
             recipients,
             _logoId,
-            isBackers
+            statuses
         );
     }
-
-    function distributeRewardsToFail(uint256 _logoId, bool) external {
+    
+    // This function call is to fail by InvalidArrayArguments error
+    function distributeRewardsToFailByIAA(uint256 _logoId, bool) external {
         address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
         ILogo(logoNFT).safeMintBatchByDLogosCore(
             recipients,
             _logoId,
-            _isBackers
+            _statusesIAA
+        );
+    }
+
+    // This function call is to fail by InvalidStatus error
+    function distributeRewardsToFailByIS(uint256 _logoId, bool) external {
+        address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
+        ILogo(logoNFT).safeMintBatchByDLogosCore(
+            recipients,
+            _logoId,
+            _statusesIS
         );
     }
 }

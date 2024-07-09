@@ -57,7 +57,7 @@ describe("Logo NFT Tests", () => {
       const env = await loadFixture(prepEnvWithSafeMintBatchByDLogosCore);
 
       expect(await env.logo.tokenIdCounter()).equals(
-        2n,
+        3n,
       );
       // token#1
       expect(await env.logo.ownerOf(1)).equals(
@@ -68,7 +68,7 @@ describe("Logo NFT Tests", () => {
         env.logoId,
       );
       expect(info1.status).equals(
-        0n,
+        1n,
       );
       // token#2
       expect(await env.logo.ownerOf(2)).equals(
@@ -79,7 +79,18 @@ describe("Logo NFT Tests", () => {
         env.logoId,
       );
       expect(info2.status).equals(
-        1n,
+        2n,
+      );
+      // token#3
+      expect(await env.logo.ownerOf(3)).equals(
+        env.token3Recipient,
+      );
+      const info3 = await env.logo.getInfo(3);
+      expect(info3.logoId).equals(
+        env.logoId,
+      );
+      expect(info3.status).equals(
+        3n,
       );
     });
 
@@ -92,7 +103,7 @@ describe("Logo NFT Tests", () => {
           env.token1Recipient,
           1,
           env.logoId,
-          true,
+          1,
         );
       await expect(env.safeMintBatchByDLogosCoreTx)
         .emit(env.logo, "Minted")
@@ -100,7 +111,15 @@ describe("Logo NFT Tests", () => {
           env.token2Recipient,
           2,
           env.logoId,
-          false,
+          2,
+        );
+      await expect(env.safeMintBatchByDLogosCoreTx)
+        .emit(env.logo, "Minted")
+        .withArgs(
+          env.token3Recipient,
+          3,
+          env.logoId,
+          3,
         );
     });
 
@@ -135,7 +154,7 @@ describe("Logo NFT Tests", () => {
               ],
               0,
               [
-                false
+                0
               ],
             )
         ).to.be.revertedWithCustomError(
@@ -150,13 +169,29 @@ describe("Logo NFT Tests", () => {
         await expect(
           env.dLogosCore
             .connect(env.deployer)
-            .distributeRewardsToFail(
+            .distributeRewardsToFailByIAA(
               1,
               true,
             )
         ).to.be.revertedWithCustomError(
           env.logo,
           "InvalidArrayArguments()"
+        );
+      });
+
+      it("Should revert when one status param is undefined", async () => {
+        const env = await loadFixture(prepEnv);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .distributeRewardsToFailByIS(
+              1,
+              true,
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "InvalidStatus()"
         );
       });
     });
@@ -275,6 +310,7 @@ async function prepEnv() {
   await dLogosCore.init();
   const token1Recipient = await dLogosCore.recipients(0);
   const token2Recipient = await dLogosCore.recipients(1);
+  const token3Recipient = await dLogosCore.recipients(2);
 
   // deploy and initialize Logo NFT
   const logoF = await ethers.getContractFactory("Logo");
@@ -297,6 +333,7 @@ async function prepEnv() {
 
     token1Recipient,
     token2Recipient,
+    token3Recipient,
 
     logoF,
     logoProxy,

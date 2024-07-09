@@ -58,17 +58,17 @@ contract Logo is
     function safeMintBatchByDLogosCore(
         address[] calldata _recipients,
         uint256 _logoId,
-        bool[] calldata _isBackers
-    ) external {
+        Status[] calldata _statuses
+    ) external override {
         if (msg.sender != IDLogosOwner(dLogosOwner).dLogosCore())
             revert CallerNotDLogosCore();
-        if (_recipients.length != _isBackers.length)
+        if (_recipients.length != _statuses.length)
             revert InvalidArrayArguments();
 
         uint256 _tokenIdCounter = tokenIdCounter;
         unchecked {
             for (uint256 i = 0; i < _recipients.length; i++) {
-                _safeMint(_recipients[i], ++_tokenIdCounter, _logoId, _isBackers[i]);
+                _safeMint(_recipients[i], ++_tokenIdCounter, _logoId, _statuses[i]);
             }
         }
         tokenIdCounter = _tokenIdCounter;
@@ -77,9 +77,9 @@ contract Logo is
     function safeMintBatch(
         address[] calldata _recipients,
         uint256 _logoId,
-        bool[] calldata _isBackers
-    ) external {
-        if (_recipients.length != _isBackers.length)
+        Status[] calldata _statuses
+    ) external override {
+        if (_recipients.length != _statuses.length)
             revert InvalidArrayArguments();
 
         address dLogosCore = IDLogosOwner(dLogosOwner).dLogosCore();
@@ -92,20 +92,20 @@ contract Logo is
             .getSpeakersForLogo(_logoId);
         for (uint256 i = 0; i < _recipients.length; i++) {
             address to = _recipients[i];
-            bool isBacker = _isBackers[i];
+            Status status = _statuses[i];
 
-            if (isBacker == (logoInfos[_logoId][to] == Status.Backer)) 
-                revert AlreadyMinted(to, _logoId, isBacker);
+            if (status != Status.Undefined && status == logoInfos[_logoId][to]) 
+                revert AlreadyMinted(to, _logoId, status);
 
             if (
-                isBacker &&
+                status == Status.Backer &&
                 IDLogosBacker(dLogosBacker)
                     .getBackerForLogo(_logoId, to)
                     .amount !=
                 0
             ) {
-                _safeMint(to, ++_tokenIdCounter, _logoId, isBacker);
-            } else if (!isBacker) {                
+                _safeMint(to, ++_tokenIdCounter, _logoId, status);
+            } else if (status == Status.Speaker) {                
                 uint256 j;
                 for (j = 0; j < speakers.length; j++) {
                     if (to == speakers[j].addr) {
@@ -113,10 +113,15 @@ contract Logo is
                     }
                 }
                 if (j < speakers.length) {
-                    _safeMint(to, ++_tokenIdCounter, _logoId, isBacker);
+                    _safeMint(to, ++_tokenIdCounter, _logoId, status);
+                }
+            } else if (status == Status.Proposer) {
+                address proposer = IDLogosCore(dLogosCore).getLogo(_logoId).proposer;
+                if (proposer == to) {
+                    _safeMint(to, ++_tokenIdCounter, _logoId, status);
                 }
             } else {
-                revert NoBackerNorSpeaker(to, _logoId);
+                revert NotEligibleForMint(to, _logoId);
             }
         }
 
@@ -149,15 +154,17 @@ contract Logo is
         address _to,
         uint256 _tokenId,
         uint256 _logoId,
-        bool _isBacker
+        Status _status
     ) private {
+        if (_status == Status.Undefined) revert InvalidStatus();
+
         super._safeMint(_to, _tokenId);
         infos[_tokenId] = Info({
             logoId: _logoId, 
-            status: _isBacker ? Status.Backer : Status.Speaker
+            status: _status
         });
-        logoInfos[_logoId][_to] = _isBacker ? Status.Backer : Status.Speaker;
-        emit Minted(_to, _tokenId, _logoId, _isBacker);
+        logoInfos[_logoId][_to] = _status;
+        emit Minted(_to, _tokenId, _logoId, _status);
     }
 
     // The following functions are overrides required by Solidity.
