@@ -191,7 +191,333 @@ describe("Logo NFT Tests", () => {
             )
         ).to.be.revertedWithCustomError(
           env.logo,
-          "InvalidStatus()"
+          "UndefinedStatus"
+        );
+      });
+    });
+  });
+
+  describe("{safeMintBatch}, {getInfo} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithSafeMintBatch);
+
+      expect(await env.logo.tokenIdCounter()).equals(
+        4n,
+      );
+      // token#1
+      expect(await env.logo.ownerOf(1)).equals(
+        env.l5Backer0,
+      );
+      const info1 = await env.logo.getInfo(1);
+      expect(info1.logoId).equals(
+        env.logoId5,
+      );
+      expect(info1.status).equals(
+        1n, // backer
+      );
+      // token#2
+      expect(await env.logo.ownerOf(2)).equals(
+        env.l5Backer1,
+      );
+      const info2 = await env.logo.getInfo(2);
+      expect(info2.logoId).equals(
+        env.logoId5,
+      );
+      expect(info2.status).equals(
+        1n, // backer
+      );
+      // token#3
+      expect(await env.logo.ownerOf(3)).equals(
+        env.l5Speaker,
+      );
+      const info3 = await env.logo.getInfo(3);
+      expect(info3.logoId).equals(
+        env.logoId5,
+      );
+      expect(info3.status).equals(
+        2n, // speaker
+      );
+      // token#4
+      expect(await env.logo.ownerOf(4)).equals(
+        env.l5Proposer,
+      );
+      const info4 = await env.logo.getInfo(4);
+      expect(info4.logoId).equals(
+        env.logoId5,
+      );
+      expect(info4.status).equals(
+        3n, // speaker
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithSafeMintBatch);
+
+      await expect(env.safeMintBatchTx)
+        .emit(env.logo, "Minted")
+        .withArgs(
+          env.l5Backer0,
+          1,
+          env.logoId5,
+          1,
+        );
+      await expect(env.safeMintBatchTx)
+        .emit(env.logo, "Minted")
+        .withArgs(
+          env.l5Backer1,
+          2,
+          env.logoId5,
+          1,
+        );
+      await expect(env.safeMintBatchTx)
+        .emit(env.logo, "Minted")
+        .withArgs(
+          env.l5Speaker,
+          3,
+          env.logoId5,
+          2,
+        );
+      await expect(env.safeMintBatchTx)
+        .emit(env.logo, "Minted")
+        .withArgs(
+          env.l5Proposer,
+          4,
+          env.logoId5,
+          3,
+        );
+    });
+
+    describe("Reverts", () => {
+      it("Should revert when contract is paused", async () => {
+        const env = await prepEnvWithPauseOrUnpauseTrue(
+          await loadFixture(prepEnv)
+        );
+
+        await expect(
+          env.logo
+            .connect(env.nonDeployer)
+            .safeMintBatch(
+              [
+                env.l5Backer0,
+                env.l5Backer1,
+                env.l5Speaker,
+                env.l5Proposer,
+              ],
+              env.logoId5,
+              [
+                1, // backer
+                1, // backer
+                2, // speaker
+                3, // proposer
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "EnforcedPause()"
+        );
+      });
+
+      it("Should revert when array param length mismatch", async () => {
+        const env = await loadFixture(prepEnv);
+
+        await expect(
+          env.logo
+            .connect(env.nonDeployer)
+            .safeMintBatch(
+              [
+                env.l5Backer1,
+                env.l5Speaker,
+                env.l5Proposer,
+              ],
+              env.logoId5,
+              [
+                1, // backer
+                1, // backer
+                2, // speaker
+                3, // proposer
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "InvalidArrayArguments()"
+        );
+      });
+
+      it("Should revert when logo is not distributed", async () => {
+        const env = await loadFixture(prepEnv);
+
+        await expect(
+          env.logo
+            .connect(env.nonDeployer)
+            .safeMintBatch(
+              [
+                env.l5Backer0,
+                env.l5Backer1,
+                env.l5Speaker,
+                env.l5Proposer,
+              ],
+              1,
+              [
+                1, // backer
+                1, // backer
+                2, // speaker
+                3, // proposer
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "LogoNotDistributed()"
+        );
+      });
+
+      it("Should revert when some addresses are already minted NFTs", async () => {
+        const env = await loadFixture(prepEnvWithSafeMintBatch);
+
+        await expect(
+          env.logo
+            .connect(env.nonDeployer)
+            .safeMintBatch(
+              [
+                env.l5Backer0,
+                env.l5Backer1,
+                env.l5Speaker,
+                env.l5Proposer,
+              ],
+              env.logoId5,
+              [
+                1, // backer
+                1, // backer
+                2, // speaker
+                3, // proposer
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "AlreadyMinted"
+        ).withArgs(
+          env.l5Backer0,
+          env.logoId5,
+          1,
+        );
+      });
+
+      it("Should revert when status param is undefined", async () => {
+        const env = await loadFixture(prepEnv);
+
+        await expect(
+          env.logo
+            .connect(env.nonDeployer)
+            .safeMintBatch(
+              [
+                env.l5Backer0,
+                env.l5Backer1,
+                env.l5Speaker,
+                env.l5Proposer,
+              ],
+              env.logoId5,
+              [
+                0, // undefined
+                1, // backer
+                2, // speaker
+                3, // proposer
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "UndefinedStatus"
+        ).withArgs(
+          env.l5Backer0,
+          env.logoId5,
+        );
+      });
+
+      it("Should revert when backers are not eligible", async () => {
+        const env = await loadFixture(prepEnv);
+
+        await expect(
+          env.logo
+            .connect(env.nonDeployer)
+            .safeMintBatch(
+              [
+                env.deployer.address,
+                env.l5Backer1,
+                env.l5Speaker,
+                env.l5Proposer,
+              ],
+              env.logoId5,
+              [
+                1, // backer
+                1, // backer
+                2, // speaker
+                3, // proposer
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "NotEligibleForMint"
+        ).withArgs(
+          env.deployer.address,
+          env.logoId5,
+        );
+      });
+
+      it("Should revert when speakers are not eligible", async () => {
+        const env = await loadFixture(prepEnv);
+
+        await expect(
+          env.logo
+            .connect(env.nonDeployer)
+            .safeMintBatch(
+              [
+                env.l5Backer0,
+                env.l5Backer1,
+                env.nonDeployer.address,
+                env.l5Proposer,
+              ],
+              env.logoId5,
+              [
+                1, // backer
+                1, // backer
+                2, // speaker
+                3, // proposer
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "NotEligibleForMint"
+        ).withArgs(
+          env.nonDeployer.address,
+          env.logoId5,
+        );
+      });
+
+      it("Should revert when proposer is not eligible", async () => {
+        const env = await loadFixture(prepEnv);
+
+        await expect(
+          env.logo
+            .connect(env.nonDeployer)
+            .safeMintBatch(
+              [
+                env.l5Backer0,
+                env.l5Backer1,
+                env.l5Speaker,
+                env.nonDeployer.address,
+              ],
+              env.logoId5,
+              [
+                1, // backer
+                1, // backer
+                2, // speaker
+                3, // proposer
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "NotEligibleForMint"
+        ).withArgs(
+          env.nonDeployer.address,
+          env.logoId5,
         );
       });
     });
@@ -312,6 +638,10 @@ async function prepEnv() {
   const token2Recipient = await dLogosCore.recipients(1);
   const token3Recipient = await dLogosCore.recipients(2);
 
+  // deploy DLogosBacker mock
+  const dLogosBackerF = await ethers.getContractFactory("DLogosBackerMock");
+  const dLogosBacker = await dLogosBackerF.deploy(dLogosOwnerAddr);
+
   // deploy and initialize Logo NFT
   const logoF = await ethers.getContractFactory("Logo");
   const logoProxy = await upgrades.deployProxy(
@@ -322,6 +652,12 @@ async function prepEnv() {
   );
   const logo = logoF.attach(await logoProxy.getAddress());
 
+  const logoId5 = 5;
+  const l5Backer0 = await dLogosBacker.backerAddrs(0);
+  const l5Backer1 = await dLogosBacker.backerAddrs(1);
+  const l5Speaker = await dLogosCore.speaker();
+  const l5Proposer = deployer.address;
+
   return {
     deployer,
     nonDeployer,
@@ -330,6 +666,7 @@ async function prepEnv() {
 
     dLogosOwner,
     dLogosCore,
+    dLogosBacker,
 
     token1Recipient,
     token2Recipient,
@@ -338,6 +675,12 @@ async function prepEnv() {
     logoF,
     logoProxy,
     logo,
+
+    logoId5,
+    l5Backer0,
+    l5Backer1,
+    l5Speaker,
+    l5Proposer,
   };
 };
 
@@ -358,6 +701,34 @@ async function prepEnvWithSafeMintBatchByDLogosCore() {
     logoId,
 
     safeMintBatchByDLogosCoreTx,
+  };
+}
+
+async function prepEnvWithSafeMintBatch() {
+  const prevEnv = await loadFixture(prepEnv);  
+
+  const safeMintBatchTx = await prevEnv.logo
+    .connect(prevEnv.nonDeployer)
+    .safeMintBatch(
+      [
+        prevEnv.l5Backer0,
+        prevEnv.l5Backer1,
+        prevEnv.l5Speaker,
+        prevEnv.l5Proposer
+      ],
+      prevEnv.logoId5,
+      [
+        1, // backer
+        1, // backer
+        2, // speaker
+        3, // proposer
+      ],
+    );
+
+  return {
+    ...prevEnv,    
+
+    safeMintBatchTx,
   };
 }
 

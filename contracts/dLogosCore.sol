@@ -449,6 +449,7 @@ contract DLogosCore is
                 DLogosCoreHelper.safeMintNFT(
                     dLogosOwner,
                     _logoId,
+                    l.proposer,
                     backers,
                     speakers
                 );

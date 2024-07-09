@@ -9,6 +9,10 @@ contract DLogosBackerMock {
     address public referrer1;
     address public referrer2;
     address public dLogosOwner;
+    address[] public backerAddrs = [
+        0x2F6EfC44c5f00679C57FE2134f51755f9068B517,
+        0xA272896E12F741c9E82C67eC702BBFF95D4004cD
+    ];
 
     constructor(address _dLogosOwner) {
         IDLogosOwner(_dLogosOwner).setDLogosBacker(address(this));
@@ -28,16 +32,28 @@ contract DLogosBackerMock {
     ) external view returns (IDLogosBacker.Backer[] memory backers) {
         backers = new IDLogosBacker.Backer[](2);
         backers[0] = IDLogosBacker.Backer({
-            addr: 0xaDC87646f736d6A82e9a6539cddC488b2aA07f38,
+            addr: backerAddrs[0],
             referrer: referrer1,
             votesToReject: false,
             amount: 1e14
         });
         backers[1] = IDLogosBacker.Backer({
-            addr: 0x80f1B766817D04870f115fEBbcCADF8DBF75E017,
+            addr: backerAddrs[1],
             referrer: referrer2,
             votesToReject: false,
             amount: 9 * 1e14
+        });
+    }
+
+    function getBackerForLogo(
+        uint256,
+        address _backerAddr
+    ) external view returns (IDLogosBacker.Backer memory backer) {
+        backer = IDLogosBacker.Backer({
+            addr: _backerAddr,
+            referrer: referrer1,
+            votesToReject: false,
+            amount: _backerAddr == backerAddrs[0] || _backerAddr == backerAddrs[1] ? 1e14 : 0
         });
     }
 

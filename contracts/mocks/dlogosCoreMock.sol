@@ -7,10 +7,11 @@ import {ILogo} from "../interfaces/ILogo.sol";
 
 contract DLogosCoreMock {
     address public dLogosOwner;
+    address public speaker = 0xcc2Fd4442d7A3AB38144D13565D4489601E73cD5;
     address[] public recipients = [
-        0x3E64F4Fa20a0673d982EceECC2D29B2c242c9508,
-        0xcc2Fd4442d7A3AB38144D13565D4489601E73cD5,
-        0x2F6EfC44c5f00679C57FE2134f51755f9068B517
+        0x3E64F4Fa20a0673d982EceECC2D29B2c242c9508, // backer
+        speaker, // speaker
+        0x2F6EfC44c5f00679C57FE2134f51755f9068B517 // proposer
     ];
     ILogo.Status[] public statuses = [
         ILogo.Status.Backer, 
@@ -84,6 +85,17 @@ contract DLogosCoreMock {
     
     function getLogo(uint256 _logoId) external view returns (IDLogosCore.Logo memory l) {
         l = logos[_logoId];
+    }
+
+    function getSpeakersForLogo(uint256) external view returns (IDLogosCore.Speaker[] memory speakers) {
+        speakers = new IDLogosCore.Speaker[](1);
+        speakers[0] = IDLogosCore.Speaker({
+            addr: speaker,
+            fee: 0,
+            provider: "X",
+            handle: "@speaker",
+            status: IDLogosCore.SpeakerStatus.Pending
+        });
     }
 
     function distributeRewards(uint256 _logoId, bool) external {

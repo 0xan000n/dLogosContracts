@@ -169,6 +169,7 @@ library DLogosCoreHelper {
     function safeMintNFT(
         address _dLogosOwner,
         uint256 _logoId,
+        address _proposer,
         IDLogosBacker.Backer[] memory _backers,
         IDLogosCore.Speaker[] memory _speakers
     ) external {
@@ -185,9 +186,12 @@ library DLogosCoreHelper {
                 statuses[i] = ILogo.Status.Backer;
             }
             for (uint256 i = 0; i < _speakers.length; i++) {
-                nftRecipients[i + _backers.length] = _speakers[i].addr;
-                statuses[i + _backers.length] = ILogo.Status.Speaker;
+                uint256 _i = i + _backers.length;
+                nftRecipients[_i] = _speakers[i].addr;
+                statuses[_i] = ILogo.Status.Speaker;
             }
+            
+            nftRecipients[len - 1] = _proposer;
             statuses[len - 1] = ILogo.Status.Proposer;
         }
 

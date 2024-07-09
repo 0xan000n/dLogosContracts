@@ -87,4 +87,4 @@ error NotEligibleForMint(address _addr, uint256 _logoId);
 
 error AlreadyMinted(address _addr, uint256 _logoId, ILogo.Status status);
 
-error InvalidStatus();
+error UndefinedStatus(address _addr, uint256 _logoId);

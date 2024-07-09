@@ -97,15 +97,17 @@ contract Logo is
             if (status != Status.Undefined && status == logoInfos[_logoId][to]) 
                 revert AlreadyMinted(to, _logoId, status);
 
-            if (
-                status == Status.Backer &&
-                IDLogosBacker(dLogosBacker)
-                    .getBackerForLogo(_logoId, to)
-                    .amount !=
-                0
-            ) {
-                _safeMint(to, ++_tokenIdCounter, _logoId, status);
-            } else if (status == Status.Speaker) {                
+            if (status == Status.Backer) {
+                if (
+                    IDLogosBacker(dLogosBacker)
+                        .getBackerForLogo(_logoId, to)
+                        .amount != 0
+                ) {
+                    _safeMint(to, ++_tokenIdCounter, _logoId, status);
+                } else {
+                    revert NotEligibleForMint(to, _logoId);
+                }
+            } else if (status == Status.Speaker) {
                 uint256 j;
                 for (j = 0; j < speakers.length; j++) {
                     if (to == speakers[j].addr) {
@@ -114,14 +116,19 @@ contract Logo is
                 }
                 if (j < speakers.length) {
                     _safeMint(to, ++_tokenIdCounter, _logoId, status);
+                } else {
+                    revert NotEligibleForMint(to, _logoId);
                 }
             } else if (status == Status.Proposer) {
                 address proposer = IDLogosCore(dLogosCore).getLogo(_logoId).proposer;
                 if (proposer == to) {
                     _safeMint(to, ++_tokenIdCounter, _logoId, status);
+                } else {
+                    revert NotEligibleForMint(to, _logoId);
                 }
             } else {
-                revert NotEligibleForMint(to, _logoId);
+                // Status is {Status.Undefined}
+                revert UndefinedStatus(to, _logoId);
             }
         }
 
@@ -156,7 +163,7 @@ contract Logo is
         uint256 _logoId,
         Status _status
     ) private {
-        if (_status == Status.Undefined) revert InvalidStatus();
+        if (_status == Status.Undefined) revert UndefinedStatus(_to, _logoId);
 
         super._safeMint(_to, _tokenId);
         infos[_tokenId] = Info({
