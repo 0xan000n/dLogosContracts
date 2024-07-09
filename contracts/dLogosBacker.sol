@@ -177,6 +177,13 @@ contract DLogosBacker is
         return backers;
     }
 
+    function getBackerForLogo(
+        uint256 _logoId,
+        address _backerAddr
+    ) external override view returns (Backer memory backer) {
+        backer = logoBackers[_logoId][_backerAddr];
+    }
+
     function _getValidLogo(uint256 _logoId) private view returns (IDLogosCore.Logo memory l) {
         address dLogosCore = IDLogosOwner(dLogosOwner).dLogosCore();
         l = IDLogosCore(dLogosCore).getLogo(_logoId);

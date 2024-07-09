@@ -80,3 +80,7 @@ error CallerNotDLogosCore();
 error DirectCallNotAllowed();
 
 error LogoNotDistributed();
+
+error NoBackerNorSpeaker(address _addr, uint256 _logoId);
+
+error AlreadyMinted(address _addr, uint256 _logoId, bool isBacker);

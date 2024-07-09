@@ -67,7 +67,7 @@ contract DLogosCore is
     /// STORAGE
     address public override dLogosOwner;
     uint256 public override logoId; // Global Logo ID
-    mapping(uint256 => Logo) public logos; // Mapping of Owner addresses to Logo ID to Logo info    
+    mapping(uint256 => Logo) public logos; // Mapping of Logo ID to Logo info    
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
 
     // The contract does not use `trustedForwarder` that is defined in ERC2771ContextUpgradeable
