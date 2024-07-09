@@ -75,6 +75,8 @@ error LogoNotScheduled();
 
 error ConvoNotHappened();
 
-error CallerNotDLogos();
+error CallerNotDLogosCore();
 
 error DirectCallNotAllowed();
+
+error LogoNotDistributed();

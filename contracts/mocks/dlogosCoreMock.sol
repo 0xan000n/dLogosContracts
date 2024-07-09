@@ -79,7 +79,7 @@ contract DLogosCoreMock {
 
     function distributeRewards(uint256 _logoId, bool) external {
         address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
-        ILogo(logoNFT).safeMintBatch(
+        ILogo(logoNFT).safeMintBatchByDLogosCore(
             recipients,
             _logoId,
             isBackers
@@ -88,7 +88,7 @@ contract DLogosCoreMock {
 
     function distributeRewardsToFail(uint256 _logoId, bool) external {
         address logoNFT = IDLogosOwner(dLogosOwner).logoNFT();
-        ILogo(logoNFT).safeMintBatch(
+        ILogo(logoNFT).safeMintBatchByDLogosCore(
             recipients,
             _logoId,
             _isBackers

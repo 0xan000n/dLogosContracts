@@ -11,7 +11,7 @@ contract LogoMock {
         dLogosOwner = _dLogosOwner;
     }
 
-    function safeMintBatch(
+    function safeMintBatchByDLogosCore(
         address[] calldata, 
         uint256, 
         bool[] calldata

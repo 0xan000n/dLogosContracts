@@ -7,6 +7,7 @@ import {ERC721URIStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/t
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ILogo} from "./interfaces/ILogo.sol";
+import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
 import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import "./Error.sol";
 
@@ -52,12 +53,12 @@ contract Logo is
         emit BaseURISet(baseURI_);
     }
 
-    function safeMintBatch(
+    function safeMintBatchByDLogosCore(
         address[] calldata _recipients, 
         uint256 _logoId,
         bool[] calldata _isBackers
     ) external {
-        if (msg.sender != IDLogosOwner(dLogosOwner).dLogosCore()) revert CallerNotDLogos();
+        if (msg.sender != IDLogosOwner(dLogosOwner).dLogosCore()) revert CallerNotDLogosCore();
         if (_recipients.length != _isBackers.length) revert InvalidArrayArguments();
 
         uint256 _tokenIdCounter = tokenIdCounter;
@@ -74,7 +75,17 @@ contract Logo is
         tokenIdCounter = _tokenIdCounter;
     }
 
-    // function 
+    // function safeMintBatch(
+    //     address[] calldata _recipients, 
+    //     uint256 _logoId,
+    //     bool[] calldata _isBackers
+    // ) external {
+    //     if (_recipients.length != _isBackers.length) revert InvalidArrayArguments();
+
+    //     address dLogosCore = IDLogosOwner(dLogosOwner).dLogosCore();
+    //     IDLogosCore.Logo memory l = IDLogosCore(dLogosCore).getLogo(_logoId);
+    //     if (!l.status.isDistributed) revert LogoNotDistributed();
+    // }
 
     function getInfo(uint256 _tokenId) external override view returns (Info memory i) {
         i = infos[_tokenId];

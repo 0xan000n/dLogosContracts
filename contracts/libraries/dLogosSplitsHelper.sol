@@ -195,6 +195,6 @@ library DLogosSplitsHelper {
         }
 
         address logoNFT = IDLogosOwner(_dLogosOwner).logoNFT();
-        ILogo(logoNFT).safeMintBatch(nftRecipients, _logoId, isBackers);
+        ILogo(logoNFT).safeMintBatchByDLogosCore(nftRecipients, _logoId, isBackers);
     }
 }

@@ -52,9 +52,9 @@ describe("Logo NFT Tests", () => {
     });
   });
 
-  describe("{safeMintBatch}, {getInfo} function", () => {
+  describe("{safeMintBatchByDLogos}, {getInfo} function", () => {
     it("Should make changes to the storage", async () => {
-      const env = await loadFixture(prepEnvWithSafeMintBatch);
+      const env = await loadFixture(prepEnvWithSafeMintBatchByDLogosCore);
 
       expect(await env.logo.tokenIdCounter()).equals(
         2n,
@@ -84,9 +84,9 @@ describe("Logo NFT Tests", () => {
     });
 
     it("Should emit event", async () => {
-      const env = await loadFixture(prepEnvWithSafeMintBatch);
+      const env = await loadFixture(prepEnvWithSafeMintBatchByDLogosCore);
 
-      await expect(env.safeMintBatchTx)
+      await expect(env.safeMintBatchByDLogosCoreTx)
         .emit(env.logo, "Minted")
         .withArgs(
           env.token1Recipient,
@@ -94,7 +94,7 @@ describe("Logo NFT Tests", () => {
           env.logoId,
           true,
         );
-      await expect(env.safeMintBatchTx)
+      await expect(env.safeMintBatchByDLogosCoreTx)
         .emit(env.logo, "Minted")
         .withArgs(
           env.token2Recipient,
@@ -129,7 +129,7 @@ describe("Logo NFT Tests", () => {
         await expect(
           env.logo
             .connect(env.deployer)
-            .safeMintBatch(
+            .safeMintBatchByDLogosCore(
               [
                 ZERO_ADDRESS
               ],
@@ -140,7 +140,7 @@ describe("Logo NFT Tests", () => {
             )
         ).to.be.revertedWithCustomError(
           env.logo,
-          "CallerNotDLogos()"
+          "CallerNotDLogosCore()"
         );
       });
 
@@ -304,11 +304,11 @@ async function prepEnv() {
   };
 };
 
-async function prepEnvWithSafeMintBatch() {
+async function prepEnvWithSafeMintBatchByDLogosCore() {
   const prevEnv = await loadFixture(prepEnv);
 
   const logoId = 1;
-  const safeMintBatchTx = await prevEnv.dLogosCore
+  const safeMintBatchByDLogosCoreTx = await prevEnv.dLogosCore
     .connect(prevEnv.deployer)
     .distributeRewards(
       logoId,
@@ -320,12 +320,12 @@ async function prepEnvWithSafeMintBatch() {
 
     logoId,
 
-    safeMintBatchTx,
+    safeMintBatchByDLogosCoreTx,
   };
 }
 
 async function prepEnvWithSetBaseURI() {
-  const prevEnv = await loadFixture(prepEnvWithSafeMintBatch);
+  const prevEnv = await loadFixture(prepEnvWithSafeMintBatchByDLogosCore);
 
   const baseURI = "http://ipfs.io/";
   const setBaseURITx = await prevEnv.logo
