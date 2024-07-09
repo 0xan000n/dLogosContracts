@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - rejectionWindow in DLogos
 - meta tx in DLogos
 - DLogosCore, DLogosOwner, DLogosBacker, DLogosSplitsHelper
+- rename DLogosSplitsHelper
 
 ## [2.0.1] - 2024-06-03
 ### Added

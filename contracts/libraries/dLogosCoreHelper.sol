@@ -9,7 +9,7 @@ import {SplitV2Lib} from "../splitsV2/libraries/SplitV2.sol";
 import {IPushSplitFactory} from "../splitsV2/interfaces/IPushSplitFactory.sol";
 import {IPushSplit} from "../splitsV2/interfaces/IPushSplit.sol";
 
-library DLogosSplitsHelper {
+library DLogosCoreHelper {
     // Address of native token, inline with ERC7528
     address internal constant NATIVE_TOKEN =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -189,7 +189,6 @@ library DLogosSplitsHelper {
             }
             for (uint256 i = 0; i < _speakers.length; i++) {
                 nftRecipients[i + _backers.length] = _speakers[i].addr;
-                // TODO add unchecked to math operations
                 isBackers[i + _backers.length] = false;
             }
         }

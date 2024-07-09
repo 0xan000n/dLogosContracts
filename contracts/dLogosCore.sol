@@ -10,7 +10,7 @@ import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
 import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
 import {ILogo} from "./interfaces/ILogo.sol";
-import {DLogosSplitsHelper} from "./libraries/dLogosSplitsHelper.sol";
+import {DLogosCoreHelper} from "./libraries/dLogosCoreHelper.sol";
 import {ForwarderSetterUpgradeable} from "./utils/ForwarderSetterUpgradeable.sol";
 import {SplitV2Lib} from "./splitsV2/libraries/SplitV2.sol";
 import "./Error.sol";
@@ -417,8 +417,8 @@ contract DLogosCore is
 
             {
                 uint256 affiliateFee = IDLogosOwner(dLogosOwner).affiliateFee();
-                // Prepare params to call DLogosSplitsHelper
-                (totalRefRewards, splitParam) = DLogosSplitsHelper.getAffiliatesSplitInfo(
+                // Prepare params to call DLogosCoreHelper
+                (totalRefRewards, splitParam) = DLogosCoreHelper.getAffiliatesSplitInfo(
                     backers, 
                     affiliateFee
                 );
@@ -427,10 +427,10 @@ contract DLogosCore is
                 }
             }
 
-            addressVars[1] = DLogosSplitsHelper.deploySplitV2AndDistribute(splitParam, totalRefRewards);
+            addressVars[1] = DLogosCoreHelper.deploySplitV2AndDistribute(splitParam, totalRefRewards);
 
             // PushSplit for dlogos, community and speaker fee distribution
-            DLogosSplitsHelper.GetSpeakersSplitInfoParam memory param = DLogosSplitsHelper.GetSpeakersSplitInfoParam({
+            DLogosCoreHelper.GetSpeakersSplitInfoParam memory param = DLogosCoreHelper.GetSpeakersSplitInfoParam({
                 speakers: speakers,
                 dLogos: IDLogosOwner(dLogosOwner).dLogos(),
                 community: IDLogosOwner(dLogosOwner).community(),
@@ -441,12 +441,12 @@ contract DLogosCore is
                 proposerFee: l.proposerFee
 
             });
-            splitParam = DLogosSplitsHelper.getSpeakersSplitInfo(param);
-            addressVars[2] = DLogosSplitsHelper.deploySplitV2AndDistribute(splitParam, totalRewards - totalRefRewards);
+            splitParam = DLogosCoreHelper.getSpeakersSplitInfo(param);
+            addressVars[2] = DLogosCoreHelper.deploySplitV2AndDistribute(splitParam, totalRewards - totalRefRewards);
 
             // Safemint Logo NFTs to backers and speakers
             if (_mintNFT) {
-                DLogosSplitsHelper.safeMintNFT(
+                DLogosCoreHelper.safeMintNFT(
                     dLogosOwner,
                     _logoId,
                     backers,

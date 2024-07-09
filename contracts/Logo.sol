@@ -102,7 +102,6 @@ contract Logo is
                     .amount !=
                 0
             ) {
-                // TODO check already minted NFTs
                 _safeMint(to, ++_tokenIdCounter, _logoId, isBacker);
             } else if (!isBacker) {
                 IDLogosCore.Speaker[] memory speakers = IDLogosCore(dLogosCore)
@@ -114,7 +113,6 @@ contract Logo is
                     }
                 }
                 if (j < speakers.length) {
-                    // TODO check already minted NFTs
                     _safeMint(to, ++_tokenIdCounter, _logoId, isBacker);
                 }
             } else {

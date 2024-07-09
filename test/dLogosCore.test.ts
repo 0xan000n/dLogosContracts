@@ -1644,15 +1644,15 @@ async function prepEnv() {
     referrer2.address
   );
 
-  // deploy DLogosSplitsHelper
-  const dLogosSplitsHelperF = await ethers.getContractFactory("DLogosSplitsHelper");
-  const dLogosSplitsHelper = await dLogosSplitsHelperF.deploy();
+  // deploy DLogosCoreHelper
+  const dLogosCoreHelperF = await ethers.getContractFactory("DLogosCoreHelper");
+  const dLogosCoreHelper = await dLogosCoreHelperF.deploy();
 
   // deploy and initialize DLogosCore
   const trustedForwarder = "0x92371F3c1Bda1fB4F67a7984FDa54d60b0e6c6Ef"; // random address
   const dLogosCoreF = await ethers.getContractFactory("DLogosCore", {
     libraries: {
-      DLogosSplitsHelper: await dLogosSplitsHelper.getAddress(),
+      DLogosCoreHelper: await dLogosCoreHelper.getAddress(),
     }
   });
   const dLogosCoreProxy = await upgrades.deployProxy(
