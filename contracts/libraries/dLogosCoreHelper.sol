@@ -174,28 +174,28 @@ library DLogosCoreHelper {
         IDLogosCore.Speaker[] memory _speakers
     ) external {
         address[] memory nftRecipients;
-        ILogo.Status[] memory statuses;
+        ILogo.Persona[] memory personas;
 
         unchecked {
             uint256 len = _backers.length + _speakers.length + 1;
             nftRecipients = new address[](len);
-            statuses = new ILogo.Status[](len);
+            personas = new ILogo.Persona[](len);
 
             for (uint256 i = 0; i < _backers.length; i++) {
                 nftRecipients[i] = _backers[i].addr;
-                statuses[i] = ILogo.Status.Backer;
+                personas[i] = ILogo.Persona.Backer;
             }
             for (uint256 i = 0; i < _speakers.length; i++) {
                 uint256 _i = i + _backers.length;
                 nftRecipients[_i] = _speakers[i].addr;
-                statuses[_i] = ILogo.Status.Speaker;
+                personas[_i] = ILogo.Persona.Speaker;
             }
             
             nftRecipients[len - 1] = _proposer;
-            statuses[len - 1] = ILogo.Status.Proposer;
+            personas[len - 1] = ILogo.Persona.Proposer;
         }
 
         address logoNFT = IDLogosOwner(_dLogosOwner).logoNFT();
-        ILogo(logoNFT).safeMintBatchByDLogosCore(nftRecipients, _logoId, statuses);
+        ILogo(logoNFT).safeMintBatchByDLogosCore(nftRecipients, _logoId, personas);
     }
 }

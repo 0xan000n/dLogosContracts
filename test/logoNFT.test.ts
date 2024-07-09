@@ -67,7 +67,7 @@ describe("Logo NFT Tests", () => {
       expect(info1.logoId).equals(
         env.logoId,
       );
-      expect(info1.status).equals(
+      expect(info1.persona).equals(
         1n,
       );
       // token#2
@@ -78,7 +78,7 @@ describe("Logo NFT Tests", () => {
       expect(info2.logoId).equals(
         env.logoId,
       );
-      expect(info2.status).equals(
+      expect(info2.persona).equals(
         2n,
       );
       // token#3
@@ -89,7 +89,7 @@ describe("Logo NFT Tests", () => {
       expect(info3.logoId).equals(
         env.logoId,
       );
-      expect(info3.status).equals(
+      expect(info3.persona).equals(
         3n,
       );
     });
@@ -179,7 +179,7 @@ describe("Logo NFT Tests", () => {
         );
       });
 
-      it("Should revert when one status param is undefined", async () => {
+      it("Should revert when one persona param is undefined", async () => {
         const env = await loadFixture(prepEnv);
 
         await expect(
@@ -191,7 +191,7 @@ describe("Logo NFT Tests", () => {
             )
         ).to.be.revertedWithCustomError(
           env.logo,
-          "UndefinedStatus"
+          "UndefinedPersona"
         );
       });
     });
@@ -212,7 +212,7 @@ describe("Logo NFT Tests", () => {
       expect(info1.logoId).equals(
         env.logoId5,
       );
-      expect(info1.status).equals(
+      expect(info1.persona).equals(
         1n, // backer
       );
       // token#2
@@ -223,7 +223,7 @@ describe("Logo NFT Tests", () => {
       expect(info2.logoId).equals(
         env.logoId5,
       );
-      expect(info2.status).equals(
+      expect(info2.persona).equals(
         1n, // backer
       );
       // token#3
@@ -234,7 +234,7 @@ describe("Logo NFT Tests", () => {
       expect(info3.logoId).equals(
         env.logoId5,
       );
-      expect(info3.status).equals(
+      expect(info3.persona).equals(
         2n, // speaker
       );
       // token#4
@@ -245,7 +245,7 @@ describe("Logo NFT Tests", () => {
       expect(info4.logoId).equals(
         env.logoId5,
       );
-      expect(info4.status).equals(
+      expect(info4.persona).equals(
         3n, // speaker
       );
     });
@@ -401,7 +401,7 @@ describe("Logo NFT Tests", () => {
         );
       });
 
-      it("Should revert when status param is undefined", async () => {
+      it("Should revert when persona param is undefined", async () => {
         const env = await loadFixture(prepEnv);
 
         await expect(
@@ -424,7 +424,7 @@ describe("Logo NFT Tests", () => {
             )
         ).to.be.revertedWithCustomError(
           env.logo,
-          "UndefinedStatus"
+          "UndefinedPersona"
         ).withArgs(
           env.l5Backer0,
           env.logoId5,

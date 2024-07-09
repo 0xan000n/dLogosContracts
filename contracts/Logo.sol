@@ -26,7 +26,7 @@ contract Logo is
     address public override dLogosOwner;
 
     mapping(uint256 => Info) public infos; // Mapping of token id to logo related info 
-    mapping(uint256 => mapping(address => Status)) public logoInfos; // Mapping of logo id to address to status
+    mapping(uint256 => mapping(address => Persona)) public logoPersonas; // Mapping of logo id to address to persona
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -58,17 +58,17 @@ contract Logo is
     function safeMintBatchByDLogosCore(
         address[] calldata _recipients,
         uint256 _logoId,
-        Status[] calldata _statuses
+        Persona[] calldata _personas
     ) external override {
         if (msg.sender != IDLogosOwner(dLogosOwner).dLogosCore())
             revert CallerNotDLogosCore();
-        if (_recipients.length != _statuses.length)
+        if (_recipients.length != _personas.length)
             revert InvalidArrayArguments();
 
         uint256 _tokenIdCounter = tokenIdCounter;
         unchecked {
             for (uint256 i = 0; i < _recipients.length; i++) {
-                _safeMint(_recipients[i], ++_tokenIdCounter, _logoId, _statuses[i]);
+                _safeMint(_recipients[i], ++_tokenIdCounter, _logoId, _personas[i]);
             }
         }
         tokenIdCounter = _tokenIdCounter;
@@ -77,9 +77,9 @@ contract Logo is
     function safeMintBatch(
         address[] calldata _recipients,
         uint256 _logoId,
-        Status[] calldata _statuses
+        Persona[] calldata _personas
     ) external override {
-        if (_recipients.length != _statuses.length)
+        if (_recipients.length != _personas.length)
             revert InvalidArrayArguments();
 
         address dLogosCore = IDLogosOwner(dLogosOwner).dLogosCore();
@@ -92,22 +92,22 @@ contract Logo is
             .getSpeakersForLogo(_logoId);
         for (uint256 i = 0; i < _recipients.length; i++) {
             address to = _recipients[i];
-            Status status = _statuses[i];
+            Persona persona = _personas[i];
 
-            if (status != Status.Undefined && status == logoInfos[_logoId][to]) 
-                revert AlreadyMinted(to, _logoId, status);
+            if (persona != Persona.Undefined && persona == logoPersonas[_logoId][to]) 
+                revert AlreadyMinted(to, _logoId, persona);
 
-            if (status == Status.Backer) {
+            if (persona == Persona.Backer) {
                 if (
                     IDLogosBacker(dLogosBacker)
                         .getBackerForLogo(_logoId, to)
                         .amount != 0
                 ) {
-                    _safeMint(to, ++_tokenIdCounter, _logoId, status);
+                    _safeMint(to, ++_tokenIdCounter, _logoId, persona);
                 } else {
                     revert NotEligibleForMint(to, _logoId);
                 }
-            } else if (status == Status.Speaker) {
+            } else if (persona == Persona.Speaker) {
                 uint256 j;
                 for (j = 0; j < speakers.length; j++) {
                     if (to == speakers[j].addr) {
@@ -115,20 +115,20 @@ contract Logo is
                     }
                 }
                 if (j < speakers.length) {
-                    _safeMint(to, ++_tokenIdCounter, _logoId, status);
+                    _safeMint(to, ++_tokenIdCounter, _logoId, persona);
                 } else {
                     revert NotEligibleForMint(to, _logoId);
                 }
-            } else if (status == Status.Proposer) {
+            } else if (persona == Persona.Proposer) {
                 address proposer = IDLogosCore(dLogosCore).getLogo(_logoId).proposer;
                 if (proposer == to) {
-                    _safeMint(to, ++_tokenIdCounter, _logoId, status);
+                    _safeMint(to, ++_tokenIdCounter, _logoId, persona);
                 } else {
                     revert NotEligibleForMint(to, _logoId);
                 }
             } else {
-                // Status is {Status.Undefined}
-                revert UndefinedStatus(to, _logoId);
+                // Persona is {Persona.Undefined}
+                revert UndefinedPersona(to, _logoId);
             }
         }
 
@@ -161,17 +161,17 @@ contract Logo is
         address _to,
         uint256 _tokenId,
         uint256 _logoId,
-        Status _status
+        Persona _persona
     ) private {
-        if (_status == Status.Undefined) revert UndefinedStatus(_to, _logoId);
+        if (_persona == Persona.Undefined) revert UndefinedPersona(_to, _logoId);
 
         super._safeMint(_to, _tokenId);
         infos[_tokenId] = Info({
             logoId: _logoId, 
-            status: _status
+            persona: _persona
         });
-        logoInfos[_logoId][_to] = _status;
-        emit Minted(_to, _tokenId, _logoId, _status);
+        logoPersonas[_logoId][_to] = _persona;
+        emit Minted(_to, _tokenId, _logoId, _persona);
     }
 
     // The following functions are overrides required by Solidity.

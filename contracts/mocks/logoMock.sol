@@ -15,6 +15,6 @@ contract LogoMock {
     function safeMintBatchByDLogosCore(
         address[] calldata, 
         uint256, 
-        ILogo.Status[] calldata
+        ILogo.Persona[] calldata
     ) external {}
 }

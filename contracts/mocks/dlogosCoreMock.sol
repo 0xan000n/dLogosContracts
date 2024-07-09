@@ -13,19 +13,19 @@ contract DLogosCoreMock {
         speaker, // speaker
         0x2F6EfC44c5f00679C57FE2134f51755f9068B517 // proposer
     ];
-    ILogo.Status[] public statuses = [
-        ILogo.Status.Backer, 
-        ILogo.Status.Speaker,
-        ILogo.Status.Proposer
+    ILogo.Persona[] public personas = [
+        ILogo.Persona.Backer, 
+        ILogo.Persona.Speaker,
+        ILogo.Persona.Proposer
     ];
     // Used for safeMintBatchByDLogosCore() failure.
-    ILogo.Status[] private _statusesIAA = [
-        ILogo.Status.Backer
+    ILogo.Persona[] private _personasIAA = [
+        ILogo.Persona.Backer
     ];
-    ILogo.Status[] private _statusesIS = [
-        ILogo.Status.Backer, 
-        ILogo.Status.Speaker,
-        ILogo.Status.Undefined
+    ILogo.Persona[] private _personasIS = [
+        ILogo.Persona.Backer, 
+        ILogo.Persona.Speaker,
+        ILogo.Persona.Undefined
     ];
 
     mapping(uint256 => IDLogosCore.Logo) public logos;
@@ -103,7 +103,7 @@ contract DLogosCoreMock {
         ILogo(logoNFT).safeMintBatchByDLogosCore(
             recipients,
             _logoId,
-            statuses
+            personas
         );
     }
     
@@ -113,7 +113,7 @@ contract DLogosCoreMock {
         ILogo(logoNFT).safeMintBatchByDLogosCore(
             recipients,
             _logoId,
-            _statusesIAA
+            _personasIAA
         );
     }
 
@@ -123,7 +123,7 @@ contract DLogosCoreMock {
         ILogo(logoNFT).safeMintBatchByDLogosCore(
             recipients,
             _logoId,
-            _statusesIS
+            _personasIS
         );
     }
 }

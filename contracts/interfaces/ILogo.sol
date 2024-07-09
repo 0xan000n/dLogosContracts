@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 interface ILogo {
     /// STRUCTS
-    enum Status {
+    enum Persona {
         Undefined,
         Backer,
         Speaker,
@@ -12,11 +12,11 @@ interface ILogo {
     
     struct Info {
         uint256 logoId;
-        Status status;
+        Persona persona;
     }
     
     /// EVENTS
-    event Minted(address indexed _to, uint256 indexed _tokenId, uint256 indexed _logoId, Status _status);
+    event Minted(address indexed _to, uint256 indexed _tokenId, uint256 indexed _logoId, Persona _persona);
     event BaseURISet(string _baseURI);
 
     /// FUNCTIONS
@@ -25,7 +25,7 @@ interface ILogo {
     function dLogosOwner() external view returns (address);
     function getInfo(uint256) external view returns (Info memory);
     function setBaseURI(string calldata) external;
-    function safeMintBatchByDLogosCore(address[] calldata, uint256, Status[] calldata) external;
-    function safeMintBatch(address[] calldata, uint256, Status[] calldata) external;
+    function safeMintBatchByDLogosCore(address[] calldata, uint256, Persona[] calldata) external;
+    function safeMintBatch(address[] calldata, uint256, Persona[] calldata) external;
     function pauseOrUnpause(bool) external;
 }

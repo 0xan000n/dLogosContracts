@@ -85,6 +85,6 @@ error LogoNotDistributed();
 
 error NotEligibleForMint(address _addr, uint256 _logoId);
 
-error AlreadyMinted(address _addr, uint256 _logoId, ILogo.Status status);
+error AlreadyMinted(address _addr, uint256 _logoId, ILogo.Persona persona);
 
-error UndefinedStatus(address _addr, uint256 _logoId);
+error UndefinedPersona(address _addr, uint256 _logoId);
