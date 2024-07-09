@@ -88,6 +88,8 @@ contract Logo is
         if (!l.status.isDistributed) revert LogoNotDistributed();
 
         uint256 _tokenIdCounter = tokenIdCounter;
+        IDLogosCore.Speaker[] memory speakers = IDLogosCore(dLogosCore)
+            .getSpeakersForLogo(_logoId);
         for (uint256 i = 0; i < _recipients.length; i++) {
             address to = _recipients[i];
             bool isBacker = _isBackers[i];
@@ -103,9 +105,7 @@ contract Logo is
                 0
             ) {
                 _safeMint(to, ++_tokenIdCounter, _logoId, isBacker);
-            } else if (!isBacker) {
-                IDLogosCore.Speaker[] memory speakers = IDLogosCore(dLogosCore)
-                    .getSpeakersForLogo(_logoId);
+            } else if (!isBacker) {                
                 uint256 j;
                 for (j = 0; j < speakers.length; j++) {
                     if (to == speakers[j].addr) {
