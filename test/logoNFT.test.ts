@@ -523,6 +523,83 @@ describe("Logo NFT Tests", () => {
     });
   });
 
+  describe("{setOperator} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithSetOperator);
+
+      expect(await env.logo.operator()).equals(
+        env.operator.address
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithSetOperator);
+
+      await expect(env.setOperatorTx)
+        .emit(env.logo, "OperatorUpdated")
+        .withArgs(
+          env.operator.address,
+        );
+    });
+
+    describe("Reverts", () => {
+      it("Should revert when caller is not owner", async () => {
+        const env = await loadFixture(prepEnvWithSetOperator);
+
+        await expect(
+          env.logo
+            .connect(env.nonDeployer)
+            .setOperator(
+              ZERO_ADDRESS,
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "OwnableUnauthorizedAccount"
+        ).withArgs(
+          env.nonDeployer.address
+        );;
+      });
+    });
+  });
+
+  describe("{setTokenURI}, {tokenURI} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithSetTokenURI);
+
+      expect(await env.logo.tokenURI(1)).equals(
+        env.token1URI
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithSetTokenURI);
+
+      await expect(env.setTokenURITx)
+        .emit(env.logo, "MetadataUpdate")
+        .withArgs(
+          1,
+        );
+    });
+
+    describe("Reverts", () => {
+      it("Should revert when caller is not operator", async () => {
+        const env = await loadFixture(prepEnvWithSetTokenURI);
+
+        await expect(
+          env.logo
+            .connect(env.nonDeployer)
+            .setTokenURI(
+              1,
+              "",
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "CallerNotOperator"
+        );
+      });
+    });
+  });
+
   describe("{setBaseURI} function", () => {
     it("Should make changes to the storage", async () => {
       const env = await loadFixture(prepEnvWithSetBaseURI);
@@ -619,6 +696,7 @@ describe("Logo NFT Tests", () => {
 async function prepEnv() {
   const [
     deployer,
+    operator,
     nonDeployer,
     backer,
     speaker,
@@ -660,6 +738,7 @@ async function prepEnv() {
 
   return {
     deployer,
+    operator,
     nonDeployer,
     backer,
     speaker,
@@ -748,6 +827,48 @@ async function prepEnvWithSetBaseURI() {
     baseURI,
 
     setBaseURITx,
+  };
+}
+
+async function prepEnvWithSetOperator() {
+  const prevEnv = await loadFixture(prepEnv);
+  
+  const setOperatorTx = await prevEnv.logo
+    .connect(prevEnv.deployer)
+    .setOperator(
+      prevEnv.operator.address,
+    );
+
+  return {
+    ...prevEnv,
+
+    setOperatorTx,
+  };
+}
+
+async function prepEnvWithSetTokenURI() {
+  const prevEnv = await loadFixture(prepEnvWithSafeMintBatch);
+  
+  await prevEnv.logo
+    .connect(prevEnv.deployer)
+    .setOperator(
+      prevEnv.operator.address,
+    );
+  
+  const token1URI = "1.data.json";
+  const setTokenURITx = await prevEnv.logo
+    .connect(prevEnv.operator)
+    .setTokenURI(
+      1,
+      token1URI,
+    );
+
+  return {
+    ...prevEnv,
+
+    token1URI,
+
+    setTokenURITx,
   };
 }
 

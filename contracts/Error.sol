@@ -88,3 +88,5 @@ error NotEligibleForMint(address _addr, uint256 _logoId);
 error AlreadyMinted(address _addr, uint256 _logoId, ILogo.Persona persona);
 
 error UndefinedPersona(address _addr, uint256 _logoId);
+
+error CallerNotOperator();

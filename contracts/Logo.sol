@@ -24,6 +24,7 @@ contract Logo is
     uint256 public override tokenIdCounter; // Starting from 1
     string public override baseURI;
     address public override dLogosOwner;
+    address public override operator;
 
     mapping(uint256 => Info) public infos; // Mapping of token id to logo related info 
     mapping(uint256 => mapping(address => Persona)) public logoPersonas; // Mapping of logo id to address to persona
@@ -39,6 +40,11 @@ contract Logo is
         _;
     }
 
+    modifier onlyOperator() {
+        if (msg.sender != operator) revert CallerNotOperator();
+        _;
+    }
+
     function initialize(
         address _dLogosOwner
     ) external initializer notZeroAddress(_dLogosOwner) {
@@ -48,11 +54,26 @@ contract Logo is
 
         IDLogosOwner(_dLogosOwner).setLogoNFT(address(this));
         dLogosOwner = _dLogosOwner;
+        operator = msg.sender;
+        emit OperatorUpdated(msg.sender);
+    }
+
+    function setOperator(address _op) external onlyOwner {
+        // Zero address possible
+        operator = _op;
+        emit OperatorUpdated(_op);
     }
 
     function setBaseURI(string calldata baseURI_) external onlyOwner {
         baseURI = baseURI_;
         emit BaseURISet(baseURI_);
+    }
+
+    function setTokenURI(
+        uint256 _tokenId, 
+        string memory _tokenURI
+    ) external onlyOperator {
+        super._setTokenURI(_tokenId, _tokenURI);
     }
 
     function safeMintBatchByDLogosCore(
