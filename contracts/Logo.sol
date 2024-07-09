@@ -119,6 +119,8 @@ contract Logo is
                 revert NoBackerNorSpeaker(to, _logoId);
             }
         }
+
+        tokenIdCounter = _tokenIdCounter;
     }
 
     function getInfo(
