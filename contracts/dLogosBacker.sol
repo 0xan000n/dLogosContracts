@@ -207,6 +207,7 @@ contract DLogosBacker is
         uint256 _amount
     ) external override {
         if (_msgSender() != IDLogosOwner(dLogosOwner).dLogosCore()) revert CallerNotDLogosCore();
+        if (_to == address(0)) revert ZeroAddress();
         if (_amount != 0) {
             if (address(this).balance < _amount) revert InsufficientFunds();
 
