@@ -1334,8 +1334,8 @@ describe("DLogosCore Testing", () => {
         true
       );
 
-      // check core and splits balance
-      expect(await ethers.provider.getBalance(await env.dLogosCore.getAddress())).equals(
+      // check backer and splits balance
+      expect(await ethers.provider.getBalance(await env.dLogosBacker.getAddress())).equals(
         0
       );
       expect(await ethers.provider.getBalance(splitForSpeaker)).equals(

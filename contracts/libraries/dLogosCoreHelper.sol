@@ -47,14 +47,16 @@ library DLogosCoreHelper {
     {
         address[] memory referrers;
         uint256[] memory allocations;
+        uint256 len = _backers.length + 1;
+
         unchecked {
-            referrers = new address[](_backers.length + 1);
-            allocations = new uint256[](_backers.length + 1);
-            uint256[] memory refRewards = new uint256[](_backers.length + 1);
+            referrers = new address[](len);
+            allocations = new uint256[](len);
+            uint256[] memory refRewards = new uint256[](len);
 
             uint256 _totalAllocation;
 
-            for (uint256 i = 0; i < _backers.length; i++) {
+            for (uint256 i = 0; i < len - 1; i++) {
                 IDLogosBacker.Backer memory b = _backers[i];
                 address r = b.referrer;
                 referrers[i] = r;
@@ -70,7 +72,7 @@ library DLogosCoreHelper {
             }
 
             if (totalRefRewards != 0) {
-                for (uint256 i = 0; i < _backers.length; i++) {
+                for (uint256 i = 0; i < len - 1; i++) {
                     allocations[i] =
                         (refRewards[i] * PERCENTAGE_SCALE) /
                         totalRefRewards;
@@ -81,8 +83,8 @@ library DLogosCoreHelper {
                 // {_totalAllocation} SHOULD not be greater than {PERCENTAGE_SCALE}
                 if (_totalAllocation < PERCENTAGE_SCALE) {
                     // return to distributor
-                    referrers[_backers.length] = msg.sender;
-                    allocations[_backers.length] =
+                    referrers[len - 1] = msg.sender;
+                    allocations[len - 1] =
                         PERCENTAGE_SCALE -
                         _totalAllocation;
                 }                
@@ -103,11 +105,12 @@ library DLogosCoreHelper {
         uint256 totalAllocation;
         address[] memory recipients;
         uint256[] memory allocations;
+        uint256 len = 3 + _param.speakers.length;
 
         unchecked {
             uint256 i;
-            recipients = new address[](3 + _param.speakers.length);
-            allocations = new uint256[](3 + _param.speakers.length);
+            recipients = new address[](len);
+            allocations = new uint256[](len);
             // Assign recipients array
             recipients[0] = _param.dLogos;
             recipients[1] = _param.community;
