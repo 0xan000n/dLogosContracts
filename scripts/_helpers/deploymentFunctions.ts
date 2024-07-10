@@ -91,16 +91,16 @@ export async function deployDLogosCoreImplementation(
 	await dLogosCoreImpl.waitForDeployment();
 	const dLogosCoreImplAddr = await dLogosCoreImpl.getAddress();
 
-	// // verify
-	// if (network.name != "hardhat") {
-	// 	await run(`verify:verify`, {
-	// 		address: dLogosCoreImplAddr,
-	// 		constructorArguments: [],
-	// 		libraries: {
-	// 			DLogosCoreHelper: dLogosCoreHelperAddr,
-	// 		}
-	// 	});
-	// }
+	// verify
+	if (network.name != "hardhat") {
+		await run(`verify:verify`, {
+			address: dLogosCoreImplAddr,
+			constructorArguments: [],
+			libraries: {
+				DLogosCoreHelper: dLogosCoreHelperAddr,
+			}
+		});
+	}
 
 	console.log(`***DEPLOYED DLogosCore Implementation at:${dLogosCoreImplAddr}***`);
 	console.log("\n");
