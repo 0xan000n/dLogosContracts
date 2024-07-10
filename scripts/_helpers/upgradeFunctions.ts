@@ -1,22 +1,23 @@
 import { ethers } from "hardhat";
 
-export async function upgradeDLogos(
+export async function upgrade(
+	contractName: string,
 	proxyAdminAddr: string,
 	proxyAddr: string,
-	newDLogosImplAddr: string
+	newImplAddr: string
 ) {
-	console.log("UPGRADING Dlogos");
+	console.log(`UPGRADING ${contractName}`);
 
 	const proxyAdminF = await ethers.getContractFactory("ProxyAdmin");
 	const proxyAdmin = proxyAdminF.attach(proxyAdminAddr);
 	const proxyAdminFunc = proxyAdmin.getFunction("upgradeAndCall");
 	let tx = await proxyAdminFunc.send(
 		proxyAddr,
-		newDLogosImplAddr,
+		newImplAddr,
 		"0x"
 	);
 	let txReceipt = await tx.wait();
 
-	console.log(`UPGRADED Dlogos at:${txReceipt?.hash}`);
+	console.log(`UPGRADED ${contractName} at:${txReceipt?.hash}`);
 	console.log("\n");
 }

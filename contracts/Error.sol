@@ -1,113 +1,92 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-// NoRefundConditionsMet
-error NRCM();
+import {ILogo} from "./interfaces/ILogo.sol";
 
-// Unauthorized
-error U();
+error NoRefundConditionsMet();
 
-// EmptyString
-error ES();
+error Unauthorized();
 
-// NotZero
-error NZ();
+error EmptyString();
 
-// ZeroAddress
-error ZA();
+error NotZero();
 
-// InvalidLogoId
-error ILI();
+error ZeroAddress();
 
-// InvalidMaxDuration
-error IMD();
+error InvalidLogoId();
 
-// CrowdfundDurationExceeded
-error CDE();
+error InvalidMaxDuration();
 
-// InvalidRejectThreshold
-error IRT();
+error CrowdfundDurationExceeded();
 
-// LogoUploaded
-error LU();
+error InvalidRejectThreshold();
 
-// LogoNotUploaded
-error LNU();
+error LogoUploaded();
 
-// LogoDistributed
-error LD();
+error LogoNotUploaded();
 
-// LogoRefunded
-error LR();
+error LogoDistributed();
 
-// LogoNotCrowdfunding
-error LNC();
+error LogoRefunded();
 
-// InsufficientFunds
-error IF();
+error LogoNotCrowdfunding();
 
-// TooManyBackers
-error TMB();
+error InsufficientFunds();
 
-// LogoFundsCannotBeWithdrawn
-error LFCBW();
+error TooManyBackers();
 
-// InsufficientLogoReward
-error ILR();
+error LogoFundsCannotBeWithdrawn();
 
-// AddBackerFailed
-error ABF();
+error InsufficientLogoRewards();
 
-// RemoveBackerFailed
-error RBF();
+error AddBackerFailed();
 
-// EthTransferFailed
-error ETF();
+error RemoveBackerFailed();
 
-// InvalidSpeakerNumber
-error ISN();
+error EthTransferFailed();
 
-// InvalidArrayArguments
-error IAA();
+error InvalidSpeakerNumber();
 
-// InvalidScheduleTime
-error IST();
+error InvalidArrayArguments();
 
-// InvalidSpeakerStatus
-error ISS();
+error InvalidScheduleTime();
 
-// TotalAllocationExceeded
-error TAE();
+error InvalidSpeakerStatus();
 
-// FeeExceeded
-error FE();
+error FeeExceeded();
 
-// ZeroFeeProposer
-error ZFP();
+error FeeSumNotMatch();
 
-// FeeSumNotMatch
-error FSNM();
+error NotAllSpeakersAccepted();
 
-// AffiliateFeeExceeded
-error AFE();
+error CrowdfundEnded();
 
-// NotAllSpeakersAccepted
-error NASA();
+error CrowdfundClosed();
 
-// CrowdfundEnded
-error CE();
+error AffiliateRewardsExceeded();
 
-// AffiliateRewardsExceeded
-error ARE();
+error InvalidRejectionWindow();
 
-// InvalidRejectionWindow
-error IRW();
+error RejectionDeadlineNotPassed();
 
-// RejectionDeadlineNotPassed
-error RDNP();
+error RejectionDeadlinePassed();
 
-// RejectionDeadlinePassed
-error RDP();
+error BackerAlreadyRejected();
 
-// BackerAlreadyRejected
-error BAR();
+error LogoNotScheduled();
+
+error ConvoNotHappened();
+
+error CallerNotDLogosCore();
+
+error DirectCallNotAllowed();
+
+error LogoNotDistributed();
+
+error NotEligibleForMint(address _addr, uint256 _logoId);
+
+error AlreadyMinted(address _addr, uint256 _logoId, ILogo.Persona persona);
+
+error UndefinedPersona(address _addr, uint256 _logoId);
+
+error CallerNotOperator();

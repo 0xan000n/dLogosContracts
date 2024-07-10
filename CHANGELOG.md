@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - removed "_amount" argument from withdrawFunds
 - upgraded openzeppelin contracts version from ^4.9.2 to ^5.0.2
 - made DLogos upgradeable
+- update deployment and upgrade scripts
 ### Added
 - logoRewards variable to avoid loops in DLogos
 - logoRejectedFunds variable to avoid loops in DLogos
@@ -24,6 +25,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - affiliate fees in DLogos
 - rejectionWindow in DLogos
 - meta tx in DLogos
+- DLogosCore, DLogosOwner, DLogosBacker, DLogosSplitsHelper
+- rename DLogosSplitsHelper
 
 ## [2.0.1] - 2024-06-03
 ### Added
