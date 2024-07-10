@@ -202,6 +202,20 @@ contract DLogosBacker is
         }
     }
 
+    function withdraw(
+        address _to,
+        uint256 _amount
+    ) external override {
+        if (_msgSender() != IDLogosOwner(dLogosOwner).dLogosCore()) revert CallerNotDLogosCore();
+        if (_amount != 0) {
+            if (address(this).balance < _amount) revert InsufficientFunds();
+
+            // Send Eth to {_to} contract
+            (bool success, ) = payable(_to).call{value: _amount}("");
+            if (!success) revert EthTransferFailed();
+        }        
+    }
+
     // ----------------------------------------------Meta tx helpers----------------------------------------------
     /**
      * @dev Override of `trustedForwarder()`

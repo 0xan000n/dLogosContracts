@@ -36,4 +36,5 @@ interface IDLogosBacker {
     function getBackersForLogo(uint256) external view returns (Backer[] memory);
     function getBackerForLogo(uint256, address) external view returns (Backer memory);
     function pauseOrUnpause(bool) external;
+    function withdraw(address, uint256) external;
 }

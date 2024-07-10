@@ -38,8 +38,8 @@ library DLogosCoreHelper {
     error EthTransferFailed();
 
     function getAffiliatesSplitInfo(
-        IDLogosBacker.Backer[] memory backers,
-        uint256 affiliateFee
+        IDLogosBacker.Backer[] memory _backers,
+        uint256 _affiliateFee
     )
         external
         view
@@ -48,21 +48,21 @@ library DLogosCoreHelper {
         address[] memory referrers;
         uint256[] memory allocations;
         unchecked {
-            referrers = new address[](backers.length + 1);
-            allocations = new uint256[](backers.length + 1);
-            uint256[] memory refRewards = new uint256[](backers.length + 1);
+            referrers = new address[](_backers.length + 1);
+            allocations = new uint256[](_backers.length + 1);
+            uint256[] memory refRewards = new uint256[](_backers.length + 1);
 
             uint256 _totalAllocation;
 
-            for (uint256 i = 0; i < backers.length; i++) {
-                IDLogosBacker.Backer memory b = backers[i];
+            for (uint256 i = 0; i < _backers.length; i++) {
+                IDLogosBacker.Backer memory b = _backers[i];
                 address r = b.referrer;
                 referrers[i] = r;
                 if (r == address(0)) {
                     refRewards[i] = 0;
                 } else {
                     refRewards[i] =
-                        (b.amount * affiliateFee) /
+                        (b.amount * _affiliateFee) /
                         PERCENTAGE_SCALE;
                 }
 
@@ -70,7 +70,7 @@ library DLogosCoreHelper {
             }
 
             if (totalRefRewards != 0) {
-                for (uint256 i = 0; i < backers.length; i++) {
+                for (uint256 i = 0; i < _backers.length; i++) {
                     allocations[i] =
                         (refRewards[i] * PERCENTAGE_SCALE) /
                         totalRefRewards;
@@ -81,8 +81,8 @@ library DLogosCoreHelper {
                 // {_totalAllocation} SHOULD not be greater than {PERCENTAGE_SCALE}
                 if (_totalAllocation < PERCENTAGE_SCALE) {
                     // return to distributor
-                    referrers[backers.length] = msg.sender;
-                    allocations[backers.length] =
+                    referrers[_backers.length] = msg.sender;
+                    allocations[_backers.length] =
                         PERCENTAGE_SCALE -
                         _totalAllocation;
                 }                
@@ -98,7 +98,7 @@ library DLogosCoreHelper {
     }
 
     function getSpeakersSplitInfo(
-        GetSpeakersSplitInfoParam memory param
+        GetSpeakersSplitInfoParam memory _param
     ) external pure returns (SplitV2Lib.Split memory splitParam) {
         uint256 totalAllocation;
         address[] memory recipients;
@@ -106,27 +106,27 @@ library DLogosCoreHelper {
 
         unchecked {
             uint256 i;
-            recipients = new address[](3 + param.speakers.length);
-            allocations = new uint256[](3 + param.speakers.length);
+            recipients = new address[](3 + _param.speakers.length);
+            allocations = new uint256[](3 + _param.speakers.length);
             // Assign recipients array
-            recipients[0] = param.dLogos;
-            recipients[1] = param.community;
-            recipients[2] = param.proposer;
-            for (i = 0; i < param.speakers.length; i++) {
-                recipients[i + 3] = param.speakers[i].addr;
+            recipients[0] = _param.dLogos;
+            recipients[1] = _param.community;
+            recipients[2] = _param.proposer;
+            for (i = 0; i < _param.speakers.length; i++) {
+                recipients[i + 3] = _param.speakers[i].addr;
             }
             // Assign allocations array
-            if (param.isZeroFeeProposer) {
+            if (_param.isZeroFeeProposer) {
                 allocations[0] = 0;
             } else {
-                allocations[0] = param.dLogosFee;
+                allocations[0] = _param.dLogosFee;
             }
-            allocations[1] = param.communityFee;
-            allocations[2] = param.proposerFee;
+            allocations[1] = _param.communityFee;
+            allocations[2] = _param.proposerFee;
             totalAllocation += allocations[0] + allocations[1] + allocations[2];
-            for (i = 0; i < param.speakers.length; i++) {
-                allocations[i + 3] = param.speakers[i].fee;
-                totalAllocation += param.speakers[i].fee;
+            for (i = 0; i < _param.speakers.length; i++) {
+                allocations[i + 3] = _param.speakers[i].fee;
+                totalAllocation += _param.speakers[i].fee;
             }
         }
 
@@ -143,26 +143,26 @@ library DLogosCoreHelper {
     }
 
     function deploySplitV2AndDistribute(
-        SplitV2Lib.Split memory splitParam,
-        uint256 amount
+        address _dLogosBacker,
+        SplitV2Lib.Split memory _splitParam,
+        uint256 _amount
     ) external returns (address split) {
         split = IPushSplitFactory(PUSH_SPLIT_FACTORY).createSplit(
-            splitParam,
+            _splitParam,
             address(this), // We do not need to set split owner
             address(this) // creator
         );
         emit SplitForAffiliateCreated(
             split,
-            splitParam,
+            _splitParam,
             address(this),
             address(this)
         );
         // Send Eth to PushSplit
-        (bool success, ) = payable(split).call{value: amount}("");
-        if (!success) revert EthTransferFailed();
+        IDLogosBacker(_dLogosBacker).withdraw(split, _amount);
         // Distribute
         IPushSplit(split).distribute(
-            splitParam,
+            _splitParam,
             NATIVE_TOKEN,
             address(0) // distributor address
         );

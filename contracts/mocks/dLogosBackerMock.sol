@@ -61,4 +61,11 @@ contract DLogosBackerMock {
         referrer1 = _referrer1;
         referrer2 = _referrer2;
     }
+
+    function withdraw(
+        address _to,
+        uint256 _amount
+    ) external {
+        payable(_to).call{value: _amount}("");
+    }
 }

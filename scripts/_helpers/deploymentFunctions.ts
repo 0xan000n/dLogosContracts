@@ -61,13 +61,13 @@ export async function deployDLogosBackerImplementation() {
 	await dLogosBackerImpl.waitForDeployment();
 	const dLogosBackerImplAddr = await dLogosBackerImpl.getAddress();
 
-	// // verify
-	// if (network.name != "hardhat") {
-	// 	await run(`verify:verify`, {
-	// 		address: dLogosBackerImplAddr,
-	// 		constructorArguments: [],
-	// 	});
-	// }
+	// verify
+	if (network.name != "hardhat") {
+		await run(`verify:verify`, {
+			address: dLogosBackerImplAddr,
+			constructorArguments: [],
+		});
+	}
 
 	console.log(`***DEPLOYED DLogosBacker Implementation at:${dLogosBackerImplAddr}***`);
 	console.log("\n");
@@ -118,13 +118,13 @@ export async function deployLogoImplementation() {
 	await logoImpl.waitForDeployment();
 	const logoImplAddr = await logoImpl.getAddress();
 
-	// // verify
-	// if (network.name != "hardhat") {
-	// 	await run(`verify:verify`, {
-	// 		address: logoImplAddr,
-	// 		constructorArguments: [],
-	// 	});
-	// }
+	// verify
+	if (network.name != "hardhat") {
+		await run(`verify:verify`, {
+			address: logoImplAddr,
+			constructorArguments: [],
+		});
+	}
 
 	console.log(`***DEPLOYED Logo Implementation at:${logoImplAddr}***`);
 	console.log("\n");

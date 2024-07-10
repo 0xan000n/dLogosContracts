@@ -430,7 +430,11 @@ contract DLogosCore is
             }
 
             if (totalRefRewards != 0) {
-                addressVars[1] = DLogosCoreHelper.deploySplitV2AndDistribute(splitParam, totalRefRewards);
+                addressVars[1] = DLogosCoreHelper.deploySplitV2AndDistribute(
+                    addressVars[0], // DLogosBacker address
+                    splitParam, 
+                    totalRefRewards
+                );
             }
 
             // PushSplit for dlogos, community and speaker fee distribution
@@ -445,7 +449,11 @@ contract DLogosCore is
                 proposerFee: l.proposerFee
             });
             splitParam = DLogosCoreHelper.getSpeakersSplitInfo(param);
-            addressVars[2] = DLogosCoreHelper.deploySplitV2AndDistribute(splitParam, totalRewards - totalRefRewards);
+            addressVars[2] = DLogosCoreHelper.deploySplitV2AndDistribute(
+                addressVars[0], // DLogosBacker address,
+                splitParam, 
+                totalRewards - totalRefRewards
+            );
 
             // Safemint Logo NFTs to backers and speakers
             if (_mintNFT) {

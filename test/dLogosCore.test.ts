@@ -1669,7 +1669,7 @@ async function prepEnv() {
   const dLogosCore = dLogosCoreF.attach(await dLogosCoreProxy.getAddress());
 
   // set balance of dLogosCore contract
-  await setBalance(await dLogosCore.getAddress(), BIGINT_1E15);
+  await setBalance(await dLogosBacker.getAddress(), BIGINT_1E15);
 
   return {
     deployer,
