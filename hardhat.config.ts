@@ -32,7 +32,11 @@ const config: HardhatUserConfig = {
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
       accounts: [`0x${process.env.DEPLOYER_PRIVATE_KEY}`]
-    }
+    },
+    baseSepolia: {
+      url: `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+      accounts: [`0x${process.env.DEPLOYER_PRIVATE_KEY}`]
+    },
   },
   etherscan: {
     apiKey: `${process.env.ETHERSCAN_API_KEY}`
