@@ -162,7 +162,7 @@ library DLogosCoreHelper {
             address(this)
         );
         // Send Eth to PushSplit
-        IDLogosBacker(_dLogosBacker).withdraw(split, _amount);
+        IDLogosBacker(_dLogosBacker).withdrawByDLogosCore(split, _amount);
         // Distribute
         IPushSplit(split).distribute(
             _splitParam,

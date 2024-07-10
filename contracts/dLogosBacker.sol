@@ -202,7 +202,7 @@ contract DLogosBacker is
         }
     }
 
-    function withdraw(
+    function withdrawByDLogosCore(
         address _to,
         uint256 _amount
     ) external override {
