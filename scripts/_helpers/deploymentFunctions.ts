@@ -37,13 +37,13 @@ export async function deployDLogosOwnerImplementation() {
 	await dLogosOwnerImpl.waitForDeployment();
 	const dLogosOwnerImplAddr = await dLogosOwnerImpl.getAddress();
 
-	// verify
-	if (network.name != "hardhat") {
-		await run(`verify:verify`, {
-			address: dLogosOwnerImplAddr,
-			constructorArguments: [],
-		});
-	}
+	// // verify
+	// if (network.name != "hardhat") {
+	// 	await run(`verify:verify`, {
+	// 		address: dLogosOwnerImplAddr,
+	// 		constructorArguments: [],
+	// 	});
+	// }
 
 	console.log(`***DEPLOYED DLogosOwner Implementation at:${dLogosOwnerImplAddr}***`);
 	console.log("\n");
@@ -61,13 +61,13 @@ export async function deployDLogosBackerImplementation() {
 	await dLogosBackerImpl.waitForDeployment();
 	const dLogosBackerImplAddr = await dLogosBackerImpl.getAddress();
 
-	// verify
-	if (network.name != "hardhat") {
-		await run(`verify:verify`, {
-			address: dLogosBackerImplAddr,
-			constructorArguments: [],
-		});
-	}
+	// // verify
+	// if (network.name != "hardhat") {
+	// 	await run(`verify:verify`, {
+	// 		address: dLogosBackerImplAddr,
+	// 		constructorArguments: [],
+	// 	});
+	// }
 
 	console.log(`***DEPLOYED DLogosBacker Implementation at:${dLogosBackerImplAddr}***`);
 	console.log("\n");
@@ -91,16 +91,16 @@ export async function deployDLogosCoreImplementation(
 	await dLogosCoreImpl.waitForDeployment();
 	const dLogosCoreImplAddr = await dLogosCoreImpl.getAddress();
 
-	// verify
-	if (network.name != "hardhat") {
-		await run(`verify:verify`, {
-			address: dLogosCoreImplAddr,
-			constructorArguments: [],
-			libraries: {
-				DLogosCoreHelper: dLogosCoreHelperAddr,
-			}
-		});
-	}
+	// // verify
+	// if (network.name != "hardhat") {
+	// 	await run(`verify:verify`, {
+	// 		address: dLogosCoreImplAddr,
+	// 		constructorArguments: [],
+	// 		libraries: {
+	// 			DLogosCoreHelper: dLogosCoreHelperAddr,
+	// 		}
+	// 	});
+	// }
 
 	console.log(`***DEPLOYED DLogosCore Implementation at:${dLogosCoreImplAddr}***`);
 	console.log("\n");
@@ -118,13 +118,13 @@ export async function deployLogoImplementation() {
 	await logoImpl.waitForDeployment();
 	const logoImplAddr = await logoImpl.getAddress();
 
-	// verify
-	if (network.name != "hardhat") {
-		await run(`verify:verify`, {
-			address: logoImplAddr,
-			constructorArguments: [],
-		});
-	}
+	// // verify
+	// if (network.name != "hardhat") {
+	// 	await run(`verify:verify`, {
+	// 		address: logoImplAddr,
+	// 		constructorArguments: [],
+	// 	});
+	// }
 
 	console.log(`***DEPLOYED Logo Implementation at:${logoImplAddr}***`);
 	console.log("\n");
@@ -170,15 +170,15 @@ export async function deployDLogosOwnerInstance(
 	const proxyAdminAddr = ethers.getAddress("0x" + addrString.slice(26));
 	const proxyAdminF = await ethers.getContractFactory("ProxyAdmin");
 	const dLogosOwnerProxyAdmin = proxyAdminF.attach(proxyAdminAddr);
-	// verify
-	if (network.name != "hardhat") {
-		await run("verify:verify", {
-			address: proxyAdminAddr,
-			constructorArguments: [
-				ownerAddr,
-			],
-		});
-	}
+	// // verify
+	// if (network.name != "hardhat") {
+	// 	await run("verify:verify", {
+	// 		address: proxyAdminAddr,
+	// 		constructorArguments: [
+	// 			ownerAddr,
+	// 		],
+	// 	});
+	// }
 	console.log(`***DEPLOYED DLogosOwner ProxyAdmin at:${proxyAdminAddr}***`);	
 
 	// verify
@@ -239,15 +239,15 @@ export async function deployDLogosBackerInstance(
 		TRANSPARENT_UPGRADEABLE_PROXY_ADMIN_SLOT
 	);
 	const proxyAdminAddr = ethers.getAddress("0x" + addrString.slice(26));
-	// verify
-	if (network.name != "hardhat") {
-		await run("verify:verify", {
-			address: proxyAdminAddr,
-			constructorArguments: [
-				ownerAddr,
-			],
-		});
-	}
+	// // verify
+	// if (network.name != "hardhat") {
+	// 	await run("verify:verify", {
+	// 		address: proxyAdminAddr,
+	// 		constructorArguments: [
+	// 			ownerAddr,
+	// 		],
+	// 	});
+	// }
 	const proxyAdminF = await ethers.getContractFactory("ProxyAdmin");
 	const dLogosBackerProxyAdmin = proxyAdminF.attach(proxyAdminAddr);
 	console.log(`***DEPLOYED DLogosBacker ProxyAdmin at:${proxyAdminAddr}***`);
@@ -315,15 +315,15 @@ export async function deployDLogosCoreInstance(
 		TRANSPARENT_UPGRADEABLE_PROXY_ADMIN_SLOT
 	);
 	const proxyAdminAddr = ethers.getAddress("0x" + addrString.slice(26));
-	// verify
-	if (network.name != "hardhat") {
-		await run("verify:verify", {
-			address: proxyAdminAddr,
-			constructorArguments: [
-				ownerAddr,
-			],
-		});
-	}
+	// // verify
+	// if (network.name != "hardhat") {
+	// 	await run("verify:verify", {
+	// 		address: proxyAdminAddr,
+	// 		constructorArguments: [
+	// 			ownerAddr,
+	// 		],
+	// 	});
+	// }
 	const proxyAdminF = await ethers.getContractFactory("ProxyAdmin");
 	const dLogosCoreProxyAdmin = proxyAdminF.attach(proxyAdminAddr);
 	console.log(`***DEPLOYED DLogosCore ProxyAdmin at:${proxyAdminAddr}***`);	
@@ -384,15 +384,15 @@ export async function deployLogoInstance(
 		TRANSPARENT_UPGRADEABLE_PROXY_ADMIN_SLOT
 	);
 	const proxyAdminAddr = ethers.getAddress("0x" + addrString.slice(26));
-	// verify
-	if (network.name != "hardhat") {
-		await run("verify:verify", {
-			address: proxyAdminAddr,
-			constructorArguments: [
-				ownerAddr,
-			],
-		});
-	}
+	// // verify
+	// if (network.name != "hardhat") {
+	// 	await run("verify:verify", {
+	// 		address: proxyAdminAddr,
+	// 		constructorArguments: [
+	// 			ownerAddr,
+	// 		],
+	// 	});
+	// }
 	const proxyAdminF = await ethers.getContractFactory("ProxyAdmin");
 	const logoProxyAdmin = proxyAdminF.attach(proxyAdminAddr);
 	console.log(`***DEPLOYED Logo ProxyAdmin at:${proxyAdminAddr}***`);
