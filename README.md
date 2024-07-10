@@ -35,55 +35,89 @@ $ npx hardhat test
 ```
 $ nano scripts/deployUpgrade.ts
 
-const DEPLOY_DLOGOS_IMPLEMENTATION = true;
-const DEPLOY_DLOGOS_INSTANCE = true;
-const UPGRADE = false;
+// deploy library flags are TRUE for deploy, TRUE or FALSE (whether to update library code) for upgrade
+DEPLOY_DLOGOS_CORE_HELPER_LIBRARY: true
+// deploy implementation flags are TRUE for deploy, TRUE for upgrade
+DEPLOY_DLOGOS_OWNER_IMPLEMENTATION: true
+DEPLOY_DLOGOS_BACKER_IMPLEMENTATION: true
+DEPLOY_DLOGOS_CORE_IMPLEMENTATION: true
+DEPLOY_LOGO_IMPLEMENTATION: true
+// deploy instance flags are TRUE for deploy, FALSE for upgrade
+DEPLOY_DLOGOS_OWNER_INSTANCE: true
+DEPLOY_DLOGOS_BACKER_INSTANCE: true
+DEPLOY_DLOGOS_CORE_INSTANCE: true
+DEPLOY_LOGO_INSTANCE: true
+// upgrade flags are FALSE for deploy, TRUE for upgrade
+UPGRADE_DLOGOS_OWNER: false
+UPGRADE_DLOGOS_BACKER: false
+UPGRADE_DLOGOS_CORE: false
+UPGRADE_LOGO: false
 ```
-### Deploy DLogos implementation, DLogos proxy and ProxyAdmin
-```
-$ npx hardhat run scripts/deployUpgrade.ts --network sepolia
-```
-
-## Step 6. Verify
-### DLogos implementation
-```
-$ npx hardhat verify implementation_contract_address --network sepolia
-```
-### TransparentUpgradeableProxy
-#### Update constructor arguments
-```
-$ nano scripts/proxArgs.ts
-
-IMPLEMENTATION_ADDRESS
-INITIAL_OWNER_ADDRESS
-INIT_DATA
-```
-#### Verify
-```
-$ npx hardhat verify proxy_contract_address --constructor-args scripts/proxyArgs.ts --network sepolia
-```
-
-## Step 7. Upgrade
 ### Update deployment data with correct addresses
 ```
 $ nano scripts/_helpers/data.ts
 
-PROXY_ADMIN_ADDRESS
-DLOGOS_INSTANCE_ADDRESS
+DLOGOS_ADDRESS
+COMMUNITY_ADDRESS
+// Matic Mumbai
+TRUSTED_FORWARDER_ADDRESS
+```
+### Deploy DLogos implementation, DLogos proxy and ProxyAdmin
+```
+$ npx hardhat run scripts/deployUpgrade.ts --network <network-name>
+```
+
+## Step 6. Upgrade
+### Update deployment data with correct addresses
+```
+$ nano scripts/_helpers/data.ts
+
+DLOGOS_ADDRESS
+COMMUNITY_ADDRESS
+// Matic Mumbai
+TRUSTED_FORWARDER_ADDRESS
+
+DLOGOS_CORE_HELPER_LIBRARY_ADDRESS
+
+DLOGOS_OWNER_PROXY_ADMIN_ADDRESS
+DLOGOS_OWNER_IMPLEMENTATION_ADDRESS
+DLOGOS_OWNER_INSTANCE_ADDRESS
+
+DLOGOS_BACKER_PROXY_ADMIN_ADDRESS
+DLOGOS_BACKER_IMPLEMENTATION_ADDRESS
+DLOGOS_BACKER_INSTANCE_ADDRESS
+
+DLOGOS_CORE_PROXY_ADMIN_ADDRESS
+DLOGOS_CORE_IMPLEMENTATION_ADDRESS
+DLOGOS_CORE_INSTANCE_ADDRESS
+
+LOGO_PROXY_ADMIN_ADDRESS
+LOGO_IMPLEMENTATION_ADDRESS
+LOGO_INSTANCE_ADDRESS
 ```
 ### Update deploy flags in the deployment script
 ```
 $ nano scripts/deployUpgrade.ts
 
-const DEPLOY_DLOGOS_IMPLEMENTATION = true;
-const DEPLOY_DLOGOS_INSTANCE = false;
-const UPGRADE = true;
+// deploy library flags are TRUE for deploy, TRUE or FALSE (whether to update library code) for upgrade
+DEPLOY_DLOGOS_CORE_HELPER_LIBRARY: true | false
+// deploy implementation flags are TRUE for deploy, TRUE for upgrade
+DEPLOY_DLOGOS_OWNER_IMPLEMENTATION: true
+DEPLOY_DLOGOS_BACKER_IMPLEMENTATION: true
+DEPLOY_DLOGOS_CORE_IMPLEMENTATION: true
+DEPLOY_LOGO_IMPLEMENTATION: true
+// deploy instance flags are TRUE for deploy, FALSE for upgrade
+DEPLOY_DLOGOS_OWNER_INSTANCE: false
+DEPLOY_DLOGOS_BACKER_INSTANCE: false
+DEPLOY_DLOGOS_CORE_INSTANCE: false
+DEPLOY_LOGO_INSTANCE: false
+// upgrade flags are FALSE for deploy, TRUE for upgrade
+UPGRADE_DLOGOS_OWNER: true
+UPGRADE_DLOGOS_BACKER: true
+UPGRADE_DLOGOS_CORE: true
+UPGRADE_LOGO: true
 ```
-### Deploy a new implementation and upgrade
+### Deploy new implementations and upgrade
 ```
-$ npx hardhat run scripts/deployUpgrade.ts --network sepolia
-```
-### Verify a new implementation
-```
-$ npx hardhat verify implementation_contract_address --network sepolia
+$ npx hardhat run scripts/deployUpgrade.ts --network <network-name>
 ```
