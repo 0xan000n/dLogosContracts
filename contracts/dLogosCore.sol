@@ -422,12 +422,16 @@ contract DLogosCore is
                     backers, 
                     affiliateFee
                 );
-                unchecked {
-                    if (totalRewards * affiliateFee / PERCENTAGE_SCALE < totalRefRewards) revert AffiliateRewardsExceeded();
+                if (totalRefRewards != 0) {
+                    unchecked {
+                        if (totalRewards * affiliateFee / PERCENTAGE_SCALE < totalRefRewards) revert AffiliateRewardsExceeded();
+                    }
                 }
             }
 
-            addressVars[1] = DLogosCoreHelper.deploySplitV2AndDistribute(splitParam, totalRefRewards);
+            if (totalRefRewards != 0) {
+                addressVars[1] = DLogosCoreHelper.deploySplitV2AndDistribute(splitParam, totalRefRewards);
+            }
 
             // PushSplit for dlogos, community and speaker fee distribution
             DLogosCoreHelper.GetSpeakersSplitInfoParam memory param = DLogosCoreHelper.GetSpeakersSplitInfoParam({
@@ -439,7 +443,6 @@ contract DLogosCore is
                 dLogosFee: IDLogosOwner(dLogosOwner).dLogosFee(),
                 communityFee: IDLogosOwner(dLogosOwner).communityFee(),
                 proposerFee: l.proposerFee
-
             });
             splitParam = DLogosCoreHelper.getSpeakersSplitInfo(param);
             addressVars[2] = DLogosCoreHelper.deploySplitV2AndDistribute(splitParam, totalRewards - totalRefRewards);

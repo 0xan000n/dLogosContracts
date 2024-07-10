@@ -69,21 +69,23 @@ library DLogosCoreHelper {
                 totalRefRewards += refRewards[i];
             }
 
-            for (uint256 i = 0; i < backers.length; i++) {
-                allocations[i] =
-                    (refRewards[i] * PERCENTAGE_SCALE) /
-                    totalRefRewards;
-                _totalAllocation += allocations[i];
-            }
+            if (totalRefRewards != 0) {
+                for (uint256 i = 0; i < backers.length; i++) {
+                    allocations[i] =
+                        (refRewards[i] * PERCENTAGE_SCALE) /
+                        totalRefRewards;
+                    _totalAllocation += allocations[i];
+                }
 
-            // Slippage
-            // {_totalAllocation} SHOULD not be greater than {PERCENTAGE_SCALE}
-            if (_totalAllocation < PERCENTAGE_SCALE) {
-                // return to distributor
-                referrers[backers.length] = msg.sender;
-                allocations[backers.length] =
-                    PERCENTAGE_SCALE -
-                    _totalAllocation;
+                // Slippage
+                // {_totalAllocation} SHOULD not be greater than {PERCENTAGE_SCALE}
+                if (_totalAllocation < PERCENTAGE_SCALE) {
+                    // return to distributor
+                    referrers[backers.length] = msg.sender;
+                    allocations[backers.length] =
+                        PERCENTAGE_SCALE -
+                        _totalAllocation;
+                }                
             }
         }
 
