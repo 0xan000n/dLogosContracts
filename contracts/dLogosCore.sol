@@ -69,6 +69,7 @@ contract DLogosCore is
     uint256 public override logoId; // Global Logo ID
     mapping(uint256 => Logo) public logos; // Mapping of Logo ID to Logo info    
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
+    address public override operator;
 
     // The contract does not use `trustedForwarder` that is defined in ERC2771ContextUpgradeable
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -98,6 +99,11 @@ contract DLogosCore is
 
     modifier validLogoId(uint256 _logoId) {
         if (_logoId >= logoId) revert InvalidLogoId();
+        _;
+    }
+
+    modifier onlyOperator() {
+        if (_msgSender() != operator) revert CallerNotOperator();
         _;
     }    
 
@@ -308,7 +314,7 @@ contract DLogosCore is
         uint8 _speakerStatus
     ) external override whenNotPaused validLogoId(_logoId) {
         // Speaker status should be either Accepted or Rejected.
-        if (_speakerStatus == 0) revert InvalidSpeakerStatus();
+        if (_speakerStatus != 1 && _speakerStatus != 2) revert InvalidSpeakerStatus();
         Logo memory l = logos[_logoId];
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
@@ -325,6 +331,39 @@ contract DLogosCore is
         }
 
         if (i == speakers.length) revert Unauthorized();
+    }
+
+    /**
+     * @dev Set address and status of speakers
+     * Only `operator` can call
+     */
+    function setStatusForSpeakers(
+        uint256 _logoId,
+        uint8[] calldata _indexes,
+        address[] calldata _addresses,
+        uint8[] calldata _statuses
+    ) external override whenNotPaused onlyOperator validLogoId(_logoId) {
+        Logo memory l = logos[_logoId];
+        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+        if (
+            _indexes.length != _addresses.length ||
+            _addresses.length != _statuses.length
+        ) revert InvalidArrayArguments();
+
+        uint256 totalLen = logoSpeakers[_logoId].length;
+
+        for (uint256 i = 0; i < _indexes.length; i++) {
+            if (_indexes[i] >= totalLen) revert IndexOverflow();
+            if (_addresses[i] == address(0)) revert ZeroAddress();
+            if (_statuses[i] != 1 && _statuses[i] != 2) revert InvalidSpeakerStatus();
+
+            Speaker storage s = logoSpeakers[_logoId][_indexes[i]];
+            s.addr = _addresses[i];
+            s.status = SpeakerStatus(_statuses[i]);
+        }
+
+        emit SpeakerStatusSetByOp(_logoId, _indexes, _addresses, _statuses);
     }
 
     /**
@@ -485,6 +524,17 @@ contract DLogosCore is
         } else {
             super._unpause();
         }
+    }
+
+    /**
+     * @dev Update the operator address
+     * Only `owner` can call
+     */
+    function setOperator(address _operator) external override onlyOwner {
+        if (_operator == address(0)) revert ZeroAddress();
+
+        operator = _operator;
+        emit OperatorUpdated(_operator);
     }
 
     // ----------------------------------------------Meta tx helpers----------------------------------------------
