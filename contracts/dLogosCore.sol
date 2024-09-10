@@ -82,6 +82,7 @@ contract DLogosCore is
     
         IDLogosOwner(_dLogosOwner).setDLogosCore(address(this));
         dLogosOwner = _dLogosOwner;
+        operator = msg.sender;
         logoId = 1; // Starting from 1
     }
 
