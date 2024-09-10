@@ -12,7 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - removed "_amount" argument from withdrawFunds
 - upgraded openzeppelin contracts version from ^4.9.2 to ^5.0.2
 - made DLogos upgradeable
-- update deployment and upgrade scripts
+- updated deployment and upgrade scripts
+- removed meta transactions helpers from DLogosCore
+- removed notZeroAddress from DLogosCore
+- removed toggleCrowdfund() function from DLogosCore
+- moved refund conditions logic to the DLogosCoreHelper library
 ### Added
 - logoRewards variable to avoid loops in DLogos
 - logoRejectedFunds variable to avoid loops in DLogos
@@ -27,6 +31,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - meta tx in DLogos
 - DLogosCore, DLogosOwner, DLogosBacker, DLogosSplitsHelper
 - rename DLogosSplitsHelper
+- setStatusForSpeakers() function in DLogosCore
 
 ## [2.0.1] - 2024-06-03
 ### Added
