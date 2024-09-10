@@ -114,7 +114,7 @@ interface IDLogosCore {
     function logoId() external view returns (uint256);
     function getLogo(uint256) external view returns (Logo memory);
     function createLogo(uint256, string calldata, uint8) external returns (uint256);  
-    function toggleCrowdfund(uint256) external;
+    // function toggleCrowdfund(uint256) external;
     function setMinimumPledge(uint256, uint256) external;
     function refund(uint256) external;
     function setSpeakers(SetSpeakersParam calldata) external;

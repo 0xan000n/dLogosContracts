@@ -4,14 +4,11 @@ pragma solidity ^0.8.24;
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IDLogosCore} from "./interfaces/IdLogosCore.sol";
 import {IDLogosOwner} from "./interfaces/IdLogosOwner.sol";
 import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
 import {ILogo} from "./interfaces/ILogo.sol";
 import {DLogosCoreHelper} from "./libraries/dLogosCoreHelper.sol";
-import {ForwarderSetterUpgradeable} from "./utils/ForwarderSetterUpgradeable.sol";
 import {SplitV2Lib} from "./splitsV2/libraries/SplitV2.sol";
 import "./Error.sol";
 
@@ -58,9 +55,7 @@ contract DLogosCore is
     IDLogosCore, 
     Ownable2StepUpgradeable, 
     PausableUpgradeable, 
-    ReentrancyGuardUpgradeable, 
-    ERC2771ContextUpgradeable, 
-    ForwarderSetterUpgradeable 
+    ReentrancyGuardUpgradeable 
 {
     /// CONSTANTS
     uint256 public constant PERCENTAGE_SCALE = 1e6;
@@ -71,41 +66,30 @@ contract DLogosCore is
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
     address public override operator;
 
-    // The contract does not use `trustedForwarder` that is defined in ERC2771ContextUpgradeable
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() ERC2771ContextUpgradeable(address(0)) {
+    constructor() {
         _disableInitializers();
     }
 
     function initialize(        
-        address trustedForwarder_,
         address _dLogosOwner
-    ) external initializer notZeroAddress(_dLogosOwner) {
+    ) external initializer {
+        if (_dLogosOwner == address(0)) revert ZeroAddress();
+
         __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
-        __ForwarderSetterUpgradeable_init(trustedForwarder_);
     
         IDLogosOwner(_dLogosOwner).setDLogosCore(address(this));
         dLogosOwner = _dLogosOwner;
         logoId = 1; // Starting from 1
     }
 
-    /// MODIFIERS
-    modifier notZeroAddress(address _addr) {
-        if (_addr == address(0)) revert ZeroAddress();
-        _;
-    }
-
+    /// MODIFIERS    
     modifier validLogoId(uint256 _logoId) {
         if (_logoId >= logoId) revert InvalidLogoId();
         _;
     }
-
-    modifier onlyOperator() {
-        if (_msgSender() != operator) revert CallerNotOperator();
-        _;
-    }    
 
     /// FUNCTIONS
     function getLogo(uint256 _logoId) external override view returns (Logo memory l) {
@@ -122,13 +106,12 @@ contract DLogosCore is
     ) external override whenNotPaused returns (uint256) {
         if (bytes(_title).length == 0) revert EmptyString();
         if (_crowdfundNumberOfDays > IDLogosOwner(dLogosOwner).maxDuration()) revert CrowdfundDurationExceeded();
-        address msgSender = _msgSender();
         uint256 communityFee = IDLogosOwner(dLogosOwner).communityFee();
         uint256 dLogosFee = IDLogosOwner(dLogosOwner).dLogosFee();
         
         // Math overflow is not possible because {IDLogosOwner} sets fees
         unchecked {
-            if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender)) {
+            if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msg.sender)) {
                 if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
             } else {
                 if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
@@ -142,7 +125,7 @@ contract DLogosCore is
             logos[_logoId] = Logo({
                 id: _logoId,
                 title: _title,
-                proposer: msgSender,
+                proposer: msg.sender,
                 proposerFee: _proposerFee,
                 scheduledAt: 0,
                 mediaAssetURL: "",
@@ -160,26 +143,26 @@ contract DLogosCore is
                 })
             });
         }
-        emit LogoCreated(msgSender, _logoId, block.timestamp);
-        emit CrowdfundToggled(msgSender, true);
+        emit LogoCreated(msg.sender, _logoId, block.timestamp);
+        emit CrowdfundToggled(msg.sender, true);
         return logoId++; // Return and Increment Global Logo ID
     }
 
-    /**
-     * @dev Toggle crowdfund for Logo.
-     */
-    function toggleCrowdfund(
-        uint256 _logoId
-    ) external override whenNotPaused validLogoId(_logoId) {
-        Logo memory l = logos[_logoId];
-        address msgSender = _msgSender();
-        if (l.proposer != msgSender) revert Unauthorized();
-        if (l.scheduledAt != 0) revert CrowdfundClosed();
-        if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+    // /**
+    //  * @dev Toggle crowdfund for Logo.
+    //  */
+    // function toggleCrowdfund(
+    //     uint256 _logoId
+    // ) external override whenNotPaused validLogoId(_logoId) {
+    //     Logo memory l = logos[_logoId];
+    //     address msgSender = _msgSender();
+    //     if (l.proposer != msgSender) revert Unauthorized();
+    //     if (l.scheduledAt != 0) revert CrowdfundClosed();
+    //     if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         
-        logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
-        emit CrowdfundToggled(msgSender, !l.status.isCrowdfunding);
-    }   
+    //     logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
+    //     emit CrowdfundToggled(msgSender, !l.status.isCrowdfunding);
+    // }   
 
     /**
      * @dev Set minimum pledge for a conversation.
@@ -189,14 +172,13 @@ contract DLogosCore is
         uint256 _minimumPledge
     ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        address msgSender = _msgSender();
-        if (l.proposer != msgSender) revert Unauthorized();
+        if (l.proposer != msg.sender) revert Unauthorized();
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (_minimumPledge == 0) revert NotZero();
 
         logos[_logoId].minimumPledge = _minimumPledge;
-        emit MinimumPledgeSet(msgSender, _minimumPledge);
+        emit MinimumPledgeSet(msg.sender, _minimumPledge);
     }
     
     /**
@@ -207,44 +189,17 @@ contract DLogosCore is
         if (l.status.isDistributed) revert LogoDistributed();
         if (l.status.isRefunded) revert LogoRefunded();
 
-        bool c1;
-        bool c2;
-        bool c3;
-        bool c4;
+        (
+            bool c1, 
+            bool c2, 
+            bool c3, 
+            bool c4
+        ) = DLogosCoreHelper.getRefundConditions(
+            _logoId,
+            l,
+            dLogosOwner
+        );
         
-        // Case 1: Logo proposer can refund whenever.
-        c1 = l.proposer == _msgSender();
-        if (!c1) {
-            // Case 2: Crowdfund end date reached and not distributed.
-            c2 = block.timestamp > l.crowdfundEndAt;
-            if (!c2) {
-                // Case 3: >7 days have passed since schedule date and no asset uploaded.
-                // Math overflow is not possible with the current timestamp
-                unchecked {
-                    c3 = 
-                        l.scheduledAt != 0 
-                        && 
-                        block.timestamp > l.scheduledAt + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days
-                        && 
-                        !l.status.isUploaded;                    
-                }
-
-                if (!c3) {
-                    // Case 4: >50% of backer funds reject upload.
-                    address dLogosBacker = IDLogosOwner(dLogosOwner).dLogosBacker();
-                    uint256 logoRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
-                    uint256 logoRejectedFunds = IDLogosBacker(dLogosBacker).logoRejectedFunds(_logoId);
-                    c4 = 
-                        logoRejectedFunds * PERCENTAGE_SCALE / logoRewards
-                        > 
-                        IDLogosOwner(dLogosOwner).rejectThreshold();
-                    if (!c4) {
-                        revert NoRefundConditionsMet();
-                    }
-                }                
-            }
-        }        
-
         logos[_logoId].status.isRefunded = true;
 
         emit RefundInitiated(_logoId, c1, c2, c3, c4);
@@ -258,8 +213,7 @@ contract DLogosCore is
         SetSpeakersParam calldata _param
     ) external override whenNotPaused validLogoId(_param.logoId) {
         Logo memory l = logos[_param.logoId];
-        address msgSender = _msgSender();
-        if (l.proposer != msgSender) revert Unauthorized();
+        if (l.proposer != msg.sender) revert Unauthorized();
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (_param.speakers.length == 0 || _param.speakers.length >= 100) revert InvalidSpeakerNumber();
@@ -287,7 +241,7 @@ contract DLogosCore is
             uint256 communityFee = IDLogosOwner(dLogosOwner).communityFee();
             // Math overflow is not possible because {IDLogosOwner} sets fees
             unchecked {
-                if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msgSender)) {
+                if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msg.sender)) {
                     if (
                         communityFee + l.proposerFee + speakerFeesSum 
                         != 
@@ -303,7 +257,7 @@ contract DLogosCore is
             }
         }
 
-        emit SpeakersSet(msgSender, _param.speakers, _param.fees, _param.providers, _param.handles);
+        emit SpeakersSet(msg.sender, _param.speakers, _param.fees, _param.providers, _param.handles);
     }
 
     /**
@@ -319,13 +273,12 @@ contract DLogosCore is
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
 
-        address msgSender = _msgSender();
         Speaker[] memory speakers = logoSpeakers[_logoId];
         uint256 i;
         for (i = 0; i < speakers.length; i++) {
-            if (address(speakers[i].addr) == msgSender) {
+            if (address(speakers[i].addr) == msg.sender) {
                 logoSpeakers[_logoId][i].status = SpeakerStatus(_speakerStatus);
-                emit SpeakerStatusSet(_logoId, msgSender, _speakerStatus);
+                emit SpeakerStatusSet(_logoId, msg.sender, _speakerStatus);
                 break;
             }
         }
@@ -342,7 +295,9 @@ contract DLogosCore is
         uint8[] calldata _indexes,
         address[] calldata _addresses,
         uint8[] calldata _statuses
-    ) external override whenNotPaused onlyOperator validLogoId(_logoId) {
+    ) external override whenNotPaused validLogoId(_logoId) {
+        if (msg.sender != operator) revert CallerNotOperator();
+        
         Logo memory l = logos[_logoId];
         if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
@@ -381,8 +336,7 @@ contract DLogosCore is
         uint _scheduledAt
     ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        address msgSender = _msgSender();
-        if (l.proposer != msgSender) revert Unauthorized();
+        if (l.proposer != msg.sender) revert Unauthorized();
         if (l.status.isUploaded) revert LogoUploaded();
         if (l.status.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
@@ -398,7 +352,7 @@ contract DLogosCore is
         
         logos[_logoId].scheduledAt = _scheduledAt;
         logos[_logoId].status.isCrowdfunding = false; // Close crowdfund.
-        emit DateSet(msgSender, _scheduledAt);
+        emit DateSet(msg.sender, _scheduledAt);
     }
 
     /**
@@ -409,8 +363,7 @@ contract DLogosCore is
         string calldata _mediaAssetURL
     ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory ml = logos[_logoId];
-        address msgSender = _msgSender();
-        if (ml.proposer != msgSender) revert Unauthorized();
+        if (ml.proposer != msg.sender) revert Unauthorized();
         if (ml.status.isDistributed) revert LogoDistributed();
         if (ml.status.isRefunded) revert LogoRefunded();
         if (ml.scheduledAt == 0) revert LogoNotScheduled();
@@ -425,7 +378,7 @@ contract DLogosCore is
             sl.rejectionDeadline = block.timestamp + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days;
         }
 
-        emit MediaAssetSet(msgSender, _mediaAssetURL);
+        emit MediaAssetSet(msg.sender, _mediaAssetURL);
     }
 
     /**
@@ -511,7 +464,7 @@ contract DLogosCore is
         sl.splitForAffiliate = addressVars[1];
         sl.splitForSpeaker = addressVars[2];
 
-        emit RewardsDistributed(_msgSender(), addressVars[2], addressVars[1], totalRewards);
+        emit RewardsDistributed(msg.sender, addressVars[2], addressVars[1], totalRewards);
     }
 
     /**
@@ -535,25 +488,5 @@ contract DLogosCore is
 
         operator = _operator;
         emit OperatorUpdated(_operator);
-    }
-
-    // ----------------------------------------------Meta tx helpers----------------------------------------------
-    /**
-     * @dev Override of `trustedForwarder()`
-     */
-    function trustedForwarder() public view override(ERC2771ContextUpgradeable, ForwarderSetterUpgradeable) returns (address) {
-        return ForwarderSetterUpgradeable.trustedForwarder();
-    }
-    
-    function _msgSender() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address) {
-        return ERC2771ContextUpgradeable._msgSender();
-    }
-
-    function _msgData() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
-        return ERC2771ContextUpgradeable._msgData();
-    }
-
-    function _contextSuffixLength() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (uint256) {
-        return ERC2771ContextUpgradeable._contextSuffixLength();
     }
 }
