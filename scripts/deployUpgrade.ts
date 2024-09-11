@@ -171,7 +171,6 @@ async function main(): Promise<void> {
         dLogosCoreHelperAddr,
         dLogosCoreImplAddr,
         deployer.address,
-        TRUSTED_FORWARDER_ADDRESS,
         dLogosOwnerInstanceAddr,
       );      
       dLogosCoreProxyAdmin = result.dLogosCoreProxyAdmin;
