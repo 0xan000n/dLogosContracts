@@ -210,7 +210,7 @@ library DLogosCoreHelper {
         IDLogosCore.Logo memory _logo,
         address _dLogosOwner
     ) external view returns (bool c1, bool c2, bool c3, bool c4) {
-        // Case 1: Logo proposer can refund whenever.
+        // Case 1: Proposer can refund whenever.
         c1 = _logo.proposer == msg.sender;
         if (!c1) {
             // Case 2: Crowdfund end date reached and not distributed.

@@ -149,22 +149,6 @@ contract DLogosCore is
         return logoId++; // Return and Increment Global Logo ID
     }
 
-    // /**
-    //  * @dev Toggle crowdfund for Logo.
-    //  */
-    // function toggleCrowdfund(
-    //     uint256 _logoId
-    // ) external override whenNotPaused validLogoId(_logoId) {
-    //     Logo memory l = logos[_logoId];
-    //     address msgSender = _msgSender();
-    //     if (l.proposer != msgSender) revert Unauthorized();
-    //     if (l.scheduledAt != 0) revert CrowdfundClosed();
-    //     if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
-        
-    //     logos[_logoId].status.isCrowdfunding = !l.status.isCrowdfunding;
-    //     emit CrowdfundToggled(msgSender, !l.status.isCrowdfunding);
-    // }   
-
     /**
      * @dev Set minimum pledge for a conversation.
      */
@@ -191,10 +175,10 @@ contract DLogosCore is
         if (l.status.isRefunded) revert LogoRefunded();
 
         (
-            bool c1, 
-            bool c2, 
-            bool c3, 
-            bool c4
+            bool c1, // Case 1: Proposer can refund whenever.
+            bool c2, // Case 2: Crowdfund end date reached and not distributed.
+            bool c3, // Case 3: >7 days have passed since schedule date and no asset uploaded.
+            bool c4  // Case 4: >50% of backer funds reject upload.
         ) = DLogosCoreHelper.getRefundConditions(
             _logoId,
             l,
