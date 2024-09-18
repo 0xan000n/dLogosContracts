@@ -37,13 +37,13 @@ export async function deployDLogosOwnerImplementation() {
 	await dLogosOwnerImpl.waitForDeployment();
 	const dLogosOwnerImplAddr = await dLogosOwnerImpl.getAddress();
 
-	// // verify
-	// if (network.name != "hardhat") {
-	// 	await run(`verify:verify`, {
-	// 		address: dLogosOwnerImplAddr,
-	// 		constructorArguments: [],
-	// 	});
-	// }
+	// verify
+	if (network.name != "hardhat") {
+		await run(`verify:verify`, {
+			address: dLogosOwnerImplAddr,
+			constructorArguments: [],
+		});
+	}
 
 	console.log(`***DEPLOYED DLogosOwner Implementation at:${dLogosOwnerImplAddr}***`);
 	console.log("\n");

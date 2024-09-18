@@ -38,6 +38,7 @@ import {
 } from "./_helpers/data";
 
 // !!BE SURE to complete ./_helpers/data.ts with valid addresses if there are already deployed contracts!!
+
 //-----------------configuration flags to select what to deploy-----------------//
 // deploy library flags are TRUE for deploy, TRUE or FALSE (whether to update library code) for upgrade
 const DEPLOY_DLOGOS_CORE_HELPER_LIBRARY = true;
@@ -166,7 +167,7 @@ async function main(): Promise<void> {
   dLogosCoreImplAddr = await dLogosCoreImpl?.getAddress() || DLOGOS_CORE_IMPLEMENTATION_ADDRESS;
   // deploy DLogosCore instance
   if (DEPLOY_DLOGOS_CORE_INSTANCE) {
-    if (dLogosCoreImplAddr != "" && TRUSTED_FORWARDER_ADDRESS != "" && dLogosOwnerInstanceAddr != "") {
+    if (dLogosCoreImplAddr != "" && dLogosOwnerInstanceAddr != "") {
       const result = await deployDLogosCoreInstance(
         dLogosCoreHelperAddr,
         dLogosCoreImplAddr,
