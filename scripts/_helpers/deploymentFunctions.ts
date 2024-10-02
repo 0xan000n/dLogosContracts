@@ -37,13 +37,13 @@ export async function deployDLogosOwnerImplementation() {
 	await dLogosOwnerImpl.waitForDeployment();
 	const dLogosOwnerImplAddr = await dLogosOwnerImpl.getAddress();
 
-	// // verify
-	// if (network.name != "hardhat") {
-	// 	await run(`verify:verify`, {
-	// 		address: dLogosOwnerImplAddr,
-	// 		constructorArguments: [],
-	// 	});
-	// }
+	// verify
+	if (network.name != "hardhat") {
+		await run(`verify:verify`, {
+			address: dLogosOwnerImplAddr,
+			constructorArguments: [],
+		});
+	}
 
 	console.log(`***DEPLOYED DLogosOwner Implementation at:${dLogosOwnerImplAddr}***`);
 	console.log("\n");
@@ -279,7 +279,6 @@ export async function deployDLogosCoreInstance(
 	dLogosCoreHelperAddr: string,
 	dLogosCoreImplAddr: string,
 	ownerAddr: string,
-	trustedForwarderAddr: string,
 	dLogosOwnerAddr: string,
 ) {
 	console.log("DEPLOYING DLogosCore Instance");
@@ -295,7 +294,6 @@ export async function deployDLogosCoreInstance(
 	const dLogosCoreImpl = dLogosCoreF.attach(dLogosCoreImplAddr);
 	const dLogosCoreInitFunc = dLogosCoreImpl.getFunction("initialize");
 	const initTx = await dLogosCoreInitFunc.populateTransaction(
-		trustedForwarderAddr,
 		dLogosOwnerAddr,
 	);
 

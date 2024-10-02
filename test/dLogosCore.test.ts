@@ -28,6 +28,9 @@ describe("DLogosCore Testing", () => {
     );
 
     // check public variables
+    expect(await env.dLogosCore.operator()).equals(
+      await env.deployer.getAddress()
+    );
     expect(await env.dLogosCore.dLogosOwner()).equals(
       await env.dLogosOwner.getAddress()
     );
@@ -54,7 +57,6 @@ describe("DLogosCore Testing", () => {
         await expect(
           dLogosCore.initialize(
             ZERO_ADDRESS,
-            ZERO_ADDRESS,
           )
         ).to.be.revertedWithCustomError(
           dLogosCore,
@@ -67,7 +69,6 @@ describe("DLogosCore Testing", () => {
 
         await expect(
           env.dLogosCore.initialize(
-            ZERO_ADDRESS,
             ZERO_ADDRESS,
           )
         ).to.be.revertedWithCustomError(
@@ -241,122 +242,122 @@ describe("DLogosCore Testing", () => {
     });
   });
 
-  describe("{toggleCrowdfund}, {getLogo} function", () => {
-    it("Should make changes to the storage", async () => {
-      const env = await prepEnvWithToggleCrowdfund(
-        await loadFixture(prepEnvWithCreateLogo)
-      );
+  // describe("{toggleCrowdfund}, {getLogo} function", () => {
+  //   it("Should make changes to the storage", async () => {
+  //     const env = await prepEnvWithToggleCrowdfund(
+  //       await loadFixture(prepEnvWithCreateLogo)
+  //     );
 
-      const logo1 = await env.dLogosCore.getLogo(1);
-      expect(logo1.status.isCrowdfunding).equals(
-        false
-      );
-    });
+  //     const logo1 = await env.dLogosCore.getLogo(1);
+  //     expect(logo1.status.isCrowdfunding).equals(
+  //       false
+  //     );
+  //   });
 
-    it("Should emit event", async () => {
-      const env = await prepEnvWithToggleCrowdfund(
-        await loadFixture(prepEnvWithCreateLogo)
-      );
+  //   it("Should emit event", async () => {
+  //     const env = await prepEnvWithToggleCrowdfund(
+  //       await loadFixture(prepEnvWithCreateLogo)
+  //     );
 
-      await expect(env.toggleCrowdfundTx)
-        .emit(env.dLogosCore, "CrowdfundToggled")
-        .withArgs(
-          env.proposer1.address,
-          false,
-        );
-    });
+  //     await expect(env.toggleCrowdfundTx)
+  //       .emit(env.dLogosCore, "CrowdfundToggled")
+  //       .withArgs(
+  //         env.proposer1.address,
+  //         false,
+  //       );
+  //   });
 
-    describe("Reverts", () => {
-      it("Should revert when contract is paused", async () => {
-        const env = await prepEnvWithToggleCrowdfund(
-          await loadFixture(prepEnvWithCreateLogo)
-        );
+  //   describe("Reverts", () => {
+  //     it("Should revert when contract is paused", async () => {
+  //       const env = await prepEnvWithToggleCrowdfund(
+  //         await loadFixture(prepEnvWithCreateLogo)
+  //       );
 
-        const env1 = await prepEnvWithPauseOrUnpauseTrue(env);
+  //       const env1 = await prepEnvWithPauseOrUnpauseTrue(env);
 
-        await expect(
-          env1.dLogosCore
-            .connect(env1.proposer1)
-            .toggleCrowdfund(
-              1,
-            )
-        ).to.be.revertedWithCustomError(
-          env1.dLogosCore,
-          "EnforcedPause()"
-        );
-      });
+  //       await expect(
+  //         env1.dLogosCore
+  //           .connect(env1.proposer1)
+  //           .toggleCrowdfund(
+  //             1,
+  //           )
+  //       ).to.be.revertedWithCustomError(
+  //         env1.dLogosCore,
+  //         "EnforcedPause()"
+  //       );
+  //     });
 
-      it("Should revert when logo id is not valid", async () => {
-        const env = await prepEnvWithToggleCrowdfund(
-          await loadFixture(prepEnvWithCreateLogo)
-        );
+  //     it("Should revert when logo id is not valid", async () => {
+  //       const env = await prepEnvWithToggleCrowdfund(
+  //         await loadFixture(prepEnvWithCreateLogo)
+  //       );
 
-        await expect(
-          env.dLogosCore
-            .connect(env.proposer1)
-            .toggleCrowdfund(
-              2,
-            )
-        ).to.be.revertedWithCustomError(
-          env.dLogosCore,
-          "InvalidLogoId()"
-        );
-      });
+  //       await expect(
+  //         env.dLogosCore
+  //           .connect(env.proposer1)
+  //           .toggleCrowdfund(
+  //             2,
+  //           )
+  //       ).to.be.revertedWithCustomError(
+  //         env.dLogosCore,
+  //         "InvalidLogoId()"
+  //       );
+  //     });
 
-      it("Should revert when caller is not proposer", async () => {
-        const env = await prepEnvWithToggleCrowdfund(
-          await loadFixture(prepEnvWithCreateLogo)
-        );
+  //     it("Should revert when caller is not proposer", async () => {
+  //       const env = await prepEnvWithToggleCrowdfund(
+  //         await loadFixture(prepEnvWithCreateLogo)
+  //       );
 
-        await expect(
-          env.dLogosCore
-            .connect(env.nonDeployer)
-            .toggleCrowdfund(
-              1,
-            )
-        ).to.be.revertedWithCustomError(
-          env.dLogosCore,
-          "Unauthorized()"
-        );
-      });
+  //       await expect(
+  //         env.dLogosCore
+  //           .connect(env.nonDeployer)
+  //           .toggleCrowdfund(
+  //             1,
+  //           )
+  //       ).to.be.revertedWithCustomError(
+  //         env.dLogosCore,
+  //         "Unauthorized()"
+  //       );
+  //     });
 
-      it("Should revert when logo is scheduled", async () => {
-        const env = await prepEnvWithToggleCrowdfund(
-          await loadFixture(prepEnvWithCreateLogo)
-        );
+  //     it("Should revert when logo is scheduled", async () => {
+  //       const env = await prepEnvWithToggleCrowdfund(
+  //         await loadFixture(prepEnvWithCreateLogo)
+  //       );
 
-        await expect(
-          env.dLogosCore
-            .connect(env.nonDeployer)
-            .toggleCrowdfund(
-              1,
-            )
-        ).to.be.revertedWithCustomError(
-          env.dLogosCore,
-          "Unauthorized()"
-        );
-      });
+  //       await expect(
+  //         env.dLogosCore
+  //           .connect(env.nonDeployer)
+  //           .toggleCrowdfund(
+  //             1,
+  //           )
+  //       ).to.be.revertedWithCustomError(
+  //         env.dLogosCore,
+  //         "Unauthorized()"
+  //       );
+  //     });
 
-      it("Should revert when logo crowdfund deadline is passed", async () => {
-        const env = await prepEnvWithToggleCrowdfund(
-          await loadFixture(prepEnvWithCreateLogo)
-        );
+  //     it("Should revert when logo crowdfund deadline is passed", async () => {
+  //       const env = await prepEnvWithToggleCrowdfund(
+  //         await loadFixture(prepEnvWithCreateLogo)
+  //       );
 
-        await time.increase(env.logo1CrowdfundNumberOfDays * ONE_DAY);
+  //       await time.increase(env.logo1CrowdfundNumberOfDays * ONE_DAY);
 
-        await expect(
-          env.dLogosCore
-            .connect(env.proposer1)
-            .toggleCrowdfund(
-              1,
-            )
-        ).to.be.revertedWithCustomError(
-          env.dLogosCore,
-          "CrowdfundEnded()"
-        );
-      });
-    });
-  });
+  //       await expect(
+  //         env.dLogosCore
+  //           .connect(env.proposer1)
+  //           .toggleCrowdfund(
+  //             1,
+  //           )
+  //       ).to.be.revertedWithCustomError(
+  //         env.dLogosCore,
+  //         "CrowdfundEnded()"
+  //       );
+  //     });
+  //   });
+  // });
 
   describe("{setMinimumPledge}, {getLogo} function", () => {
     it("Should make changes to the storage", async () => {
@@ -431,9 +432,7 @@ describe("DLogosCore Testing", () => {
       });
 
       it("Should revert when logo is not crowdfunding", async () => {
-        const env = await prepEnvWithToggleCrowdfund(
-          await loadFixture(prepEnvWithSetMinimumPledge)
-        );
+        const env = await loadFixture(prepEnvWithSetDate);
 
         await expect(
           env.dLogosCore
@@ -794,9 +793,7 @@ describe("DLogosCore Testing", () => {
       });
 
       it("Should revert when logo is not crowdfunding", async () => {
-        const env = await prepEnvWithToggleCrowdfund(
-          await loadFixture(prepEnvWithSetSpeakers)
-        );
+        const env = await loadFixture(prepEnvWithSetDate);
 
         await expect(
           env.dLogosCore
@@ -962,9 +959,7 @@ describe("DLogosCore Testing", () => {
       });
 
       it("Should revert when logo is not crowdfunding", async () => {
-        const env = await prepEnvWithToggleCrowdfund(
-          await loadFixture(prepEnvWithSetSpeakerStatus)
-        );
+        const env = await loadFixture(prepEnvWithSetDate);
 
         await expect(
           env.dLogosCore
@@ -1010,6 +1005,232 @@ describe("DLogosCore Testing", () => {
         ).to.be.revertedWithCustomError(
           env.dLogosCore,
           "Unauthorized()"
+        );
+      });
+    });
+  });
+
+  describe("{setStatusForSpeakers}, {getSpeakersForLogo} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
+
+      const speakers = await env.dLogosCore.getSpeakersForLogo(1);
+      // speaker1
+      expect(speakers[0].status).equals(
+        1,
+      );
+      // speaker2
+      expect(speakers[1].status).equals(
+        2,
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
+
+      await expect(env.setStatusForSpeakersTx)
+        .emit(env.dLogosCore, "SpeakerStatusSetByOp")
+        .withArgs(
+          1,
+          [
+            0,
+            1,
+          ],
+          [
+            env.speaker1.address,
+            env.speaker2.address,
+          ],
+          [
+            1,
+            2,
+          ],
+        );
+    });
+
+    describe("Reverts", () => {
+      it("Should revert when contract is paused", async () => {
+        const env = await prepEnvWithPauseOrUnpauseTrue(
+          await loadFixture(prepEnvWithSetStatusForSpeakers)
+        );
+
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .setStatusForSpeakers(
+              1,
+              [],
+              [],
+              [],
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "EnforcedPause()"
+        );
+      });
+
+      it("Should revert when logo id is not valid", async () => {
+        const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .setStatusForSpeakers(
+              2,
+              [],
+              [],
+              [],
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "InvalidLogoId()"
+        );
+      });
+
+      it("Should revert when caller is not operator", async () => {
+        const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .setStatusForSpeakers(
+              1,
+              [],
+              [],
+              [],
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "CallerNotOperator()"
+        );
+      });
+
+      it("Should revert when logo is not crowdfunding", async () => {
+        const env = await loadFixture(prepEnvWithSetDate);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .setStatusForSpeakers(
+              1,
+              [],
+              [],
+              [],
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoNotCrowdfunding()"
+        );
+      });
+
+      it("Should revert when logo crowdfund deadline is passed", async () => {
+        const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
+
+        await time.increase(env.logo1CrowdfundNumberOfDays * ONE_DAY);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .setStatusForSpeakers(
+              1,
+              [],
+              [],
+              [],
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "CrowdfundEnded()"
+        );
+      });
+
+      it("Should revert when param array length mismatch", async () => {
+        const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .setStatusForSpeakers(
+              1,
+              [
+                1,
+              ],
+              [],
+              [],
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "InvalidArrayArguments()"
+        );
+      });
+
+      it("Should revert when one index is invalid", async () => {
+        const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .setStatusForSpeakers(
+              1,
+              [
+                3,
+              ],
+              [
+                ZERO_ADDRESS,
+              ],
+              [
+                1,
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "IndexOverflow()"
+        );
+      });
+
+      it("Should revert when one address is zero", async () => {
+        const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .setStatusForSpeakers(
+              1,
+              [
+                0,
+              ],
+              [
+                ZERO_ADDRESS,
+              ],
+              [
+                1,
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "ZeroAddress()"
+        );
+      });
+
+      it("Should revert when one status is invalid", async () => {
+        const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .setStatusForSpeakers(
+              1,
+              [
+                0,
+              ],
+              [
+                env.speaker1.address,
+              ],
+              [
+                3,
+              ],
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "InvalidSpeakerStatus()"
         );
       });
     });
@@ -1605,11 +1826,62 @@ describe("DLogosCore Testing", () => {
       });
     });
   });
+
+  describe("{setOperator} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithSetOperator);
+
+      expect(await env.dLogosCore.operator()).equals(
+        env.operator.address
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithSetOperator);
+
+      await expect(env.setOperatorTx)
+        .emit(env.dLogosCore, "OperatorUpdated")
+        .withArgs(
+          env.operator.address
+        );
+    });
+
+    describe("Reverts", async () => {
+      it("Should revert when not allowed user", async () => {
+        const env = await loadFixture(prepEnvWithSetOperator);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.nonDeployer)
+            .setOperator(ZERO_ADDRESS)
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "OwnableUnauthorizedAccount"
+        ).withArgs(
+          env.nonDeployer.address
+        );
+      });
+
+      it("Should revert when param is zero address", async () => {
+        const env = await loadFixture(prepEnvWithSetOperator);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .setOperator(ZERO_ADDRESS)
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "ZeroAddress()"
+        );
+      });
+    });
+  });
 });
 
 async function prepEnv() {
   const [
     deployer,
+    operator,
     nonDeployer,
     proposer1,
     speaker1,
@@ -1649,7 +1921,6 @@ async function prepEnv() {
   const dLogosCoreHelper = await dLogosCoreHelperF.deploy();
 
   // deploy and initialize DLogosCore
-  const trustedForwarder = "0x92371F3c1Bda1fB4F67a7984FDa54d60b0e6c6Ef"; // random address
   const dLogosCoreF = await ethers.getContractFactory("DLogosCore", {
     libraries: {
       DLogosCoreHelper: await dLogosCoreHelper.getAddress(),
@@ -1658,7 +1929,6 @@ async function prepEnv() {
   const dLogosCoreProxy = await upgrades.deployProxy(
     dLogosCoreF,
     [
-      trustedForwarder,
       dLogosOwnerAddr,
     ],
     {
@@ -1673,6 +1943,7 @@ async function prepEnv() {
 
   return {
     deployer,
+    operator,
     nonDeployer,
     proposer1,
     speaker1,
@@ -1681,8 +1952,6 @@ async function prepEnv() {
     referrer1,
     referrer2,
     community,
-
-    trustedForwarder,
 
     dLogosOwner,
     logo,
@@ -1734,23 +2003,23 @@ async function prepEnvWithPauseOrUnpauseTrue(prevEnv?: any) {
   };
 }
 
-async function prepEnvWithToggleCrowdfund(prevEnv?: any) {
-  if (prevEnv == undefined) {
-    prevEnv = await loadFixture(prepEnv);
-  }
+// async function prepEnvWithToggleCrowdfund(prevEnv?: any) {
+//   if (prevEnv == undefined) {
+//     prevEnv = await loadFixture(prepEnv);
+//   }
 
-  const toggleCrowdfundTx = await prevEnv.dLogosCore
-    .connect(prevEnv.proposer1)
-    .toggleCrowdfund(
-      1
-    );
+//   const toggleCrowdfundTx = await prevEnv.dLogosCore
+//     .connect(prevEnv.proposer1)
+//     .toggleCrowdfund(
+//       1
+//     );
 
-  return {
-    ...prevEnv,
+//   return {
+//     ...prevEnv,
 
-    toggleCrowdfundTx,
-  };
-};
+//     toggleCrowdfundTx,
+//   };
+// };
 
 async function prepEnvWithSetMinimumPledge() {
   const prevEnv = await loadFixture(prepEnvWithCreateLogo);
@@ -1921,6 +2190,34 @@ async function prepEnvWithSetSpeakerStatus() {
   };
 }
 
+async function prepEnvWithSetStatusForSpeakers() {
+  const prevEnv = await loadFixture(prepEnvWithSetSpeakers);
+
+  const setStatusForSpeakersTx = await prevEnv.dLogosCore
+    .connect(prevEnv.deployer)
+    .setStatusForSpeakers(
+      1,
+      [
+        0,
+        1,
+      ],
+      [
+        prevEnv.speaker1.address,
+        prevEnv.speaker2.address,
+      ],
+      [
+        1, // accpeted
+        2, // declined
+      ],
+    );
+
+  return {
+    ...prevEnv,
+
+    setStatusForSpeakersTx,
+  };
+}
+
 async function prepEnvWithSetDate() {
   const prevEnv = await loadFixture(prepEnvWithSetSpeakerStatus);
 
@@ -2017,5 +2314,19 @@ async function prepEnvWithPauseOrUnpauseFalse() {
     ...prevEnv,
 
     unpauseTx,
+  };
+}
+
+async function prepEnvWithSetOperator() {
+  const prevEnv = await loadFixture(prepEnv);
+
+  const setOperatorTx = await prevEnv.dLogosCore
+    .connect(prevEnv.deployer)
+    .setOperator(prevEnv.operator.address);
+
+  return {
+    ...prevEnv,
+
+    setOperatorTx,
   };
 }

@@ -36,6 +36,7 @@ library DLogosCoreHelper {
     );
     error TotalAllocationExceeded();
     error EthTransferFailed();
+    error NoRefundConditionsMet();
 
     function getAffiliatesSplitInfo(
         IDLogosBacker.Backer[] memory _backers,
@@ -202,5 +203,44 @@ library DLogosCoreHelper {
 
         address logoNFT = IDLogosOwner(_dLogosOwner).logoNFT();
         ILogo(logoNFT).safeMintBatchByDLogosCore(nftRecipients, _logoId, personas);
+    }
+    
+    function getRefundConditions(
+        uint256 _logoId,
+        IDLogosCore.Logo memory _logo,
+        address _dLogosOwner
+    ) external view returns (bool c1, bool c2, bool c3, bool c4) {
+        // Case 1: Proposer can refund whenever.
+        c1 = _logo.proposer == msg.sender;
+        if (!c1) {
+            // Case 2: Crowdfund end date reached and not distributed.
+            c2 = block.timestamp > _logo.crowdfundEndAt;
+            if (!c2) {
+                // Case 3: >7 days have passed since schedule date and no asset uploaded.
+                // Math overflow is not possible with the current timestamp
+                unchecked {
+                    c3 = 
+                        _logo.scheduledAt != 0 
+                        && 
+                        block.timestamp > _logo.scheduledAt + IDLogosOwner(_dLogosOwner).rejectionWindow() * 1 days
+                        && 
+                        !_logo.status.isUploaded;                    
+                }
+
+                if (!c3) {
+                    // Case 4: >50% of backer funds reject upload.
+                    address dLogosBacker = IDLogosOwner(_dLogosOwner).dLogosBacker();
+                    uint256 logoRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
+                    uint256 logoRejectedFunds = IDLogosBacker(dLogosBacker).logoRejectedFunds(_logoId);
+                    c4 = 
+                        logoRejectedFunds * PERCENTAGE_SCALE / logoRewards
+                        > 
+                        IDLogosOwner(_dLogosOwner).rejectThreshold();
+                    if (!c4) {
+                        revert NoRefundConditionsMet();
+                    }
+                }                
+            }
+        }
     }
 }

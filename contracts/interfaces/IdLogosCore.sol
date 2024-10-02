@@ -80,7 +80,13 @@ interface IDLogosCore {
         address _splitForAffiliate, 
         uint256 _totalRewards
     );
-    event SpeakerStatusSet(uint256 indexed _logoId, address indexed _speaker, uint256 indexed _status);    
+    event SpeakerStatusSet(uint256 indexed _logoId, address indexed _speaker, uint256 indexed _status);
+    event SpeakerStatusSetByOp(
+        uint256 indexed _logoId, 
+        uint8[] _indexes, 
+        address[] _addresses, 
+        uint8[] _statuses
+    );    
     event RefundInitiated(
         uint256 indexed _logoId, 
         bool _case1,
@@ -100,20 +106,24 @@ interface IDLogosCore {
         address _owner, 
         address _creator
     );
+    event OperatorUpdated(address indexed _operator);
     
     /// FUNCTIONS
     function dLogosOwner() external view returns (address);
+    function operator() external view returns (address);
     function logoId() external view returns (uint256);
     function getLogo(uint256) external view returns (Logo memory);
     function createLogo(uint256, string calldata, uint8) external returns (uint256);  
-    function toggleCrowdfund(uint256) external;
+    // function toggleCrowdfund(uint256) external;
     function setMinimumPledge(uint256, uint256) external;
     function refund(uint256) external;
     function setSpeakers(SetSpeakersParam calldata) external;
     function setSpeakerStatus(uint256, uint8) external;
+    function setStatusForSpeakers(uint256, uint8[] calldata, address[] calldata, uint8[] calldata) external;
     function getSpeakersForLogo(uint256) external view returns (Speaker[] memory);
     function setDate(uint256, uint256) external;
     function setMediaAsset(uint256, string calldata) external;
     function distributeRewards(uint256, bool) external;
     function pauseOrUnpause(bool) external;
+    function setOperator(address) external;
 }
