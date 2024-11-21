@@ -87,9 +87,21 @@ contract Logo is
             revert InvalidArrayArguments();
 
         uint256 _tokenIdCounter = tokenIdCounter;
+        uint256 firstTokenId = _tokenIdCounter + 1;
+        uint256 lastTokenId = _tokenIdCounter + _recipients.length;
+        
         unchecked {
             for (uint256 i = 0; i < _recipients.length; i++) {
-                _safeMint(_recipients[i], ++_tokenIdCounter, _logoId, _personas[i]);
+                _safeMint(
+                    SafeMintParam({
+                        to: _recipients[i],
+                        firstTokenId: firstTokenId,
+                        tokenId: ++_tokenIdCounter,
+                        lastTokenId: lastTokenId,
+                        logoId: _logoId,
+                        persona: _personas[i]
+                    })
+                );
             }
         }
         tokenIdCounter = _tokenIdCounter;
@@ -105,10 +117,14 @@ contract Logo is
 
         address dLogosCore = IDLogosOwner(dLogosOwner).dLogosCore();
         address dLogosBacker = IDLogosOwner(dLogosOwner).dLogosBacker();
-        IDLogosCore.Logo memory l = IDLogosCore(dLogosCore).getLogo(_logoId);
-        if (!l.status.isDistributed) revert LogoNotDistributed();
+        if (!IDLogosCore(dLogosCore).getLogo(_logoId).status.isDistributed) revert LogoNotDistributed();
 
         uint256 _tokenIdCounter = tokenIdCounter;
+        uint256 firstTokenId = _tokenIdCounter + 1;
+        uint256 lastTokenId = _tokenIdCounter + _recipients.length;
+
+        SafeMintParam memory param;
+
         IDLogosCore.Speaker[] memory speakers = IDLogosCore(dLogosCore)
             .getSpeakersForLogo(_logoId);
         for (uint256 i = 0; i < _recipients.length; i++) {
@@ -118,13 +134,22 @@ contract Logo is
             if (persona != Persona.Undefined && persona == logoPersonas[_logoId][to]) 
                 revert AlreadyMinted(to, _logoId, persona);
 
+            param = SafeMintParam({
+                to: to,
+                firstTokenId: firstTokenId,
+                tokenId: ++_tokenIdCounter,
+                lastTokenId: lastTokenId,
+                logoId: _logoId,
+                persona: persona
+            });
+
             if (persona == Persona.Backer) {
                 if (
                     IDLogosBacker(dLogosBacker)
                         .getBackerForLogo(_logoId, to)
                         .amount != 0
                 ) {
-                    _safeMint(to, ++_tokenIdCounter, _logoId, persona);
+                    _safeMint(param);
                 } else {
                     revert NotEligibleForMint(to, _logoId);
                 }
@@ -136,14 +161,14 @@ contract Logo is
                     }
                 }
                 if (j < speakers.length) {
-                    _safeMint(to, ++_tokenIdCounter, _logoId, persona);
+                    _safeMint(param);
                 } else {
                     revert NotEligibleForMint(to, _logoId);
-                }
+                }                
             } else if (persona == Persona.Proposer) {
                 address proposer = IDLogosCore(dLogosCore).getLogo(_logoId).proposer;
                 if (proposer == to) {
-                    _safeMint(to, ++_tokenIdCounter, _logoId, persona);
+                    _safeMint(param);
                 } else {
                     revert NotEligibleForMint(to, _logoId);
                 }
@@ -178,23 +203,25 @@ contract Logo is
         return baseURI;
     }
 
-    function _safeMint(
-        address _to,
-        uint256 _tokenId,
-        uint256 _logoId,
-        Persona _persona
-    ) private {
-        if (_persona == Persona.Undefined) revert UndefinedPersona(_to, _logoId);
+    function _safeMint(SafeMintParam memory _param) private {
+        if (_param.persona == Persona.Undefined) revert UndefinedPersona(_param.to, _param.logoId);
 
-        super._safeMint(_to, _tokenId);
-        infos[_tokenId] = Info({
-            logoId: _logoId, 
-            persona: _persona
+        super._safeMint(_param.to, _param.tokenId);
+        infos[_param.tokenId] = Info({
+            logoId: _param.logoId, 
+            persona: _param.persona
         });
-        logoPersonas[_logoId][_to] = _persona;
-        emit Minted(_to, _tokenId, _logoId, _persona);
+        logoPersonas[_param.logoId][_param.to] = _param.persona;
+        emit Minted(
+            _param.to, 
+            _param.firstTokenId, 
+            _param.tokenId, 
+            _param.lastTokenId, 
+            _param.logoId, 
+            _param.persona
+        );    
     }
-
+    
     // The following functions are overrides required by Solidity.
     function _update(
         address to,

@@ -102,6 +102,8 @@ describe("Logo NFT Tests", () => {
         .withArgs(
           env.token1Recipient,
           1,
+          1,
+          3,
           env.logoId,
           1,
         );
@@ -109,7 +111,9 @@ describe("Logo NFT Tests", () => {
         .emit(env.logo, "Minted")
         .withArgs(
           env.token2Recipient,
+          1,
           2,
+          3,
           env.logoId,
           2,
         );
@@ -117,6 +121,8 @@ describe("Logo NFT Tests", () => {
         .emit(env.logo, "Minted")
         .withArgs(
           env.token3Recipient,
+          1,
+          3,
           3,
           env.logoId,
           3,
@@ -258,6 +264,8 @@ describe("Logo NFT Tests", () => {
         .withArgs(
           env.l5Backer0,
           1,
+          1,
+          4,
           env.logoId5,
           1,
         );
@@ -265,7 +273,9 @@ describe("Logo NFT Tests", () => {
         .emit(env.logo, "Minted")
         .withArgs(
           env.l5Backer1,
+          1,
           2,
+          4,
           env.logoId5,
           1,
         );
@@ -273,7 +283,9 @@ describe("Logo NFT Tests", () => {
         .emit(env.logo, "Minted")
         .withArgs(
           env.l5Speaker,
+          1,
           3,
+          4,
           env.logoId5,
           2,
         );
@@ -281,6 +293,8 @@ describe("Logo NFT Tests", () => {
         .emit(env.logo, "Minted")
         .withArgs(
           env.l5Proposer,
+          1,
+          4,
           4,
           env.logoId5,
           3,
