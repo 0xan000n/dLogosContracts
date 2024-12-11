@@ -206,12 +206,12 @@ contract Logo is
     function _safeMint(SafeMintParam memory _param) private {
         if (_param.persona == Persona.Undefined) revert UndefinedPersona(_param.to, _param.logoId);
 
-        super._safeMint(_param.to, _param.tokenId);
         infos[_param.tokenId] = Info({
             logoId: _param.logoId, 
             persona: _param.persona
         });
         logoPersonas[_param.logoId][_param.to] = _param.persona;
+        super._safeMint(_param.to, _param.tokenId);
         emit Minted(
             _param.to, 
             _param.firstTokenId, 
@@ -224,16 +224,21 @@ contract Logo is
     
     // The following functions are overrides required by Solidity.
     function _update(
-        address to,
-        uint256 tokenId,
-        address auth
+        address _to,
+        uint256 _tokenId,
+        address _auth
     )
         internal
         override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
         whenNotPaused
         returns (address)
     {
-        return ERC721EnumerableUpgradeable._update(to, tokenId, auth);
+        address from = ERC721EnumerableUpgradeable._update(_to, _tokenId, _auth);
+        Info memory info = infos[_tokenId];
+        delete logoPersonas[info.logoId][from];
+        logoPersonas[info.logoId][_to] = info.persona;
+        emit TransferWithLogoId(from, _to, _tokenId, info.logoId);
+        return from;
     }
 
     function _increaseBalance(

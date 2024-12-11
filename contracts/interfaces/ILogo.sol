@@ -35,6 +35,12 @@ interface ILogo {
         Persona _persona
     );
     event BaseURISet(string _baseURI);
+    event TransferWithLogoId(
+        address indexed _from,
+        address indexed _to,
+        uint256 indexed _tokenId,
+        uint256 _logoId
+    );
 
     /// FUNCTIONS
     function tokenIdCounter() external view returns (uint256);

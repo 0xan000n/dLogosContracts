@@ -52,7 +52,7 @@ describe("Logo NFT Tests", () => {
     });
   });
 
-  describe("{safeMintBatchByDLogos}, {getInfo} function", () => {
+  describe("{safeMintBatchByDLogos}, {getInfo}, {logoPersonas} function", () => {
     it("Should make changes to the storage", async () => {
       const env = await loadFixture(prepEnvWithSafeMintBatchByDLogosCore);
 
@@ -70,6 +70,14 @@ describe("Logo NFT Tests", () => {
       expect(info1.persona).equals(
         1n,
       );
+      expect(
+        await env.logo.logoPersonas(
+          env.logoId, 
+          env.token1Recipient,
+        )
+      ).equals(
+        1,
+      );
       // token#2
       expect(await env.logo.ownerOf(2)).equals(
         env.token2Recipient,
@@ -81,6 +89,14 @@ describe("Logo NFT Tests", () => {
       expect(info2.persona).equals(
         2n,
       );
+      expect(
+        await env.logo.logoPersonas(
+          env.logoId, 
+          env.token2Recipient,
+        )
+      ).equals(
+        2,
+      );
       // token#3
       expect(await env.logo.ownerOf(3)).equals(
         env.token3Recipient,
@@ -91,6 +107,14 @@ describe("Logo NFT Tests", () => {
       );
       expect(info3.persona).equals(
         3n,
+      );
+      expect(
+        await env.logo.logoPersonas(
+          env.logoId, 
+          env.token3Recipient,
+        )
+      ).equals(
+        3,
       );
     });
 
@@ -108,6 +132,14 @@ describe("Logo NFT Tests", () => {
           1,
         );
       await expect(env.safeMintBatchByDLogosCoreTx)
+        .emit(env.logo, "TransferWithLogoId")
+        .withArgs(
+          ZERO_ADDRESS,
+          env.token1Recipient,
+          1,
+          env.logoId,
+        );
+      await expect(env.safeMintBatchByDLogosCoreTx)
         .emit(env.logo, "Minted")
         .withArgs(
           env.token2Recipient,
@@ -118,6 +150,14 @@ describe("Logo NFT Tests", () => {
           2,
         );
       await expect(env.safeMintBatchByDLogosCoreTx)
+        .emit(env.logo, "TransferWithLogoId")
+        .withArgs(
+          ZERO_ADDRESS,
+          env.token2Recipient,
+          2,
+          env.logoId,
+        );
+      await expect(env.safeMintBatchByDLogosCoreTx)
         .emit(env.logo, "Minted")
         .withArgs(
           env.token3Recipient,
@@ -126,6 +166,14 @@ describe("Logo NFT Tests", () => {
           3,
           env.logoId,
           3,
+        );
+      await expect(env.safeMintBatchByDLogosCoreTx)
+        .emit(env.logo, "TransferWithLogoId")
+        .withArgs(
+          ZERO_ADDRESS,
+          env.token3Recipient,
+          3,
+          env.logoId,
         );
     });
 
@@ -203,7 +251,7 @@ describe("Logo NFT Tests", () => {
     });
   });
 
-  describe("{safeMintBatch}, {getInfo} function", () => {
+  describe("{safeMintBatch}, {getInfo}, {logoPersonas} function", () => {
     it("Should make changes to the storage", async () => {
       const env = await loadFixture(prepEnvWithSafeMintBatch);
 
@@ -221,6 +269,14 @@ describe("Logo NFT Tests", () => {
       expect(info1.persona).equals(
         1n, // backer
       );
+      expect(
+        await env.logo.logoPersonas(
+          env.logoId5, 
+          env.l5Backer0,
+        )
+      ).equals(
+        1,
+      );
       // token#2
       expect(await env.logo.ownerOf(2)).equals(
         env.l5Backer1,
@@ -231,6 +287,14 @@ describe("Logo NFT Tests", () => {
       );
       expect(info2.persona).equals(
         1n, // backer
+      );
+      expect(
+        await env.logo.logoPersonas(
+          env.logoId5, 
+          env.l5Backer1,
+        )
+      ).equals(
+        1,
       );
       // token#3
       expect(await env.logo.ownerOf(3)).equals(
@@ -243,6 +307,14 @@ describe("Logo NFT Tests", () => {
       expect(info3.persona).equals(
         2n, // speaker
       );
+      expect(
+        await env.logo.logoPersonas(
+          env.logoId5, 
+          env.l5Speaker,
+        )
+      ).equals(
+        2,
+      );
       // token#4
       expect(await env.logo.ownerOf(4)).equals(
         env.l5Proposer,
@@ -253,6 +325,14 @@ describe("Logo NFT Tests", () => {
       );
       expect(info4.persona).equals(
         3n, // speaker
+      );
+      expect(
+        await env.logo.logoPersonas(
+          env.logoId5, 
+          env.l5Proposer,
+        )
+      ).equals(
+        3,
       );
     });
 
@@ -270,6 +350,14 @@ describe("Logo NFT Tests", () => {
           1,
         );
       await expect(env.safeMintBatchTx)
+        .emit(env.logo, "TransferWithLogoId")
+        .withArgs(
+          ZERO_ADDRESS,
+          env.l5Backer0,
+          1,
+          env.logoId5,
+        );
+      await expect(env.safeMintBatchTx)
         .emit(env.logo, "Minted")
         .withArgs(
           env.l5Backer1,
@@ -278,6 +366,14 @@ describe("Logo NFT Tests", () => {
           4,
           env.logoId5,
           1,
+        );
+      await expect(env.safeMintBatchTx)
+        .emit(env.logo, "TransferWithLogoId")
+        .withArgs(
+          ZERO_ADDRESS,
+          env.l5Backer1,
+          2,
+          env.logoId5,
         );
       await expect(env.safeMintBatchTx)
         .emit(env.logo, "Minted")
@@ -290,6 +386,14 @@ describe("Logo NFT Tests", () => {
           2,
         );
       await expect(env.safeMintBatchTx)
+        .emit(env.logo, "TransferWithLogoId")
+        .withArgs(
+          ZERO_ADDRESS,
+          env.l5Speaker,
+          3,
+          env.logoId5,
+        );
+      await expect(env.safeMintBatchTx)
         .emit(env.logo, "Minted")
         .withArgs(
           env.l5Proposer,
@@ -298,6 +402,14 @@ describe("Logo NFT Tests", () => {
           4,
           env.logoId5,
           3,
+        );
+      await expect(env.safeMintBatchTx)
+        .emit(env.logo, "TransferWithLogoId")
+        .withArgs(
+          ZERO_ADDRESS,
+          env.l5Proposer,
+          4,
+          env.logoId5,
         );
     });
 
@@ -537,6 +649,67 @@ describe("Logo NFT Tests", () => {
     });
   });
 
+  describe("{transferFrom}, {getInfo}, {logoPersonas} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithTransferFrom);
+
+      const info4 = await env.logo.getInfo(4);
+      expect(info4.logoId).equals(
+        env.logoId5,
+      );
+
+      const fromPersona = await env.logo.logoPersonas(
+        env.logoId5, 
+        env.deployer.address,
+      );
+      expect(fromPersona).equals(
+        0,
+      );
+
+      const toPersona = await env.logo.logoPersonas(
+        env.logoId5, 
+        env.receiver.address,
+      );
+      expect(toPersona).equals(
+        3,
+      );
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithTransferFrom);
+
+      await expect(env.transferFromTx)
+        .emit(env.logo, "TransferWithLogoId")
+        .withArgs(
+          env.deployer.address,
+          env.receiver.address,
+          4,
+          env.logoId5,
+        );
+    });
+
+    describe("Reverts", () => {
+      it("Should revert when contract is paused", async () => {
+        const env = await prepEnvWithPauseOrUnpauseTrue(
+          await loadFixture(prepEnvWithSafeMintBatch)
+        );
+
+        await expect(
+          env.logo
+            .connect(env.deployer)
+            .transferFrom(
+              env.deployer.address,
+              env.receiver.address,
+              4
+            )
+        ).to.be.revertedWithCustomError(
+          env.logo,
+          "EnforcedPause()",
+        );
+      });
+    });
+  });
+
   describe("{setOperator} function", () => {
     it("Should make changes to the storage", async () => {
       const env = await loadFixture(prepEnvWithSetOperator);
@@ -714,6 +887,7 @@ async function prepEnv() {
     nonDeployer,
     backer,
     speaker,
+    receiver,
     ...otherSigners
   ] = await ethers.getSigners();
 
@@ -756,6 +930,7 @@ async function prepEnv() {
     nonDeployer,
     backer,
     speaker,
+    receiver,
 
     dLogosOwner,
     dLogosCore,
@@ -798,7 +973,7 @@ async function prepEnvWithSafeMintBatchByDLogosCore() {
 }
 
 async function prepEnvWithSafeMintBatch() {
-  const prevEnv = await loadFixture(prepEnv);  
+  const prevEnv = await loadFixture(prepEnv);
 
   const safeMintBatchTx = await prevEnv.logo
     .connect(prevEnv.nonDeployer)
@@ -819,9 +994,27 @@ async function prepEnvWithSafeMintBatch() {
     );
 
   return {
-    ...prevEnv,    
+    ...prevEnv,
 
     safeMintBatchTx,
+  };
+}
+
+async function prepEnvWithTransferFrom() {
+  const prevEnv = await loadFixture(prepEnvWithSafeMintBatch);
+
+  const transferFromTx = await prevEnv.logo
+    .connect(prevEnv.deployer)
+    .transferFrom(
+      prevEnv.deployer.address,
+      prevEnv.receiver.address,
+      4,
+    );
+
+  return {
+    ...prevEnv,
+
+    transferFromTx,
   };
 }
 
@@ -846,7 +1039,7 @@ async function prepEnvWithSetBaseURI() {
 
 async function prepEnvWithSetOperator() {
   const prevEnv = await loadFixture(prepEnv);
-  
+
   const setOperatorTx = await prevEnv.logo
     .connect(prevEnv.deployer)
     .setOperator(
@@ -862,13 +1055,13 @@ async function prepEnvWithSetOperator() {
 
 async function prepEnvWithSetTokenURI() {
   const prevEnv = await loadFixture(prepEnvWithSafeMintBatch);
-  
+
   await prevEnv.logo
     .connect(prevEnv.deployer)
     .setOperator(
       prevEnv.operator.address,
     );
-  
+
   const token1URI = "1.data.json";
   const setTokenURITx = await prevEnv.logo
     .connect(prevEnv.operator)
