@@ -75,6 +75,7 @@ interface IDLogosCore {
     event DateSet(address indexed _owner, uint256 indexed _scheduledAt);
     event MediaAssetSet(address indexed _owner, string indexed _mediaAssetURL);
     event RewardsDistributed(
+        uint256 indexed _logoId,
         address indexed _proposer, 
         address _splitForSpeaker, 
         address _splitForAffiliate, 
