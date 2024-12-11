@@ -1619,6 +1619,7 @@ describe("DLogosCore Testing", () => {
       await expect(env.distributeRewardsTx)
         .emit(env.dLogosCore, "RewardsDistributed")
         .withArgs(
+          1,
           env.nonDeployer.address,
           splitForSpeaker,
           splitForAffiliate,
