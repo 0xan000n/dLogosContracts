@@ -449,7 +449,7 @@ contract DLogosCore is
         sl.splitForAffiliate = addressVars[1];
         sl.splitForSpeaker = addressVars[2];
 
-        emit RewardsDistributed(msg.sender, addressVars[2], addressVars[1], totalRewards);
+        emit RewardsDistributed(_logoId, msg.sender, addressVars[2], addressVars[1], totalRewards);
     }
 
     /**

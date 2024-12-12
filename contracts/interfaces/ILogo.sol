@@ -14,11 +14,33 @@ interface ILogo {
         uint256 logoId;
         Persona persona;
     }
+
+    struct SafeMintParam {
+        address to;
+        uint256 firstTokenId;
+        uint256 tokenId;
+        uint256 lastTokenId;
+        uint256 logoId;
+        Persona persona;
+    }
     
     /// EVENTS
     event OperatorUpdated(address indexed _op);
-    event Minted(address indexed _to, uint256 indexed _tokenId, uint256 indexed _logoId, Persona _persona);
+    event Minted(
+        address indexed _to, 
+        uint256 _firstTokenId, 
+        uint256 indexed _tokenId, 
+        uint256 _lastTokenId, 
+        uint256 indexed _logoId, 
+        Persona _persona
+    );
     event BaseURISet(string _baseURI);
+    event TransferWithLogoId(
+        address indexed _from,
+        address indexed _to,
+        uint256 indexed _tokenId,
+        uint256 _logoId
+    );
 
     /// FUNCTIONS
     function tokenIdCounter() external view returns (uint256);
