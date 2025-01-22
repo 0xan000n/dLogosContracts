@@ -117,7 +117,7 @@ contract Logo is
 
         address dLogosCore = IDLogosOwner(dLogosOwner).dLogosCore();
         address dLogosBacker = IDLogosOwner(dLogosOwner).dLogosBacker();
-        if (!IDLogosCore(dLogosCore).getLogo(_logoId).status.isDistributed) revert LogoNotDistributed();
+        if (IDLogosCore(dLogosCore).getLogo(_logoId).splitForSpeaker == address(0)) revert LogoNotDistributed();
 
         uint256 _tokenIdCounter = tokenIdCounter;
         uint256 firstTokenId = _tokenIdCounter + 1;

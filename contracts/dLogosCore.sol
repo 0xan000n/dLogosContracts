@@ -136,12 +136,7 @@ contract DLogosCore is
                 splitForAffiliate: address(0),
                 splitForSpeaker: address(0),
                 rejectionDeadline: 0,
-                status: LogoStatus({
-                    isCrowdfunding: true,
-                    isUploaded: false,
-                    isDistributed: false,
-                    isRefunded: false
-                })
+                isRefunded: false
             });
         }
         emit LogoCreated(msg.sender, _logoId, block.timestamp);
@@ -158,7 +153,6 @@ contract DLogosCore is
     ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.proposer != msg.sender) revert Unauthorized();
-        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (_minimumPledge == 0) revert NotZero();
 
@@ -171,8 +165,8 @@ contract DLogosCore is
      */
     function refund(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        if (l.status.isDistributed) revert LogoDistributed();
-        if (l.status.isRefunded) revert LogoRefunded();
+        if (l.splitForSpeaker != address(0)) revert LogoDistributed();
+        if (l.isRefunded) revert LogoRefunded();
 
         (
             bool c1, // Case 1: Proposer can refund whenever.
@@ -185,7 +179,7 @@ contract DLogosCore is
             dLogosOwner
         );
         
-        logos[_logoId].status.isRefunded = true;
+        logos[_logoId].isRefunded = true;
 
         emit RefundInitiated(_logoId, c1, c2, c3, c4);
     }    
@@ -199,8 +193,8 @@ contract DLogosCore is
     ) external override whenNotPaused validLogoId(_param.logoId) {
         Logo memory l = logos[_param.logoId];
         if (l.proposer != msg.sender) revert Unauthorized();
-        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+        if (l.scheduledAt > 0) revert LogoScheduled();
         if (_param.speakers.length == 0 || _param.speakers.length >= 100) revert InvalidSpeakerNumber();
         if (
             _param.speakers.length != _param.fees.length ||
@@ -255,8 +249,8 @@ contract DLogosCore is
         // Speaker status should be either Accepted or Rejected.
         if (_speakerStatus != 1 && _speakerStatus != 2) revert InvalidSpeakerStatus();
         Logo memory l = logos[_logoId];
-        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+        if (l.scheduledAt > 0) revert LogoScheduled();
 
         Speaker[] memory speakers = logoSpeakers[_logoId];
         uint256 i;
@@ -284,8 +278,8 @@ contract DLogosCore is
         if (msg.sender != operator) revert CallerNotOperator();
         
         Logo memory l = logos[_logoId];
-        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+        if (l.scheduledAt > 0) revert LogoScheduled();
         if (
             _indexes.length != _addresses.length ||
             _addresses.length != _statuses.length
@@ -313,17 +307,18 @@ contract DLogosCore is
         return logoSpeakers[_logoId];
     }
 
+    // TODO do we accept multiple setDate() transactions?
     /**
      * @dev Set date for a conversation and close crowdfund.
      */
     function setDate(
         uint256 _logoId,
-        uint _scheduledAt
+        uint256 _scheduledAt
     ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.proposer != msg.sender) revert Unauthorized();
-        if (l.status.isUploaded) revert LogoUploaded();
-        if (l.status.isRefunded) revert LogoRefunded();
+        if (bytes(l.mediaAssetURL).length > 0) revert LogoUploaded();
+        if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (_scheduledAt <= block.timestamp) revert InvalidScheduleTime();
 
@@ -336,7 +331,8 @@ contract DLogosCore is
         }
         
         logos[_logoId].scheduledAt = _scheduledAt;
-        logos[_logoId].status.isCrowdfunding = false; // Close crowdfund.
+        // TODO check _scheduledAt > crowdfundEndAt case
+        logos[_logoId].crowdfundEndAt = _scheduledAt;
         emit DateSet(msg.sender, _scheduledAt);
     }
 
@@ -349,15 +345,14 @@ contract DLogosCore is
     ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory ml = logos[_logoId];
         if (ml.proposer != msg.sender) revert Unauthorized();
-        if (ml.status.isDistributed) revert LogoDistributed();
-        if (ml.status.isRefunded) revert LogoRefunded();
+        if (ml.splitForSpeaker != address(0)) revert LogoDistributed();
+        if (ml.isRefunded) revert LogoRefunded();
         if (ml.scheduledAt == 0) revert LogoNotScheduled();
-        // if (ml.scheduledAt > block.timestamp) revert ConvoNotHappened();
+        // if (ml.scheduledAt > block.timestamp) revert ConvoNotHappened(); // code for mainnet
         if (ml.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
-        sl.status.isUploaded = true;
         // Math overflow is not possible with the current timestamp
         unchecked {
             sl.rejectionDeadline = block.timestamp + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days;
@@ -374,9 +369,9 @@ contract DLogosCore is
         bool _mintNFT
     ) external override nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        if (l.status.isDistributed) revert LogoDistributed();
-        if (l.status.isRefunded) revert LogoRefunded();
-        if (!l.status.isUploaded) revert LogoNotUploaded();
+        if (l.splitForSpeaker != address(0)) revert LogoDistributed();
+        if (l.isRefunded) revert LogoRefunded();
+        if (bytes(l.mediaAssetURL).length == 0) revert LogoNotUploaded();
         if (block.timestamp < l.rejectionDeadline) revert RejectionDeadlineNotPassed();
 
         // Address array, 0 -> dLogosBacker, 1 -> split contract for referrers, 2 -> split contract for speakers
@@ -445,7 +440,6 @@ contract DLogosCore is
         }     
         
         Logo storage sl = logos[_logoId];
-        sl.status.isDistributed = true;
         sl.splitForAffiliate = addressVars[1];
         sl.splitForSpeaker = addressVars[2];
 

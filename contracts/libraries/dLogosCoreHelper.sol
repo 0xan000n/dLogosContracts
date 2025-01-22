@@ -224,7 +224,7 @@ library DLogosCoreHelper {
                         && 
                         block.timestamp > _logo.scheduledAt + IDLogosOwner(_dLogosOwner).rejectionWindow() * 1 days
                         && 
-                        !_logo.status.isUploaded;                    
+                        bytes(_logo.mediaAssetURL).length == 0;
                 }
 
                 if (!c3) {

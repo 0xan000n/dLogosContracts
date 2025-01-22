@@ -44,14 +44,7 @@ contract DLogosCoreMock {
         rejectionDeadline: 0,
         splitForSpeaker: address(0),
         splitForAffiliate: address(0),
-        status: IDLogosCore.LogoStatus(
-            {
-                isCrowdfunding: true,
-                isUploaded: false,
-                isDistributed: false,
-                isRefunded: false
-            }
-        )
+        isRefunded: false
     });
 
     constructor(address _dLogosOwner) {
@@ -66,7 +59,8 @@ contract DLogosCoreMock {
         logos[1] = l1;
         // 2nd logo is not crowdfunding
         IDLogosCore.Logo memory l2 = sl;
-        l2.status.isCrowdfunding = false;
+        // TODO update
+        // l2.status.isCrowdfunding = false;
         logos[2] = l2;
         // 3rd logo is not created
         IDLogosCore.Logo memory l3 = sl;
@@ -79,7 +73,8 @@ contract DLogosCoreMock {
         logos[4] = l4;
         // 5th logo is distributed
         IDLogosCore.Logo memory l5 = sl;
-        l5.status.isDistributed = true;
+        // TODO update
+        // l5.status.isDistributed = true;
         logos[5] = l5;
     }
     

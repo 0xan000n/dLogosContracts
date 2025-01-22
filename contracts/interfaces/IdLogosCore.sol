@@ -19,15 +19,6 @@ interface IDLogosCore {
         SpeakerStatus status;
     }
 
-    // isUploaded && isDistributed for a successful logo
-    // isUploaded && isRefunded for an uploaded and refunded logo
-    struct LogoStatus {
-        bool isCrowdfunding;
-        bool isUploaded;
-        bool isDistributed;
-        bool isRefunded;
-    }
-
     /// @notice All onchain information for a Logo.
     struct Logo {
         uint256 id;
@@ -42,7 +33,7 @@ interface IDLogosCore {
         uint256 rejectionDeadline;
         address splitForSpeaker; // PushSplit address for dlogos, community, speakers
         address splitForAffiliate; // PushSplit address for affiliates
-        LogoStatus status;
+        bool isRefunded;
     }
 
     struct SetSpeakersParam {
