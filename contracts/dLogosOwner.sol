@@ -123,8 +123,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     function setRejectionWindow(
         uint8 _rejectionWindow
     ) external override onlyOwner {
-        // TODO if it is zero, backers can not reject. consider mainnet
-        // Zero possible
+        // Zero possible only for testnet
         rejectionWindow = _rejectionWindow;
         emit RejectionWindowUpdated(_rejectionWindow);
     }
