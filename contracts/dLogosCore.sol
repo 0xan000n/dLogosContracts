@@ -103,22 +103,19 @@ contract DLogosCore is
     function createLogo(
         uint256 _proposerFee,
         string calldata _title,
-        uint8 _crowdfundNumberOfDays
+        uint8 _duration
     ) external override whenNotPaused returns (uint256) {
         if (bytes(_title).length == 0) revert EmptyString();
-        if (_crowdfundNumberOfDays > IDLogosOwner(dLogosOwner).maxDuration()) revert CrowdfundDurationExceeded();
-        uint256 communityFee = IDLogosOwner(dLogosOwner).communityFee();
-        uint256 dLogosFee = IDLogosOwner(dLogosOwner).dLogosFee();
-        
-        // Math overflow is not possible because {IDLogosOwner} sets fees
-        unchecked {
-            if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msg.sender)) {
-                if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
-            } else {
-                if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
-            }
-        }
 
+        IDLogosOwner dLogosOwnerContract = IDLogosOwner(dLogosOwner);
+
+        if (
+            _duration < dLogosOwnerContract.minDuration() || 
+            _duration > dLogosOwnerContract.maxDuration()
+        ) revert InvalidCrowdfundDuration();
+
+        _validateFees(msg.sender, _proposerFee, dLogosOwnerContract);
+        
         uint256 _logoId = logoId;
 
         // Math overflow is not possible with the current timestamp
@@ -132,7 +129,8 @@ contract DLogosCore is
                 mediaAssetURL: "",
                 minimumPledge: 10000000000000, // 0.00001 ETH
                 crowdfundStartAt: block.timestamp,
-                crowdfundEndAt: block.timestamp + _crowdfundNumberOfDays * 1 days,
+                duration: _duration,
+                crowdfundEndAt: block.timestamp + _duration * 1 days,
                 splitForAffiliate: address(0),
                 splitForSpeaker: address(0),
                 rejectionDeadline: 0,
@@ -307,7 +305,6 @@ contract DLogosCore is
         return logoSpeakers[_logoId];
     }
 
-    // TODO do we accept multiple setDate() transactions?
     /**
      * @dev Set date for a conversation and close crowdfund.
      */
@@ -320,7 +317,10 @@ contract DLogosCore is
         if (bytes(l.mediaAssetURL).length > 0) revert LogoUploaded();
         if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
-        if (_scheduledAt <= block.timestamp) revert InvalidScheduleTime();
+        if (
+            _scheduledAt <= block.timestamp || 
+            _scheduledAt > l.crowdfundStartAt + l.duration * 1 days
+        ) revert InvalidScheduleTime();
 
         Speaker[] memory speakers = logoSpeakers[_logoId];
         // Make sure the Logo has more than one speaker.
@@ -331,7 +331,6 @@ contract DLogosCore is
         }
         
         logos[_logoId].scheduledAt = _scheduledAt;
-        // TODO check _scheduledAt > crowdfundEndAt case
         logos[_logoId].crowdfundEndAt = _scheduledAt;
         emit DateSet(msg.sender, _scheduledAt);
     }
@@ -467,5 +466,23 @@ contract DLogosCore is
 
         operator = _operator;
         emit OperatorUpdated(_operator);
+    }
+
+    function _validateFees(
+        address _proposer,
+        uint256 _proposerFee,
+        IDLogosOwner _dLogosOwnerContract
+    ) private view {
+        uint256 communityFee = _dLogosOwnerContract.communityFee();
+        uint256 dLogosFee = _dLogosOwnerContract.dLogosFee();
+        
+        // Math overflow is not possible because {IDLogosOwner} sets fees
+        unchecked {
+            if (_dLogosOwnerContract.isZeroFeeProposer(_proposer)) {
+                if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+            } else {
+                if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+            }
+        }
     }
 }

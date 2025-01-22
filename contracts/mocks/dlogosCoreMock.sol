@@ -40,6 +40,7 @@ contract DLogosCoreMock {
         scheduledAt: 0,
         minimumPledge: 10000000000000, // 0.00001 ETH
         crowdfundStartAt: block.timestamp,
+        duration: 40,
         crowdfundEndAt: block.timestamp + 40 * 1 days,
         rejectionDeadline: 0,
         splitForSpeaker: address(0),
@@ -59,7 +60,7 @@ contract DLogosCoreMock {
         logos[1] = l1;
         // 2nd logo is not crowdfunding
         IDLogosCore.Logo memory l2 = sl;
-        // TODO update
+        // TODO update for unit testing
         // l2.status.isCrowdfunding = false;
         logos[2] = l2;
         // 3rd logo is not created
@@ -73,7 +74,7 @@ contract DLogosCoreMock {
         logos[4] = l4;
         // 5th logo is distributed
         IDLogosCore.Logo memory l5 = sl;
-        // TODO update
+        // TODO update for unit testing
         // l5.status.isDistributed = true;
         logos[5] = l5;
     }

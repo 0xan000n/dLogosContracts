@@ -33,6 +33,7 @@ interface IDLogosCore {
         uint256 rejectionDeadline;
         address splitForSpeaker; // PushSplit address for dlogos, community, speakers
         address splitForAffiliate; // PushSplit address for affiliates
+        uint8 duration;
         bool isRefunded;
     }
 

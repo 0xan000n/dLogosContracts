@@ -17,7 +17,7 @@ error InvalidLogoId();
 
 error InvalidMaxDuration();
 
-error CrowdfundDurationExceeded();
+error InvalidCrowdfundDuration();
 
 error InvalidRejectThreshold();
 

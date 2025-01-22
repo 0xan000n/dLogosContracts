@@ -22,6 +22,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     uint256 public override communityFee; // Community fee
     uint256 public override affiliateFee; // Affiliate fee
     uint32 public override rejectThreshold; // Backer rejected funds threshold
+    uint8 public override minDuration; // Min crowdfunding duration
     uint8 public override maxDuration; // Max crowdfunding duration
     uint8 public override rejectionWindow; // Reject deadline in days
 
@@ -44,6 +45,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         communityFee = 1e5; // 10%
         affiliateFee = 5 * 1e4; // 5%
         rejectThreshold = 5 * 1e5; // 50%
+        minDuration = 3; // 3 days
         maxDuration = 60; // 60 days
         rejectionWindow = 7; // 7 days
     }
@@ -103,6 +105,11 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
 
         rejectThreshold = _rejectThreshold;
         emit RejectThresholdUpdated(rejectThreshold);
+    }
+
+    function setMinDuration(uint8 _minDuration) external override onlyOwner {
+        minDuration = _minDuration;
+        emit MinDurationUpdated(_minDuration);
     }
 
     function setMaxDuration(uint8 _maxDuration) external override onlyOwner {
