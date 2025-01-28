@@ -214,10 +214,18 @@ library DLogosCoreHelper {
         c1 = _logo.proposer == msg.sender;
         if (!c1) {
             // Case 2: Crowdfund end date reached and not distributed.
+
+            // TODO 5: Can we say "The logo deadline reached and not distributed."?
+            // Shiro's logo deadline from TODO 2 is Feb 10 {crowdfundStartAt + duration * 1 days}.
+            // Shiro's logo from TODO 2 will be eligible for a refund from Feb 10.
             c2 = block.timestamp > _logo.crowdfundEndAt;
             if (!c2) {
                 // Case 3: >7 days have passed since schedule date and no asset uploaded.
                 // Math overflow is not possible with the current timestamp
+
+                // TODO 3: Why do we use {rejectionWindow} here that we used for {rejectionDeadline} calculation? Are these time windows originally the same?
+
+                // TODO 4: If this calculation is correct, Shiro's logo from TODO 2 will be eligible for a refund from Jan 27 to Feb 8.
                 unchecked {
                     c3 = 
                         _logo.scheduledAt != 0 
@@ -232,10 +240,13 @@ library DLogosCoreHelper {
                     address dLogosBacker = IDLogosOwner(_dLogosOwner).dLogosBacker();
                     uint256 logoRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
                     uint256 logoRejectedFunds = IDLogosBacker(dLogosBacker).logoRejectedFunds(_logoId);
-                    c4 = 
-                        logoRejectedFunds * PERCENTAGE_SCALE / logoRewards
-                        > 
-                        IDLogosOwner(_dLogosOwner).rejectThreshold();
+
+                    if (logoRewards > 0) {
+                        c4 = 
+                            logoRejectedFunds * PERCENTAGE_SCALE / logoRewards
+                            > 
+                            IDLogosOwner(_dLogosOwner).rejectThreshold();
+                    }
                     if (!c4) {
                         revert NoRefundConditionsMet();
                     }

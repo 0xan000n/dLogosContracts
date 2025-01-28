@@ -348,12 +348,23 @@ contract DLogosCore is
         if (ml.isRefunded) revert LogoRefunded();
         if (ml.scheduledAt == 0) revert LogoNotScheduled();
         // if (ml.scheduledAt > block.timestamp) revert ConvoNotHappened(); // code for mainnet
-        if (ml.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+
+        // TODO 1: need to check with ankit again
+        if (ml.crowdfundStartAt + ml.duration * 1 days < block.timestamp) revert CrowdfundEnded();
         
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
         // Math overflow is not possible with the current timestamp
         unchecked {
+
+            // TODO 2: Shiro created his logo on January 1 and set {duration} to 40 days. He scheduled a conversation on January 20. 
+            // He called the {setMediaAsset} method on February 8 (2 days before the logo deadline). 
+            // Assume {rejectionWindow} is set to the default 7 days. 
+            // In this case, the {rejectionDeadline} will be February 15. 
+            // Backers can reject the logo even after the 40-day period has passed (Shiro intended the logo to last no longer than 40 days), 
+            // and furthermore, the logo can be distributed (if distribution conditions are met) after February 15. 
+            // Is this scenario acceptable?
+
             sl.rejectionDeadline = block.timestamp + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days;
         }
 
