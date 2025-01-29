@@ -349,17 +349,6 @@ contract DLogosCore is
         if (ml.scheduledAt == 0) revert LogoNotScheduled();
         // if (ml.scheduledAt > block.timestamp) revert ConvoNotHappened(); // code for mainnet
 
-        // TODO 1: Do we still need to perform this check?
-        // Notes from shiro: 
-        // Assume x = {crowdfundStartAt + duration * 1 days}
-        // - We set {scheduledAt} to a value less than x,
-        //   meaning logos can be scheduled only one day before x. 
-        //   In that case, the logo's asset must be uploaded within a day. Is it correct?
-        // - Checking the current timestamp against x is necessary only in {setDate} function
-        //   since it marks the end of crowdfunding period (a process where backers make pledges)
-
-        // if (ml.crowdfundStartAt + ml.duration * 1 days < block.timestamp) revert CrowdfundEnded();
-
         if (ml.scheduledAt + IDLogosOwner(dLogosOwner).uploadWindow() * 1 days < block.timestamp) revert UploadDeadlinePassed(); 
         
         Logo storage sl = logos[_logoId];

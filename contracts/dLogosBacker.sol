@@ -109,7 +109,7 @@ contract DLogosBacker is
     function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused {
         IDLogosCore.Logo memory l = _getValidLogo(_logoId);
         if (
-            (l.scheduledAt != 0 && !l.isRefunded) ||
+            (l.scheduledAt > 0 && !l.isRefunded) ||
             l.splitForSpeaker != address(0)
         ) revert LogoFundsCannotBeWithdrawn();
 

@@ -213,22 +213,22 @@ library DLogosCoreHelper {
         // Case 1: Proposer can refund whenever.
         c1 = _logo.proposer == msg.sender;
         if (!c1) {
-            // Case 2: The crowdfund duration has passed and not distributed.
+            uint8 uploadWindow = IDLogosOwner(_dLogosOwner).uploadWindow();
+            uint8 rejectionWindow = IDLogosOwner(_dLogosOwner).rejectionWindow();
 
-            // TODO 2: Do we still need to perform this check?
-            // Notes from Shiro: 
-            // - We may need change the C2 check if TODO 1 from the core contract is resolved
-            //   c2 = _logo.crowdfundStartAt + (duration + uploadWindw + rejectionWindow) * 1 days < block.timestamp && _logo.splitForSpeaker == address(0);
-            
-            c2 = _logo.crowdfundStartAt + _logo.duration * 1 days < block.timestamp && _logo.splitForSpeaker == address(0);
+            // Case 2: The crowdfund duration has passed and not distributed.
+            c2 = 
+                _logo.crowdfundStartAt + (_logo.duration + uploadWindow + rejectionWindow) * 1 days < block.timestamp
+                && 
+                _logo.splitForSpeaker == address(0);            
             if (!c2) {
                 // Case 3: The upload window has passed since the schedule date and no asset has been uploaded.
                 // Math overflow is not possible with the current timestamp
                 unchecked {
                     c3 = 
-                        _logo.scheduledAt != 0 
+                        _logo.scheduledAt > 0 
                         && 
-                        block.timestamp > _logo.scheduledAt + IDLogosOwner(_dLogosOwner).uploadWindow() * 1 days
+                        block.timestamp > _logo.scheduledAt + uploadWindow * 1 days
                         && 
                         bytes(_logo.mediaAssetURL).length == 0;
                 }
