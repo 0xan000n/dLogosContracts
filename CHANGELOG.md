@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - removed notZeroAddress from DLogosCore
 - removed toggleCrowdfund() function from DLogosCore
 - moved refund conditions logic to the DLogosCoreHelper library
+- updated the definition of crowdfund duration to represent the period during which backers can make a pledge
+- allowed backers to pledge even after the logo has been scheduled
+- removed isCrowdfunding, isUploaded, isDistributed states from the logo structure
+- updated C2 and C3 in the refund condition check
 ### Added
 - logoRewards variable to avoid loops in DLogos
 - logoRejectedFunds variable to avoid loops in DLogos
@@ -32,7 +36,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - DLogosCore, DLogosOwner, DLogosBacker, DLogosSplitsHelper
 - rename DLogosSplitsHelper
 - setStatusForSpeakers() function in DLogosCore
-
+- uploadWindow constraint to the setMediaAsset function
 ## [2.0.1] - 2024-06-03
 ### Added
 - hardhat env
