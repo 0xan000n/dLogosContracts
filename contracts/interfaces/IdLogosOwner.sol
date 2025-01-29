@@ -15,6 +15,7 @@ interface IDLogosOwner {
     event MinDurationUpdated(uint8 indexed _minDuration);
     event MaxDurationUpdated(uint8 indexed _maxDuration);
     event RejectionWindowUpdated(uint8 indexed _rejectionWindow);
+    event UploadWindowUpdated(uint8 indexed _uploadWindow);
     event ZeroFeeProposersUpdated(address[] _proposers, bool[] _statuses);
     
     /// FUNCTIONS
@@ -30,6 +31,7 @@ interface IDLogosOwner {
     function minDuration() external view returns (uint8);
     function maxDuration() external view returns (uint8);
     function rejectionWindow() external view returns (uint8);
+    function uploadWindow() external view returns (uint8);
     function setDLogosBacker(address) external;
     function setDLogosCore(address) external;
     function setLogoNFT(address) external;
@@ -37,6 +39,7 @@ interface IDLogosOwner {
     function setMinDuration(uint8) external;
     function setMaxDuration(uint8) external;
     function setRejectionWindow(uint8) external;
+    function setUploadWindow(uint8) external;
     function setDLogosAddress(address) external;
     function setCommunityAddress(address) external;
     function setDLogosFee(uint256) external;

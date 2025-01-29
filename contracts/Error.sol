@@ -91,3 +91,5 @@ error CallerNotOperator();
 error IndexOverflow();
 
 error LogoScheduled();
+
+error UploadDeadlinePassed();

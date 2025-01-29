@@ -25,6 +25,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     uint8 public override minDuration; // Min crowdfunding duration
     uint8 public override maxDuration; // Max crowdfunding duration
     uint8 public override rejectionWindow; // Reject deadline in days
+    uint8 public override uploadWindow; // Upload deadline in days
 
     EnumerableSet.AddressSet private _zeroFeeProposers; // List of proposers for whom the dLogosFee is waived
 
@@ -48,6 +49,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         minDuration = 3; // 3 days
         maxDuration = 60; // 60 days
         rejectionWindow = 7; // 7 days
+        uploadWindow = 7; // 7 days
     }
 
     /// MODIFIERS
@@ -126,6 +128,14 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         // Zero possible only for testnet
         rejectionWindow = _rejectionWindow;
         emit RejectionWindowUpdated(_rejectionWindow);
+    }
+
+    function setUploadWindow(
+        uint8 _uploadWindow
+    ) external override onlyOwner {
+        // Zero possible only for testnet
+        uploadWindow = _uploadWindow;
+        emit UploadWindowUpdated(_uploadWindow);
     }
 
     function setDLogosAddress(

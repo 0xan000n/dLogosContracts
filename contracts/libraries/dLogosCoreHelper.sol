@@ -213,24 +213,22 @@ library DLogosCoreHelper {
         // Case 1: Proposer can refund whenever.
         c1 = _logo.proposer == msg.sender;
         if (!c1) {
-            // Case 2: Crowdfund end date reached and not distributed.
+            // Case 2: The crowdfund duration has passed and not distributed.
 
-            // TODO 5: Can we say "The logo deadline reached and not distributed."?
-            // Shiro's logo deadline from TODO 2 is Feb 10 {crowdfundStartAt + duration * 1 days}.
-            // Shiro's logo from TODO 2 will be eligible for a refund from Feb 10.
-            c2 = block.timestamp > _logo.crowdfundEndAt;
+            // TODO 2: Do we still need to perform this check?
+            // Notes from Shiro: 
+            // - We may need change the C2 check if TODO 1 from the core contract is resolved
+            //   c2 = _logo.crowdfundStartAt + (duration + uploadWindw + rejectionWindow) * 1 days < block.timestamp && _logo.splitForSpeaker == address(0);
+            
+            c2 = _logo.crowdfundStartAt + _logo.duration * 1 days < block.timestamp && _logo.splitForSpeaker == address(0);
             if (!c2) {
-                // Case 3: >7 days have passed since schedule date and no asset uploaded.
+                // Case 3: The upload window has passed since the schedule date and no asset has been uploaded.
                 // Math overflow is not possible with the current timestamp
-
-                // TODO 3: Why do we use {rejectionWindow} here that we used for {rejectionDeadline} calculation? Are these time windows originally the same?
-
-                // TODO 4: If this calculation is correct, Shiro's logo from TODO 2 will be eligible for a refund from Jan 27 to Feb 8.
                 unchecked {
                     c3 = 
                         _logo.scheduledAt != 0 
                         && 
-                        block.timestamp > _logo.scheduledAt + IDLogosOwner(_dLogosOwner).rejectionWindow() * 1 days
+                        block.timestamp > _logo.scheduledAt + IDLogosOwner(_dLogosOwner).uploadWindow() * 1 days
                         && 
                         bytes(_logo.mediaAssetURL).length == 0;
                 }
