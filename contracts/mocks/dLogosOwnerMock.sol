@@ -85,6 +85,10 @@ contract DLogosOwnerMock {
         return 7;
     }
 
+    function uploadWindow() external pure returns (uint256) {
+        return 7;
+    }
+
     function affiliateFee() external pure returns (uint256) {
         return 5 * 1e4;
     }

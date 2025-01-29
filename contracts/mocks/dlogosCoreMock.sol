@@ -54,14 +54,15 @@ contract DLogosCoreMock {
     }
 
     function init() external {
+        // these fake logos are used for backer contract testing
+        
         // 1st logo is default
         IDLogosCore.Logo memory l1 = sl;
         l1.rejectionDeadline = block.timestamp + 7 days;
         logos[1] = l1;
-        // 2nd logo is not crowdfunding
+        // 2nd logo is scheduled
         IDLogosCore.Logo memory l2 = sl;
-        // TODO update for unit testing
-        // l2.status.isCrowdfunding = false;
+        l2.crowdfundEndAt = 0;
         logos[2] = l2;
         // 3rd logo is not created
         IDLogosCore.Logo memory l3 = sl;
@@ -70,12 +71,12 @@ contract DLogosCoreMock {
         // 4th logo is uploaded and not refunded
         IDLogosCore.Logo memory l4 = sl;
         l4.scheduledAt = 12345678; // dummy timestamp
-        l4.mediaAssetURL = "http://x.com/dlogos-xyz-1";
+        // l4.mediaAssetURL = "http://x.com/dlogos-xyz-1";
         logos[4] = l4;
         // 5th logo is distributed
         IDLogosCore.Logo memory l5 = sl;
-        // TODO update for unit testing
         // l5.status.isDistributed = true;
+        l5.splitForSpeaker = 0xaDC87646f736d6A82e9a6539cddC488b2aA07f38; // random address
         logos[5] = l5;
     }
     

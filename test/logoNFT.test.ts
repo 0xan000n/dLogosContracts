@@ -72,7 +72,7 @@ describe("Logo NFT Tests", () => {
       );
       expect(
         await env.logo.logoPersonas(
-          env.logoId, 
+          env.logoId,
           env.token1Recipient,
         )
       ).equals(
@@ -91,7 +91,7 @@ describe("Logo NFT Tests", () => {
       );
       expect(
         await env.logo.logoPersonas(
-          env.logoId, 
+          env.logoId,
           env.token2Recipient,
         )
       ).equals(
@@ -110,7 +110,7 @@ describe("Logo NFT Tests", () => {
       );
       expect(
         await env.logo.logoPersonas(
-          env.logoId, 
+          env.logoId,
           env.token3Recipient,
         )
       ).equals(
@@ -271,7 +271,7 @@ describe("Logo NFT Tests", () => {
       );
       expect(
         await env.logo.logoPersonas(
-          env.logoId5, 
+          env.logoId5,
           env.l5Backer0,
         )
       ).equals(
@@ -290,7 +290,7 @@ describe("Logo NFT Tests", () => {
       );
       expect(
         await env.logo.logoPersonas(
-          env.logoId5, 
+          env.logoId5,
           env.l5Backer1,
         )
       ).equals(
@@ -309,7 +309,7 @@ describe("Logo NFT Tests", () => {
       );
       expect(
         await env.logo.logoPersonas(
-          env.logoId5, 
+          env.logoId5,
           env.l5Speaker,
         )
       ).equals(
@@ -328,7 +328,7 @@ describe("Logo NFT Tests", () => {
       );
       expect(
         await env.logo.logoPersonas(
-          env.logoId5, 
+          env.logoId5,
           env.l5Proposer,
         )
       ).equals(
@@ -659,7 +659,7 @@ describe("Logo NFT Tests", () => {
       );
 
       const fromPersona = await env.logo.logoPersonas(
-        env.logoId5, 
+        env.logoId5,
         env.deployer.address,
       );
       expect(fromPersona).equals(
@@ -667,7 +667,7 @@ describe("Logo NFT Tests", () => {
       );
 
       const toPersona = await env.logo.logoPersonas(
-        env.logoId5, 
+        env.logoId5,
         env.receiver.address,
       );
       expect(toPersona).equals(

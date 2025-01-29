@@ -2,7 +2,7 @@ import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 
-import { 
+import {
   ZERO_ADDRESS,
   PERCENTAGE_SCALE,
   MAX_AFFILIATE_FEE,
@@ -36,10 +36,16 @@ describe("DLogosOwner Tests", () => {
     expect(await env.dLogosOwner.rejectThreshold()).equals(
       500000
     );
+    expect(await env.dLogosOwner.minDuration()).equals(
+      3
+    );
     expect(await env.dLogosOwner.maxDuration()).equals(
       60
     );
     expect(await env.dLogosOwner.rejectionWindow()).equals(
+      7
+    );
+    expect(await env.dLogosOwner.uploadWindow()).equals(
       7
     );
   });
@@ -133,6 +139,38 @@ describe("DLogosOwner Tests", () => {
     });
   });
 
+  describe("{setMinDuration} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithMinDuration);
+
+      expect(await env.dLogosOwner.minDuration()).equals(env.minDuration);
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithMinDuration);
+
+      await expect(env.setMinDurationTx)
+        .emit(env.dLogosOwner, "MinDurationUpdated")
+        .withArgs(env.minDuration);
+    });
+
+    describe("Reverts", () => {
+      it("Should revert when not allowed user", async () => {
+        const env = await loadFixture(prepEnvWithMinDuration);
+
+        // random user
+        await expect(
+          env.dLogosOwner
+            .connect(env.alice)
+            .setMinDuration(0)
+        ).to.be.revertedWithCustomError(
+          env.dLogosOwner,
+          "OwnableUnauthorizedAccount"
+        ).withArgs(env.alice.address);
+      });
+    });
+  });
+
   describe("{setMaxDuration} function", () => {
     it("Should make changes to the storage", async () => {
       const env = await loadFixture(prepEnvWithMaxDuration);
@@ -213,6 +251,38 @@ describe("DLogosOwner Tests", () => {
           env.dLogosOwner
             .connect(env.alice)
             .setRejectionWindow(0)
+        ).to.be.revertedWithCustomError(
+          env.dLogosOwner,
+          "OwnableUnauthorizedAccount"
+        ).withArgs(env.alice.address);
+      });
+    });
+  });
+
+  describe("{setUploadWindow} function", () => {
+    it("Should make changes to the storage", async () => {
+      const env = await loadFixture(prepEnvWithUploadWindow);
+
+      expect(await env.dLogosOwner.uploadWindow()).equals(env.uploadWindow);
+    });
+
+    it("Should emit event", async () => {
+      const env = await loadFixture(prepEnvWithUploadWindow);
+
+      await expect(env.setUploadWindowTx)
+        .emit(env.dLogosOwner, "UploadWindowUpdated")
+        .withArgs(env.uploadWindow);
+    });
+
+    describe("Reverts", () => {
+      it("Should revert when not allowed user", async () => {
+        const env = await loadFixture(prepEnvWithUploadWindow);
+
+        // random user
+        await expect(
+          env.dLogosOwner
+            .connect(env.alice)
+            .setUploadWindow(0)
         ).to.be.revertedWithCustomError(
           env.dLogosOwner,
           "OwnableUnauthorizedAccount"
@@ -388,7 +458,7 @@ describe("DLogosOwner Tests", () => {
 
       it("Should revert when param + {dLogosFee} > {PERCENTAGE_SCALE}", async () => {
         const env = await loadFixture(prepEnvWithCommunityFee);
-        
+
         await expect(
           env.dLogosOwner
             .connect(env.deployer)
@@ -433,7 +503,7 @@ describe("DLogosOwner Tests", () => {
 
       it("Should revert when param > {MAX_AFFILIATE_FEE}", async () => {
         const env = await loadFixture(prepEnvWithAffiliateFee);
-        
+
         await expect(
           env.dLogosOwner
             .connect(env.deployer)
@@ -485,7 +555,7 @@ describe("DLogosOwner Tests", () => {
 
       it("Should revert when params' length mismtach", async () => {
         const env = await loadFixture(prepEnvWithZeroFeeProposers);
-        
+
         await expect(
           env.dLogosOwner
             .connect(env.deployer)
@@ -525,7 +595,7 @@ async function prepEnv() {
     alice,
     proposer1Address: proposer1.address,
     proposer2Address: proposer2.address,
-    
+
     dLogosAddress,
     communityAddress,
 
@@ -548,6 +618,22 @@ async function prepEnvWithRejectThreshold() {
 
     rejectThreshold,
     setRejectThresholdTx,
+  };
+};
+
+async function prepEnvWithMinDuration() {
+  const prevEnv = await loadFixture(prepEnvWithRejectThreshold);
+
+  const minDuration = 3;
+  const setMinDurationTx = await prevEnv.dLogosOwner
+    .connect(prevEnv.deployer)
+    .setMinDuration(minDuration);
+
+  return {
+    ...prevEnv,
+
+    minDuration,
+    setMinDurationTx,
   };
 };
 
@@ -583,8 +669,24 @@ async function prepEnvWithRejectionWindow() {
   };
 };
 
-async function prepEnvWithDLogosAddress() {
+async function prepEnvWithUploadWindow() {
   const prevEnv = await loadFixture(prepEnvWithRejectionWindow);
+
+  const uploadWindow = 6;
+  const setUploadWindowTx = await prevEnv.dLogosOwner
+    .connect(prevEnv.deployer)
+    .setUploadWindow(uploadWindow);
+
+  return {
+    ...prevEnv,
+
+    uploadWindow,
+    setUploadWindowTx,
+  };
+};
+
+async function prepEnvWithDLogosAddress() {
+  const prevEnv = await loadFixture(prepEnvWithUploadWindow);
 
   const dLogosAddress = "0xA272896E12F741c9E82C67eC702BBFF95D4004cD";
   const setDLogosAddressTx = await prevEnv.dLogosOwner
