@@ -78,6 +78,10 @@ contract DLogosCoreMock {
         // l5.status.isDistributed = true;
         l5.splitForSpeaker = 0xaDC87646f736d6A82e9a6539cddC488b2aA07f38; // random address
         logos[5] = l5;
+        // 6th logo is default
+        IDLogosCore.Logo memory l6 = sl;
+        l6.isRefunded = true;
+        logos[6] = l6;
     }
     
     function getLogo(uint256 _logoId) external view returns (IDLogosCore.Logo memory l) {

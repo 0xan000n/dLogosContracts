@@ -150,7 +150,9 @@ contract DLogosCore is
         uint256 _minimumPledge
     ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
+
         if (l.proposer != msg.sender) revert Unauthorized();
+        if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (_minimumPledge == 0) revert NotZero();
 
@@ -190,7 +192,9 @@ contract DLogosCore is
         SetSpeakersParam calldata _param
     ) external override whenNotPaused validLogoId(_param.logoId) {
         Logo memory l = logos[_param.logoId];
+
         if (l.proposer != msg.sender) revert Unauthorized();
+        if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (l.scheduledAt > 0) revert LogoScheduled();
         if (_param.speakers.length == 0 || _param.speakers.length >= 100) revert InvalidSpeakerNumber();
@@ -246,7 +250,9 @@ contract DLogosCore is
     ) external override whenNotPaused validLogoId(_logoId) {
         // Speaker status should be either Accepted or Rejected.
         if (_speakerStatus != 1 && _speakerStatus != 2) revert InvalidSpeakerStatus();
+        
         Logo memory l = logos[_logoId];
+        if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (l.scheduledAt > 0) revert LogoScheduled();
 
@@ -276,6 +282,7 @@ contract DLogosCore is
         if (msg.sender != operator) revert CallerNotOperator();
         
         Logo memory l = logos[_logoId];
+        if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (l.scheduledAt > 0) revert LogoScheduled();
         if (

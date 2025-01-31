@@ -442,6 +442,22 @@ describe("DLogosCore Testing", () => {
         );
       });
 
+      it("Should revert when logo is refunded", async () => {
+        const env = await loadFixture(prepEnvWithRefundCond1);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setMinimumPledge(
+              1,
+              0,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoRefunded()"
+        );
+      });
+
       it("Should revert when logo crowdfund deadline is passed", async () => {
         const env = await loadFixture(prepEnvWithSetMinimumPledge);
 
@@ -786,6 +802,19 @@ describe("DLogosCore Testing", () => {
         );
       });
 
+      it("Should revert when logo is refunded", async () => {
+        const env = await loadFixture(prepEnvWithRefundCond1);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setSpeakers(dummyParam)
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoRefunded()"
+        );
+      });
+
       it("Should revert when logo crowdfund duration is passed", async () => {
         const env = await loadFixture(prepEnvWithSetSpeakers);
 
@@ -952,6 +981,22 @@ describe("DLogosCore Testing", () => {
         );
       });
 
+      it("Should revert when logo is refunded", async () => {
+        const env = await loadFixture(prepEnvWithRefundCond1);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.speaker1)
+            .setSpeakerStatus(
+              1,
+              1,
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoRefunded()"
+        );
+      });
+      
       it("Should revert when logo crowdfund deadline is passed", async () => {
         const env = await loadFixture(prepEnvWithSetSpeakerStatus);
 
@@ -1098,6 +1143,24 @@ describe("DLogosCore Testing", () => {
         );
       });
 
+      it("Should revert when logo is refunded", async () => {
+        const env = await loadFixture(prepEnvWithRefundCond1);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.deployer)
+            .setStatusForSpeakers(
+              1,
+              [],
+              [],
+              [],
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoRefunded()"
+        );
+      });
+      
       it("Should revert when logo crowdfund deadline is passed", async () => {
         const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
 
