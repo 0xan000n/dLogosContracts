@@ -288,6 +288,19 @@ describe("DLogosOwner Tests", () => {
           "OwnableUnauthorizedAccount"
         ).withArgs(env.alice.address);
       });
+
+      it("Should revert when param is zero", async () => {
+        const env = await loadFixture(prepEnvWithRejectionWindow);
+
+        await expect(
+          env.dLogosOwner
+            .connect(env.deployer)
+            .setUploadWindow(0)
+        ).to.be.revertedWithCustomError(
+          env.dLogosOwner,
+          "InvalidUploadWindow"
+        );
+      });
     });
   });
 

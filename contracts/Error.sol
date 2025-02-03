@@ -93,3 +93,5 @@ error IndexOverflow();
 error LogoScheduled();
 
 error UploadDeadlinePassed();
+
+error InvalidUploadWindow();

@@ -133,7 +133,8 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     function setUploadWindow(
         uint8 _uploadWindow
     ) external override onlyOwner {
-        // Zero possible only for testnet
+        if (_uploadWindow == 0) revert InvalidUploadWindow();
+        
         uploadWindow = _uploadWindow;
         emit UploadWindowUpdated(_uploadWindow);
     }
