@@ -5,7 +5,7 @@ This repository contains the smart contracts that implement the core logic of DL
 
 ## Purpose
 ### DLogosOwner contract
-- The centerpiece of the smart contract system, managing global constants such as rejection threshold, max duration, rejection window, team and community addresses, fee rates, and zero fee proposer addresses.
+- The centerpiece of the smart contract system, managing global constants such as rejection threshold, max duration, rejection window, upload window, team and community addresses, fee rates, and zero fee proposer addresses.
 ### DLogosCore contract
 - A playground for logo proposers and speakers to manage the entire process, from logo creation to distribution and refunds.
 ### DLogosBacker contract
