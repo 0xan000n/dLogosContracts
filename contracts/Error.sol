@@ -17,7 +17,7 @@ error InvalidLogoId();
 
 error InvalidMaxDuration();
 
-error CrowdfundDurationExceeded();
+error InvalidCrowdfundDuration();
 
 error InvalidRejectThreshold();
 
@@ -28,8 +28,6 @@ error LogoNotUploaded();
 error LogoDistributed();
 
 error LogoRefunded();
-
-error LogoNotCrowdfunding();
 
 error InsufficientFunds();
 
@@ -61,15 +59,14 @@ error NotAllSpeakersAccepted();
 
 error CrowdfundEnded();
 
-error CrowdfundClosed();
-
 error AffiliateRewardsExceeded();
 
-error InvalidRejectionWindow();
+// TODO might need for mainnet
+// error InvalidRejectionWindow();
 
 error RejectionDeadlineNotPassed();
 
-error RejectionDeadlinePassed();
+error LogoNotUploadedOrRejectionDeadlinePassed();
 
 error BackerAlreadyRejected();
 
@@ -92,3 +89,9 @@ error UndefinedPersona(address _addr, uint256 _logoId);
 error CallerNotOperator();
 
 error IndexOverflow();
+
+error LogoScheduled();
+
+error UploadDeadlinePassed();
+
+error InvalidUploadWindow();

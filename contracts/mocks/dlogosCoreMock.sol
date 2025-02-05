@@ -40,18 +40,12 @@ contract DLogosCoreMock {
         scheduledAt: 0,
         minimumPledge: 10000000000000, // 0.00001 ETH
         crowdfundStartAt: block.timestamp,
+        duration: 40,
         crowdfundEndAt: block.timestamp + 40 * 1 days,
         rejectionDeadline: 0,
         splitForSpeaker: address(0),
         splitForAffiliate: address(0),
-        status: IDLogosCore.LogoStatus(
-            {
-                isCrowdfunding: true,
-                isUploaded: false,
-                isDistributed: false,
-                isRefunded: false
-            }
-        )
+        isRefunded: false
     });
 
     constructor(address _dLogosOwner) {
@@ -60,13 +54,15 @@ contract DLogosCoreMock {
     }
 
     function init() external {
+        // these fake logos are used for backer contract testing
+        
         // 1st logo is default
         IDLogosCore.Logo memory l1 = sl;
         l1.rejectionDeadline = block.timestamp + 7 days;
         logos[1] = l1;
-        // 2nd logo is not crowdfunding
+        // 2nd logo is scheduled
         IDLogosCore.Logo memory l2 = sl;
-        l2.status.isCrowdfunding = false;
+        l2.crowdfundEndAt = 0;
         logos[2] = l2;
         // 3rd logo is not created
         IDLogosCore.Logo memory l3 = sl;
@@ -75,12 +71,17 @@ contract DLogosCoreMock {
         // 4th logo is uploaded and not refunded
         IDLogosCore.Logo memory l4 = sl;
         l4.scheduledAt = 12345678; // dummy timestamp
-        l4.mediaAssetURL = "http://x.com/dlogos-xyz-1";
+        // l4.mediaAssetURL = "http://x.com/dlogos-xyz-1";
         logos[4] = l4;
         // 5th logo is distributed
         IDLogosCore.Logo memory l5 = sl;
-        l5.status.isDistributed = true;
+        // l5.status.isDistributed = true;
+        l5.splitForSpeaker = 0xaDC87646f736d6A82e9a6539cddC488b2aA07f38; // random address
         logos[5] = l5;
+        // 6th logo is default
+        IDLogosCore.Logo memory l6 = sl;
+        l6.isRefunded = true;
+        logos[6] = l6;
     }
     
     function getLogo(uint256 _logoId) external view returns (IDLogosCore.Logo memory l) {

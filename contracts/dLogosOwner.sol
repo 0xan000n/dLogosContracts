@@ -22,8 +22,10 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     uint256 public override communityFee; // Community fee
     uint256 public override affiliateFee; // Affiliate fee
     uint32 public override rejectThreshold; // Backer rejected funds threshold
+    uint8 public override minDuration; // Min crowdfunding duration
     uint8 public override maxDuration; // Max crowdfunding duration
     uint8 public override rejectionWindow; // Reject deadline in days
+    uint8 public override uploadWindow; // Upload deadline in days
 
     EnumerableSet.AddressSet private _zeroFeeProposers; // List of proposers for whom the dLogosFee is waived
 
@@ -44,8 +46,10 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         communityFee = 1e5; // 10%
         affiliateFee = 5 * 1e4; // 5%
         rejectThreshold = 5 * 1e5; // 50%
+        minDuration = 3; // 3 days
         maxDuration = 60; // 60 days
         rejectionWindow = 7; // 7 days
+        uploadWindow = 7; // 7 days
     }
 
     /// MODIFIERS
@@ -105,6 +109,11 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         emit RejectThresholdUpdated(rejectThreshold);
     }
 
+    function setMinDuration(uint8 _minDuration) external override onlyOwner {
+        minDuration = _minDuration;
+        emit MinDurationUpdated(_minDuration);
+    }
+
     function setMaxDuration(uint8 _maxDuration) external override onlyOwner {
         if (_maxDuration == 0 || _maxDuration >= 100)
             revert InvalidMaxDuration();
@@ -116,9 +125,18 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     function setRejectionWindow(
         uint8 _rejectionWindow
     ) external override onlyOwner {
-        // Zero possible
+        // Zero possible only for testnet
         rejectionWindow = _rejectionWindow;
         emit RejectionWindowUpdated(_rejectionWindow);
+    }
+
+    function setUploadWindow(
+        uint8 _uploadWindow
+    ) external override onlyOwner {
+        if (_uploadWindow == 0) revert InvalidUploadWindow();
+        
+        uploadWindow = _uploadWindow;
+        emit UploadWindowUpdated(_uploadWindow);
     }
 
     function setDLogosAddress(

@@ -103,22 +103,19 @@ contract DLogosCore is
     function createLogo(
         uint256 _proposerFee,
         string calldata _title,
-        uint8 _crowdfundNumberOfDays
+        uint8 _duration
     ) external override whenNotPaused returns (uint256) {
         if (bytes(_title).length == 0) revert EmptyString();
-        if (_crowdfundNumberOfDays > IDLogosOwner(dLogosOwner).maxDuration()) revert CrowdfundDurationExceeded();
-        uint256 communityFee = IDLogosOwner(dLogosOwner).communityFee();
-        uint256 dLogosFee = IDLogosOwner(dLogosOwner).dLogosFee();
-        
-        // Math overflow is not possible because {IDLogosOwner} sets fees
-        unchecked {
-            if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msg.sender)) {
-                if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
-            } else {
-                if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
-            }
-        }
 
+        IDLogosOwner dLogosOwnerContract = IDLogosOwner(dLogosOwner);
+
+        if (
+            _duration < dLogosOwnerContract.minDuration() || 
+            _duration > dLogosOwnerContract.maxDuration()
+        ) revert InvalidCrowdfundDuration();
+
+        _validateFees(msg.sender, _proposerFee, dLogosOwnerContract);
+        
         uint256 _logoId = logoId;
 
         // Math overflow is not possible with the current timestamp
@@ -132,16 +129,12 @@ contract DLogosCore is
                 mediaAssetURL: "",
                 minimumPledge: 10000000000000, // 0.00001 ETH
                 crowdfundStartAt: block.timestamp,
-                crowdfundEndAt: block.timestamp + _crowdfundNumberOfDays * 1 days,
+                duration: _duration,
+                crowdfundEndAt: block.timestamp + _duration * 1 days,
                 splitForAffiliate: address(0),
                 splitForSpeaker: address(0),
                 rejectionDeadline: 0,
-                status: LogoStatus({
-                    isCrowdfunding: true,
-                    isUploaded: false,
-                    isDistributed: false,
-                    isRefunded: false
-                })
+                isRefunded: false
             });
         }
         emit LogoCreated(msg.sender, _logoId, block.timestamp);
@@ -157,8 +150,9 @@ contract DLogosCore is
         uint256 _minimumPledge
     ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
+
         if (l.proposer != msg.sender) revert Unauthorized();
-        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (_minimumPledge == 0) revert NotZero();
 
@@ -171,13 +165,13 @@ contract DLogosCore is
      */
     function refund(uint256 _logoId) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        if (l.status.isDistributed) revert LogoDistributed();
-        if (l.status.isRefunded) revert LogoRefunded();
+        if (l.splitForSpeaker != address(0)) revert LogoDistributed();
+        if (l.isRefunded) revert LogoRefunded();
 
         (
             bool c1, // Case 1: Proposer can refund whenever.
-            bool c2, // Case 2: Crowdfund end date reached and not distributed.
-            bool c3, // Case 3: >7 days have passed since schedule date and no asset uploaded.
+            bool c2, // Case 2: The crowdfund duration has passed and not distributed.
+            bool c3, // Case 3: The upload window has passed since the schedule date and no asset has been uploaded.
             bool c4  // Case 4: >50% of backer funds reject upload.
         ) = DLogosCoreHelper.getRefundConditions(
             _logoId,
@@ -185,7 +179,7 @@ contract DLogosCore is
             dLogosOwner
         );
         
-        logos[_logoId].status.isRefunded = true;
+        logos[_logoId].isRefunded = true;
 
         emit RefundInitiated(_logoId, c1, c2, c3, c4);
     }    
@@ -198,9 +192,11 @@ contract DLogosCore is
         SetSpeakersParam calldata _param
     ) external override whenNotPaused validLogoId(_param.logoId) {
         Logo memory l = logos[_param.logoId];
+
         if (l.proposer != msg.sender) revert Unauthorized();
-        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+        if (l.scheduledAt > 0) revert LogoScheduled();
         if (_param.speakers.length == 0 || _param.speakers.length >= 100) revert InvalidSpeakerNumber();
         if (
             _param.speakers.length != _param.fees.length ||
@@ -254,9 +250,11 @@ contract DLogosCore is
     ) external override whenNotPaused validLogoId(_logoId) {
         // Speaker status should be either Accepted or Rejected.
         if (_speakerStatus != 1 && _speakerStatus != 2) revert InvalidSpeakerStatus();
+        
         Logo memory l = logos[_logoId];
-        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+        if (l.scheduledAt > 0) revert LogoScheduled();
 
         Speaker[] memory speakers = logoSpeakers[_logoId];
         uint256 i;
@@ -284,8 +282,9 @@ contract DLogosCore is
         if (msg.sender != operator) revert CallerNotOperator();
         
         Logo memory l = logos[_logoId];
-        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+        if (l.scheduledAt > 0) revert LogoScheduled();
         if (
             _indexes.length != _addresses.length ||
             _addresses.length != _statuses.length
@@ -318,14 +317,17 @@ contract DLogosCore is
      */
     function setDate(
         uint256 _logoId,
-        uint _scheduledAt
+        uint256 _scheduledAt
     ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
         if (l.proposer != msg.sender) revert Unauthorized();
-        if (l.status.isUploaded) revert LogoUploaded();
-        if (l.status.isRefunded) revert LogoRefunded();
+        if (bytes(l.mediaAssetURL).length > 0) revert LogoUploaded();
+        if (l.isRefunded) revert LogoRefunded();
         if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
-        if (_scheduledAt <= block.timestamp) revert InvalidScheduleTime();
+        if (
+            _scheduledAt <= block.timestamp || 
+            _scheduledAt > l.crowdfundStartAt + l.duration * 1 days
+        ) revert InvalidScheduleTime();
 
         Speaker[] memory speakers = logoSpeakers[_logoId];
         // Make sure the Logo has more than one speaker.
@@ -336,7 +338,7 @@ contract DLogosCore is
         }
         
         logos[_logoId].scheduledAt = _scheduledAt;
-        logos[_logoId].status.isCrowdfunding = false; // Close crowdfund.
+        logos[_logoId].crowdfundEndAt = _scheduledAt;
         emit DateSet(msg.sender, _scheduledAt);
     }
 
@@ -349,15 +351,15 @@ contract DLogosCore is
     ) external override whenNotPaused validLogoId(_logoId) {
         Logo memory ml = logos[_logoId];
         if (ml.proposer != msg.sender) revert Unauthorized();
-        if (ml.status.isDistributed) revert LogoDistributed();
-        if (ml.status.isRefunded) revert LogoRefunded();
+        if (ml.splitForSpeaker != address(0)) revert LogoDistributed();
+        if (ml.isRefunded) revert LogoRefunded();
         if (ml.scheduledAt == 0) revert LogoNotScheduled();
-        // if (ml.scheduledAt > block.timestamp) revert ConvoNotHappened();
-        if (ml.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+        // if (ml.scheduledAt > block.timestamp) revert ConvoNotHappened(); // code for mainnet
+
+        if (ml.scheduledAt + IDLogosOwner(dLogosOwner).uploadWindow() * 1 days < block.timestamp) revert UploadDeadlinePassed(); 
         
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
-        sl.status.isUploaded = true;
         // Math overflow is not possible with the current timestamp
         unchecked {
             sl.rejectionDeadline = block.timestamp + IDLogosOwner(dLogosOwner).rejectionWindow() * 1 days;
@@ -374,9 +376,9 @@ contract DLogosCore is
         bool _mintNFT
     ) external override nonReentrant whenNotPaused validLogoId(_logoId) {
         Logo memory l = logos[_logoId];
-        if (l.status.isDistributed) revert LogoDistributed();
-        if (l.status.isRefunded) revert LogoRefunded();
-        if (!l.status.isUploaded) revert LogoNotUploaded();
+        if (l.splitForSpeaker != address(0)) revert LogoDistributed();
+        if (l.isRefunded) revert LogoRefunded();
+        if (bytes(l.mediaAssetURL).length == 0) revert LogoNotUploaded();
         if (block.timestamp < l.rejectionDeadline) revert RejectionDeadlineNotPassed();
 
         // Address array, 0 -> dLogosBacker, 1 -> split contract for referrers, 2 -> split contract for speakers
@@ -445,7 +447,6 @@ contract DLogosCore is
         }     
         
         Logo storage sl = logos[_logoId];
-        sl.status.isDistributed = true;
         sl.splitForAffiliate = addressVars[1];
         sl.splitForSpeaker = addressVars[2];
 
@@ -473,5 +474,23 @@ contract DLogosCore is
 
         operator = _operator;
         emit OperatorUpdated(_operator);
+    }
+
+    function _validateFees(
+        address _proposer,
+        uint256 _proposerFee,
+        IDLogosOwner _dLogosOwnerContract
+    ) private view {
+        uint256 communityFee = _dLogosOwnerContract.communityFee();
+        uint256 dLogosFee = _dLogosOwnerContract.dLogosFee();
+        
+        // Math overflow is not possible because {IDLogosOwner} sets fees
+        unchecked {
+            if (_dLogosOwnerContract.isZeroFeeProposer(_proposer)) {
+                if (_proposerFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+            } else {
+                if (_proposerFee + dLogosFee + communityFee > PERCENTAGE_SCALE) revert FeeExceeded();
+            }
+        }
     }
 }

@@ -5,7 +5,6 @@ import { expect } from "chai";
 import {
   ZERO_ADDRESS,
   BIGINT_1E14,
-  BIGINT_1E13,
   BIGINT_1E12,
   ONE_DAY,
 } from "./_helpers/constants";
@@ -139,7 +138,23 @@ describe("DLogosBacker Tests", () => {
         );
       });
 
-      it("Should revert when crowdfund is not happening", async () => {
+      it("Should revert when logo is refunded", async () => {
+        const env = await loadFixture(prepEnv);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.backer1)
+            .crowdfund(
+              6,
+              env.referrer1
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "LogoRefunded()"
+        );
+      });
+      
+      it("Should revert when crowdfund duration passed", async () => {
         const env = await loadFixture(prepEnvWithCrowdfund);
 
         await expect(
@@ -151,7 +166,7 @@ describe("DLogosBacker Tests", () => {
             )
         ).to.be.revertedWithCustomError(
           env.dLogosBacker,
-          "LogoNotCrowdfunding()"
+          "CrowdfundEnded()"
         );
       });
 
@@ -234,7 +249,7 @@ describe("DLogosBacker Tests", () => {
         );
       });
 
-      it("Should revert when logo is {isUploaded} and not {isRefunded}", async () => {
+      it("Should revert when logo is uploaded and not refunded", async () => {
         const env = await loadFixture(prepEnvWithWithdrawFunds);
 
         await expect(
@@ -249,7 +264,7 @@ describe("DLogosBacker Tests", () => {
         );
       });
 
-      it("Should revert when logo is {isDistributed}", async () => {
+      it("Should revert when logo is distributed", async () => {
         const env = await loadFixture(prepEnvWithWithdrawFunds);
 
         await expect(
@@ -336,6 +351,19 @@ describe("DLogosBacker Tests", () => {
         );
       });
 
+      it("Should revert when logo is refunded", async () => {
+        const env = await loadFixture(prepEnv);
+
+        await expect(
+          env.dLogosBacker
+            .connect(env.backer1)
+            .reject(6)
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "LogoRefunded()"
+        );
+      });
+      
       it("Should revert when logo rejection deadline passed", async () => {
         const env = await loadFixture(prepEnvWithReject);
 
@@ -345,7 +373,7 @@ describe("DLogosBacker Tests", () => {
             .reject(2)
         ).to.be.revertedWithCustomError(
           env.dLogosBacker,
-          "RejectionDeadlinePassed()"
+          "LogoNotUploadedOrRejectionDeadlinePassed()"
         );
       });
 
@@ -480,12 +508,12 @@ describe("DLogosBacker Tests", () => {
 
 async function prepEnv() {
   const [
-    deployer, 
-    nonDeployer, 
-    backer1, 
-    referrer1, 
-    backer2, 
-    referrer2, 
+    deployer,
+    nonDeployer,
+    backer1,
+    referrer1,
+    backer2,
+    referrer2,
     ...otherSigners
   ] = await ethers.getSigners();
 

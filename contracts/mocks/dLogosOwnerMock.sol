@@ -57,6 +57,10 @@ contract DLogosOwnerMock {
         zeroFeeProposers[_proposer] = _status;
     }
 
+    function minDuration() external pure returns (uint256) {
+        return 3;
+    }
+
     function maxDuration() external pure returns (uint256) {
         return 60;
     }
@@ -78,6 +82,10 @@ contract DLogosOwnerMock {
     }
 
     function rejectionWindow() external pure returns (uint256) {
+        return 7;
+    }
+
+    function uploadWindow() external pure returns (uint256) {
         return 7;
     }
 

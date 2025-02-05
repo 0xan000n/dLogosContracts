@@ -65,9 +65,10 @@ contract DLogosBacker is
     ) external override payable nonReentrant whenNotPaused {
         IDLogosCore.Logo memory l = _getValidLogo(_logoId);
         
-        if (!l.status.isCrowdfunding) revert LogoNotCrowdfunding();
+        if (l.isRefunded) revert LogoRefunded();
+        if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
         if (msg.value < l.minimumPledge) revert InsufficientFunds();
-        
+
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
 
@@ -109,8 +110,8 @@ contract DLogosBacker is
     function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused {
         IDLogosCore.Logo memory l = _getValidLogo(_logoId);
         if (
-            (l.scheduledAt != 0 && !l.status.isRefunded) ||
-            l.status.isDistributed
+            (l.scheduledAt > 0 && !l.isRefunded) ||
+            l.splitForSpeaker != address(0)
         ) revert LogoFundsCannotBeWithdrawn();
 
         address msgSender = _msgSender();
@@ -145,7 +146,9 @@ contract DLogosBacker is
      */
     function reject(uint256 _logoId) external override whenNotPaused {
         IDLogosCore.Logo memory l = _getValidLogo(_logoId);
-        if (block.timestamp > l.rejectionDeadline) revert RejectionDeadlinePassed();
+
+        if (l.isRefunded) revert LogoRefunded();
+        if (block.timestamp > l.rejectionDeadline) revert LogoNotUploadedOrRejectionDeadlinePassed();
 
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
