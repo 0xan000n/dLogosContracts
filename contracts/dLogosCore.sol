@@ -381,15 +381,15 @@ contract DLogosCore is
         if (bytes(l.mediaAssetURL).length == 0) revert LogoNotUploaded();
         if (block.timestamp < l.rejectionDeadline) revert RejectionDeadlineNotPassed();
 
+        Logo storage sl = logos[_logoId];
         // Address array, 0 -> dLogosBacker, 1 -> split contract for referrers, 2 -> split contract for speakers
         address[] memory addressVars = new address[](3);
         addressVars[0] = IDLogosOwner(dLogosOwner).dLogosBacker();
         uint256 totalRewards = IDLogosBacker(addressVars[0]).logoRewards(_logoId);
+        IDLogosBacker.Backer[] memory backers = IDLogosBacker(addressVars[0]).getBackersForLogo(_logoId);
+        Speaker[] memory speakers = logoSpeakers[_logoId];
 
         if (totalRewards != 0) {
-            IDLogosBacker.Backer[] memory backers = IDLogosBacker(addressVars[0]).getBackersForLogo(_logoId);
-            Speaker[] memory speakers = logoSpeakers[_logoId];
-
             SplitV2Lib.Split memory splitParam;
             // PushSplit for affiliate fee distribution
             uint256 totalRefRewards;
@@ -434,23 +434,25 @@ contract DLogosCore is
                 totalRewards - totalRefRewards
             );
 
-            // Safemint Logo NFTs to backers and speakers
-            if (_mintNFT) {
-                DLogosCoreHelper.safeMintNFT(
-                    dLogosOwner,
-                    _logoId,
-                    l.proposer,
-                    backers,
-                    speakers
-                );
-            }
+            sl.splitForAffiliate = addressVars[1];
+            sl.splitForSpeaker = addressVars[2];
+        } else {
+            sl.splitForAffiliate = 0x000000000000000000000000000000000000dEaD;
+            sl.splitForSpeaker = 0x000000000000000000000000000000000000dEaD;
         }     
-        
-        Logo storage sl = logos[_logoId];
-        sl.splitForAffiliate = addressVars[1];
-        sl.splitForSpeaker = addressVars[2];
 
-        emit RewardsDistributed(_logoId, msg.sender, addressVars[2], addressVars[1], totalRewards);
+        // Safemint Logo NFTs to backers and speakers
+        if (_mintNFT) {
+            DLogosCoreHelper.safeMintNFT(
+                dLogosOwner,
+                _logoId,
+                l.proposer,
+                backers,
+                speakers
+            );
+        }    
+
+        emit RewardsDistributed(_logoId, msg.sender, sl.splitForSpeaker, sl.splitForAffiliate, totalRewards);
     }
 
     /**
