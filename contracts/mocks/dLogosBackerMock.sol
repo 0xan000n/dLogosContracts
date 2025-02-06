@@ -13,18 +13,31 @@ contract DLogosBackerMock {
         0x2F6EfC44c5f00679C57FE2134f51755f9068B517,
         0xA272896E12F741c9E82C67eC702BBFF95D4004cD
     ];
+    bool public returnZero;
 
     constructor(address _dLogosOwner) {
         IDLogosOwner(_dLogosOwner).setDLogosBacker(address(this));
         dLogosOwner = _dLogosOwner;
     }
 
-    function logoRewards(uint256) external pure returns (uint256) {
-        return 1e15;
+    function setReturnZero(bool _returnZero) external {
+        returnZero = _returnZero;
     }
 
-    function logoRejectedFunds(uint256) external pure returns (uint256) {
-        return 6 * 1e14;
+    function logoRewards(uint256) external view returns (uint256) {
+        if (!returnZero) {
+            return 1e15;
+        } else { 
+            return 0; 
+        }
+    }
+
+    function logoRejectedFunds(uint256) external view returns (uint256) {
+        if (!returnZero) {
+            return 6 * 1e14;
+        } else {
+            return 0;
+        }
     }
 
     function getBackersForLogo(

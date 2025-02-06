@@ -10,6 +10,7 @@ import {
 import { expect } from "chai";
 import {
   ZERO_ADDRESS,
+  DEAD_ADDRESS,
   BIGINT_1E15,
   BIGINT_1E14,
   BIGINT_1E13,
@@ -996,7 +997,7 @@ describe("DLogosCore Testing", () => {
           "LogoRefunded()"
         );
       });
-      
+
       it("Should revert when logo crowdfund deadline is passed", async () => {
         const env = await loadFixture(prepEnvWithSetSpeakerStatus);
 
@@ -1160,7 +1161,7 @@ describe("DLogosCore Testing", () => {
           "LogoRefunded()"
         );
       });
-      
+
       it("Should revert when logo crowdfund deadline is passed", async () => {
         const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
 
@@ -1663,6 +1664,16 @@ describe("DLogosCore Testing", () => {
       expect(await ethers.provider.getBalance(env.splitWarehouse)).equals(
         env.warehouseBal
       );
+
+      // zero crowdfund
+      const envZero = await loadFixture(prepEnvWithDistributeRewardsForZero);
+      const logo1Zero = await env.dLogosCore.getLogo(1);
+      expect(logo1Zero.splitForAffiliate).equals(
+        DEAD_ADDRESS
+      );
+      expect(logo1Zero.splitForSpeaker).equals(
+        DEAD_ADDRESS
+      );
     });
 
     it("Estimate gas fee", async () => {
@@ -1689,6 +1700,19 @@ describe("DLogosCore Testing", () => {
           splitForSpeaker,
           splitForAffiliate,
           BIGINT_1E15
+        );
+
+      // zero crowdfund
+      const envZero = await loadFixture(prepEnvWithDistributeRewardsForZero);
+
+      await expect(envZero.distributeRewardsTx)
+        .emit(envZero.dLogosCore, "RewardsDistributed")
+        .withArgs(
+          1,
+          envZero.nonDeployer.address,
+          DEAD_ADDRESS,
+          DEAD_ADDRESS,
+          0n,
         );
     });
 
@@ -2333,6 +2357,51 @@ async function prepEnvWithSetMediaAsset() {
 
 async function prepEnvWithDistributeRewards() {
   const prevEnv = await loadFixture(prepEnvWithSetMediaAsset);
+
+  // increase time
+  const logo1RejectionDeadline = (await prevEnv.dLogosCore.getLogo(1)).rejectionDeadline;
+  await time.increaseTo(logo1RejectionDeadline);
+
+  // balance
+  const splitWarehouse = "0x8fb66F38cF86A3d5e8768f8F1754A24A6c661Fb8";
+  const proposerBal = await ethers.provider.getBalance(prevEnv.proposer1.address);
+  const speaker1Bal = await ethers.provider.getBalance(prevEnv.speaker1.address);
+  const speaker2Bal = await ethers.provider.getBalance(prevEnv.speaker2.address);
+  const speaker3Bal = await ethers.provider.getBalance(prevEnv.speaker3.address);
+  const referrer1Bal = await ethers.provider.getBalance(prevEnv.referrer1.address);
+  const referrer2Bal = await ethers.provider.getBalance(prevEnv.referrer2.address);
+  const warehouseBal = await ethers.provider.getBalance(splitWarehouse);
+  const communityBal = await ethers.provider.getBalance(prevEnv.community.address);
+  const callerBal = await ethers.provider.getBalance(prevEnv.nonDeployer.address);
+
+  const distributeRewardsTx = await prevEnv.dLogosCore
+    .connect(prevEnv.nonDeployer)
+    .distributeRewards(
+      1,
+      true,
+    );
+
+  return {
+    ...prevEnv,
+
+    splitWarehouse,
+    proposerBal,
+    speaker1Bal,
+    speaker2Bal,
+    speaker3Bal,
+    warehouseBal,
+    referrer1Bal,
+    referrer2Bal,
+    communityBal,
+    callerBal,
+
+    distributeRewardsTx,
+  };
+}
+
+async function prepEnvWithDistributeRewardsForZero() {
+  const prevEnv = await loadFixture(prepEnvWithSetMediaAsset);
+  await prevEnv.dLogosBacker.setReturnZero(true);
 
   // increase time
   const logo1RejectionDeadline = (await prevEnv.dLogosCore.getLogo(1)).rejectionDeadline;

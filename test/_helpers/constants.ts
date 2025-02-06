@@ -1,6 +1,8 @@
 import { ZeroAddress } from "ethers";
 
 export const ZERO_ADDRESS = ZeroAddress;
+export const DEAD_ADDRESS = "0x000000000000000000000000000000000000dEaD";
+
 export const PERCENTAGE_SCALE = 1000000n;
 export const MAX_AFFILIATE_FEE = 200000n;
 
