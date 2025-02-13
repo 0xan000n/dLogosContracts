@@ -18,7 +18,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
     address public override logoNFT;
     address public override dLogos;
     address public override community;
-    uint256 public override dLogosFee; // DLogos (Labs) fee
+    uint256 public override dLogosFee; // DLogos fee
     uint256 public override communityFee; // Community fee
     uint256 public override affiliateFee; // Affiliate fee
     uint32 public override rejectThreshold; // Backer rejected funds threshold
