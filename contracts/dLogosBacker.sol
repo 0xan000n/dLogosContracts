@@ -13,13 +13,13 @@ import {IDLogosBacker} from "./interfaces/IdLogosBacker.sol";
 import {ForwarderSetterUpgradeable} from "./utils/ForwarderSetterUpgradeable.sol";
 import "./Error.sol";
 
-contract DLogosBacker is 
+contract DLogosBacker is
     IDLogosBacker,
     Ownable2StepUpgradeable,
     PausableUpgradeable,
     ReentrancyGuardUpgradeable,
     ERC2771ContextUpgradeable,
-    ForwarderSetterUpgradeable 
+    ForwarderSetterUpgradeable
 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -29,13 +29,13 @@ contract DLogosBacker is
     mapping(uint256 => EnumerableSet.AddressSet) private _logoBackerAddresses;
     mapping(uint256 => uint256) public override logoRewards; // Mapping of Logo ID to accumulated rewards
     mapping(uint256 => uint256) public override logoRejectedFunds; // Mapping of Logo ID to accumulated rejected funds
-    
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0)) {
         _disableInitializers();
     }
 
-    function initialize(        
+    function initialize(
         address trustedForwarder_,
         address _dLogosOwner
     ) external initializer notZeroAddress(_dLogosOwner) {
@@ -44,7 +44,7 @@ contract DLogosBacker is
         __Pausable_init();
         __ReentrancyGuard_init();
         __ForwarderSetterUpgradeable_init(trustedForwarder_);
-        
+
         IDLogosOwner(_dLogosOwner).setDLogosBacker(address(this));
         dLogosOwner = _dLogosOwner;
     }
@@ -62,11 +62,14 @@ contract DLogosBacker is
     function crowdfund(
         uint256 _logoId,
         address _referrer
-    ) external override payable nonReentrant whenNotPaused {
+    ) external payable override nonReentrant whenNotPaused {
         IDLogosCore.Logo memory l = _getValidLogo(_logoId);
-        
+
         if (l.isRefunded) revert LogoRefunded();
-        if (l.crowdfundEndAt < block.timestamp) revert CrowdfundEnded();
+        if (
+            (l.scheduledAt == 0 && l.crowdfundStartAt + l.duration * 1 days < block.timestamp) ||
+            (l.scheduledAt > 0 && l.scheduledAt < block.timestamp)
+        ) revert CrowdfundEnded();
         if (msg.value < l.minimumPledge) revert InsufficientFunds();
 
         address msgSender = _msgSender();
@@ -81,7 +84,8 @@ contract DLogosBacker is
             }
         } else {
             // Record the value sent to the address.
-            if (_logoBackerAddresses[_logoId].length() >= 1000) revert TooManyBackers();
+            if (_logoBackerAddresses[_logoId].length() >= 1000)
+                revert TooManyBackers();
 
             Backer memory b = Backer({
                 addr: msgSender,
@@ -92,7 +96,7 @@ contract DLogosBacker is
             bool added = _logoBackerAddresses[_logoId].add(msgSender);
 
             if (!added) revert AddBackerFailed();
-            
+
             logoBackers[_logoId][msgSender] = b;
         }
 
@@ -107,7 +111,9 @@ contract DLogosBacker is
     /**
      * @dev Withdraw your pledge from a Logo.
      */
-    function withdrawFunds(uint256 _logoId) external override nonReentrant whenNotPaused {
+    function withdrawFunds(
+        uint256 _logoId
+    ) external override nonReentrant whenNotPaused {
         IDLogosCore.Logo memory l = _getValidLogo(_logoId);
         if (
             (l.scheduledAt > 0 && !l.isRefunded) ||
@@ -116,28 +122,28 @@ contract DLogosBacker is
 
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
-        if (!isBacker) revert Unauthorized();        
+        if (!isBacker) revert Unauthorized();
 
         Backer memory backer = logoBackers[_logoId][msgSender];
         if (backer.amount == 0) revert InsufficientFunds();
 
         uint256 logoTotalRewards = logoRewards[_logoId];
         if (logoTotalRewards < backer.amount) revert InsufficientLogoRewards();
-        
+
         bool removed = _logoBackerAddresses[_logoId].remove(msgSender);
 
         if (!removed) revert RemoveBackerFailed();
-        
+
         delete logoBackers[_logoId][msgSender];
         // Decrease total rewards of Logo.
         unchecked {
             logoRewards[_logoId] = logoTotalRewards - backer.amount;
         }
-        
+
         (bool success, ) = payable(msgSender).call{value: backer.amount}("");
 
         if (!success) revert EthTransferFailed();
-        
+
         emit FundsWithdrawn(_logoId, msgSender, backer.amount);
     }
 
@@ -148,7 +154,8 @@ contract DLogosBacker is
         IDLogosCore.Logo memory l = _getValidLogo(_logoId);
 
         if (l.isRefunded) revert LogoRefunded();
-        if (block.timestamp > l.rejectionDeadline) revert LogoNotUploadedOrRejectionDeadlinePassed();
+        if (block.timestamp > l.rejectionDeadline)
+            revert LogoNotUploadedOrRejectionDeadlinePassed();
 
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
@@ -160,18 +167,24 @@ contract DLogosBacker is
         if (backer.votesToReject) revert BackerAlreadyRejected();
         // Increase rejected funds.
         unchecked {
-            logoRejectedFunds[_logoId] = logoRejectedFunds[_logoId] + backer.amount;
+            logoRejectedFunds[_logoId] =
+                logoRejectedFunds[_logoId] +
+                backer.amount;
         }
         logoBackers[_logoId][msgSender].votesToReject = true;
-        
+
         emit RejectionSubmitted(_logoId, msgSender);
     }
 
     /**
      * @dev Return the list of backers for a Logo.
      */
-    function getBackersForLogo(uint256 _logoId) public override view returns (Backer[] memory) {
-        EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[_logoId];
+    function getBackersForLogo(
+        uint256 _logoId
+    ) public view override returns (Backer[] memory) {
+        EnumerableSet.AddressSet storage backerAddresses = _logoBackerAddresses[
+            _logoId
+        ];
         address[] memory backerArray = backerAddresses.values();
         Backer[] memory backers = new Backer[](backerArray.length);
         for (uint256 i = 0; i < backerArray.length; i++) {
@@ -183,11 +196,13 @@ contract DLogosBacker is
     function getBackerForLogo(
         uint256 _logoId,
         address _backerAddr
-    ) external override view returns (Backer memory backer) {
+    ) external view override returns (Backer memory backer) {
         backer = logoBackers[_logoId][_backerAddr];
     }
 
-    function _getValidLogo(uint256 _logoId) private view returns (IDLogosCore.Logo memory l) {
+    function _getValidLogo(
+        uint256 _logoId
+    ) private view returns (IDLogosCore.Logo memory l) {
         address dLogosCore = IDLogosOwner(dLogosOwner).dLogosCore();
         l = IDLogosCore(dLogosCore).getLogo(_logoId);
         if (l.proposer == address(0)) revert InvalidLogoId();
@@ -209,7 +224,8 @@ contract DLogosBacker is
         address _to,
         uint256 _amount
     ) external override {
-        if (_msgSender() != IDLogosOwner(dLogosOwner).dLogosCore()) revert CallerNotDLogosCore();
+        if (_msgSender() != IDLogosOwner(dLogosOwner).dLogosCore())
+            revert CallerNotDLogosCore();
         if (_to == address(0)) revert ZeroAddress();
         if (_amount != 0) {
             if (address(this).balance < _amount) revert InsufficientFunds();
@@ -217,26 +233,46 @@ contract DLogosBacker is
             // Send Eth to {_to} contract
             (bool success, ) = payable(_to).call{value: _amount}("");
             if (!success) revert EthTransferFailed();
-        }        
+        }
     }
 
     // ----------------------------------------------Meta tx helpers----------------------------------------------
     /**
      * @dev Override of `trustedForwarder()`
      */
-    function trustedForwarder() public view override(ERC2771ContextUpgradeable, ForwarderSetterUpgradeable) returns (address) {
+    function trustedForwarder()
+        public
+        view
+        override(ERC2771ContextUpgradeable, ForwarderSetterUpgradeable)
+        returns (address)
+    {
         return ForwarderSetterUpgradeable.trustedForwarder();
     }
-    
-    function _msgSender() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address) {
+
+    function _msgSender()
+        internal
+        view
+        override(ContextUpgradeable, ERC2771ContextUpgradeable)
+        returns (address)
+    {
         return ERC2771ContextUpgradeable._msgSender();
     }
 
-    function _msgData() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+    function _msgData()
+        internal
+        view
+        override(ContextUpgradeable, ERC2771ContextUpgradeable)
+        returns (bytes calldata)
+    {
         return ERC2771ContextUpgradeable._msgData();
     }
 
-    function _contextSuffixLength() internal view override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (uint256) {
+    function _contextSuffixLength()
+        internal
+        view
+        override(ContextUpgradeable, ERC2771ContextUpgradeable)
+        returns (uint256)
+    {
         return ERC2771ContextUpgradeable._contextSuffixLength();
     }
 }

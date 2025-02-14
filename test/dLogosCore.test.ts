@@ -112,9 +112,6 @@ describe("DLogosCore Testing", () => {
       expect(logo1.duration).equals(
         env.logo1Duration
       );
-      expect(logo1.crowdfundEndAt).equals(
-        BigInt(await time.latest()) + env.logo1Duration * ONE_DAY
-      );
       expect(logo1.splitForAffiliate).equals(
         ZERO_ADDRESS
       );
