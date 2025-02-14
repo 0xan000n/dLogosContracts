@@ -813,21 +813,6 @@ describe("DLogosCore Testing", () => {
         );
       });
 
-      it("Should revert when logo crowdfund duration is passed", async () => {
-        const env = await loadFixture(prepEnvWithSetSpeakers);
-
-        await time.increase(env.logo1Duration * ONE_DAY);
-
-        await expect(
-          env.dLogosCore
-            .connect(env.proposer1)
-            .setSpeakers(dummyParam)
-        ).to.be.revertedWithCustomError(
-          env.dLogosCore,
-          "CrowdfundEnded()"
-        );
-      });
-
       it("Should revert when logo was already scheduled", async () => {
         const env = await loadFixture(prepEnvWithSetDate);
 
@@ -995,24 +980,6 @@ describe("DLogosCore Testing", () => {
         );
       });
 
-      it("Should revert when logo crowdfund deadline is passed", async () => {
-        const env = await loadFixture(prepEnvWithSetSpeakerStatus);
-
-        await time.increase(env.logo1Duration * ONE_DAY);
-
-        await expect(
-          env.dLogosCore
-            .connect(env.speaker1)
-            .setSpeakerStatus(
-              1,
-              1,
-            )
-        ).to.be.revertedWithCustomError(
-          env.dLogosCore,
-          "CrowdfundEnded()"
-        );
-      });
-
       it("Should revert when logo was already scheduled", async () => {
         const env = await loadFixture(prepEnvWithSetDate);
 
@@ -1159,26 +1126,6 @@ describe("DLogosCore Testing", () => {
         );
       });
 
-      it("Should revert when logo crowdfund deadline is passed", async () => {
-        const env = await loadFixture(prepEnvWithSetStatusForSpeakers);
-
-        await time.increase(env.logo1Duration * ONE_DAY);
-
-        await expect(
-          env.dLogosCore
-            .connect(env.deployer)
-            .setStatusForSpeakers(
-              1,
-              [],
-              [],
-              [],
-            )
-        ).to.be.revertedWithCustomError(
-          env.dLogosCore,
-          "CrowdfundEnded()"
-        );
-      });
-
       it("Should revert when logo was already scheduled", async () => {
         const env = await loadFixture(prepEnvWithSetDate);
 
@@ -1299,9 +1246,6 @@ describe("DLogosCore Testing", () => {
       expect(logo.scheduledAt).equals(
         env.logo1ScheduledAt,
       );
-      expect(logo.crowdfundEndAt).equals(
-        env.logo1ScheduledAt,
-      );
     });
 
     it("Should emit event", async () => {
@@ -1397,25 +1341,7 @@ describe("DLogosCore Testing", () => {
           "LogoRefunded()"
         );
       });
-
-      it("Should revert when logo crowdfund deadline is passed", async () => {
-        const env = await loadFixture(prepEnvWithSetDate);
-
-        await time.increase(env.logo1Duration * ONE_DAY);
-
-        await expect(
-          env.dLogosCore
-            .connect(env.proposer1)
-            .setDate(
-              1,
-              0,
-            )
-        ).to.be.revertedWithCustomError(
-          env.dLogosCore,
-          "CrowdfundEnded()"
-        );
-      });
-
+      
       it("Should revert when param {_scheduledAt} <= {block.timestamp}", async () => {
         const env = await loadFixture(prepEnvWithSetDate);
 
