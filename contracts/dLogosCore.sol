@@ -381,8 +381,6 @@ contract DLogosCore is
         if (ml.splitForSpeaker != address(0)) revert LogoDistributed();
         if (ml.isRefunded) revert LogoRefunded();
         if (ml.scheduledAt == 0) revert LogoNotScheduled();
-        // if (ml.scheduledAt > block.timestamp) revert ConvoNotHappened(); // code for mainnet
-
         if (
             ml.scheduledAt + IDLogosOwner(dLogosOwner).uploadWindow() * 1 days <
             block.timestamp
