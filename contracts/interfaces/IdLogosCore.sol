@@ -28,8 +28,7 @@ interface IDLogosCore {
         uint256 proposerFee;
         uint256 scheduledAt;
         uint256 minimumPledge;
-        uint256 crowdfundStartAt;
-        uint256 crowdfundEndAt;
+        uint256 crowdfundStartAt;        
         uint256 rejectionDeadline;
         address splitForSpeaker; // PushSplit address for dlogos, community, speakers
         address splitForAffiliate; // PushSplit address for affiliates

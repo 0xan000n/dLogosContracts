@@ -25,10 +25,10 @@ describe("DLogosOwner Tests", () => {
       env.communityAddress
     );
     expect(await env.dLogosOwner.dLogosFee()).equals(
-      100000
+      50000
     );
     expect(await env.dLogosOwner.communityFee()).equals(
-      100000
+      50000
     );
     expect(await env.dLogosOwner.affiliateFee()).equals(
       50000

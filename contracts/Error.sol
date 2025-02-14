@@ -61,9 +61,6 @@ error CrowdfundEnded();
 
 error AffiliateRewardsExceeded();
 
-// TODO might need for mainnet
-// error InvalidRejectionWindow();
-
 error RejectionDeadlineNotPassed();
 
 error LogoNotUploadedOrRejectionDeadlinePassed();
@@ -71,8 +68,6 @@ error LogoNotUploadedOrRejectionDeadlinePassed();
 error BackerAlreadyRejected();
 
 error LogoNotScheduled();
-
-error ConvoNotHappened();
 
 error CallerNotDLogosCore();
 

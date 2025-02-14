@@ -153,22 +153,41 @@ describe("DLogosBacker Tests", () => {
           "LogoRefunded()"
         );
       });
-      
-      it("Should revert when crowdfund duration passed", async () => {
-        const env = await loadFixture(prepEnvWithCrowdfund);
 
-        await expect(
-          env.dLogosBacker
-            .connect(env.backer1)
-            .crowdfund(
-              2,
-              env.referrer1
-            )
-        ).to.be.revertedWithCustomError(
-          env.dLogosBacker,
-          "CrowdfundEnded()"
-        );
+      describe("Should revert when crowdfund ended", async () => {
+        it("logo is scheduled", async () => {
+          const env = await loadFixture(prepEnv);
+  
+          await expect(
+            env.dLogosBacker
+              .connect(env.backer1)
+              .crowdfund(
+                2,
+                env.referrer1
+              )
+          ).to.be.revertedWithCustomError(
+            env.dLogosBacker,
+            "CrowdfundEnded()"
+          );
+        });
+
+        it("logo is not scheduled", async () => {
+          const env = await loadFixture(prepEnv);
+  
+          await expect(
+            env.dLogosBacker
+              .connect(env.backer1)
+              .crowdfund(
+                7,
+                env.referrer1
+              )
+          ).to.be.revertedWithCustomError(
+            env.dLogosBacker,
+            "CrowdfundEnded()"
+          );
+        });
       });
+      
 
       it("Should revert when pledge < {minimumPledge}", async () => {
         const env = await loadFixture(prepEnvWithCrowdfund);

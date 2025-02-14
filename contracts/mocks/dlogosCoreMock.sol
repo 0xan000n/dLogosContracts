@@ -41,7 +41,6 @@ contract DLogosCoreMock {
         minimumPledge: 10000000000000, // 0.00001 ETH
         crowdfundStartAt: block.timestamp,
         duration: 40,
-        crowdfundEndAt: block.timestamp + 40 * 1 days,
         rejectionDeadline: 0,
         splitForSpeaker: address(0),
         splitForAffiliate: address(0),
@@ -62,7 +61,7 @@ contract DLogosCoreMock {
         logos[1] = l1;
         // 2nd logo is scheduled
         IDLogosCore.Logo memory l2 = sl;
-        l2.crowdfundEndAt = 0;
+        l2.scheduledAt = 12345678;
         logos[2] = l2;
         // 3rd logo is not created
         IDLogosCore.Logo memory l3 = sl;
@@ -82,6 +81,10 @@ contract DLogosCoreMock {
         IDLogosCore.Logo memory l6 = sl;
         l6.isRefunded = true;
         logos[6] = l6;
+        // 7th logo is not scheduled and crowdfund duration passed
+        IDLogosCore.Logo memory l7 = sl;
+        l7.duration = 0;
+        logos[7] = l7;
     }
     
     function getLogo(uint256 _logoId) external view returns (IDLogosCore.Logo memory l) {
