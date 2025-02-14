@@ -46,8 +46,7 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         communityFee = 5 * 1e4; // 5%
         affiliateFee = 5 * 1e4; // 5%
         rejectThreshold = 5 * 1e5; // 50%
-        // TODO check
-        minDuration = 0; // 0 days
+        minDuration = 3; // 3 days
         maxDuration = 60; // 60 days
         rejectionWindow = 7; // 7 days
         uploadWindow = 7; // 7 days
