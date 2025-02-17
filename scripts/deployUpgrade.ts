@@ -2,6 +2,7 @@ import {
   ethers,
   network,
 } from "hardhat";
+import _ from "lodash";
 import {
   deployDLogosCoreHelperLibrary,
   deployDLogosOwnerImplementation,
@@ -17,27 +18,7 @@ import {
   upgrade,
 } from "./_helpers/upgradeFunctions";
 
-import {
-  DLOGOS_ADDRESS,
-  COMMUNITY_ADDRESS,
-  TRUSTED_FORWARDER_ADDRESS,
-
-  DLOGOS_CORE_HELPER_LIBRARY_ADDRESS,
-  DLOGOS_OWNER_PROXY_ADMIN_ADDRESS,
-  DLOGOS_OWNER_IMPLEMENTATION_ADDRESS,
-  DLOGOS_OWNER_INSTANCE_ADDRESS,
-  DLOGOS_BACKER_PROXY_ADMIN_ADDRESS,
-  DLOGOS_BACKER_IMPLEMENTATION_ADDRESS,
-  DLOGOS_BACKER_INSTANCE_ADDRESS,
-  DLOGOS_CORE_PROXY_ADMIN_ADDRESS,
-  DLOGOS_CORE_IMPLEMENTATION_ADDRESS,
-  DLOGOS_CORE_INSTANCE_ADDRESS,
-  LOGO_PROXY_ADMIN_ADDRESS,
-  LOGO_IMPLEMENTATION_ADDRESS,
-  LOGO_INSTANCE_ADDRESS,
-} from "./_helpers/data";
-
-// !!BE SURE to complete ./_helpers/data.ts with valid addresses if there are already deployed contracts!!
+import data from "./_helpers/data";
 
 //-----------------configuration flags to select what to deploy-----------------//
 // deploy library flags are TRUE for deploy, TRUE or FALSE (whether to update library code) for upgrade
@@ -76,6 +57,25 @@ async function main(): Promise<void> {
     (await ethers.provider.getBalance(deployer.address)).toString()
   );
 
+  const prefix = _.toUpper(_.snakeCase(network.name));
+
+  const DLOGOS_ADDRESS = data[`${prefix}_DLOGOS_ADDRESS` as keyof typeof data];
+  const COMMUNITY_ADDRESS = data[`${prefix}_COMMUNITY_ADDRESS` as keyof typeof data];
+  const TRUSTED_FORWARDER_ADDRESS = data[`${prefix}_TRUSTED_FORWARDER_ADDRESS` as keyof typeof data];
+  const DLOGOS_CORE_HELPER_LIBRARY_ADDRESS = data[`${prefix}_DLOGOS_CORE_HELPER_LIBRARY_ADDRESS` as keyof typeof data];
+  const DLOGOS_OWNER_PROXY_ADMIN_ADDRESS = data[`${prefix}_DLOGOS_OWNER_PROXY_ADMIN_ADDRESS` as keyof typeof data];
+  const DLOGOS_OWNER_IMPLEMENTATION_ADDRESS = data[`${prefix}_DLOGOS_OWNER_IMPLEMENTATION_ADDRESS` as keyof typeof data];
+  const DLOGOS_OWNER_INSTANCE_ADDRESS = data[`${prefix}_DLOGOS_OWNER_INSTANCE_ADDRESS` as keyof typeof data];
+  const DLOGOS_BACKER_PROXY_ADMIN_ADDRESS = data[`${prefix}_DLOGOS_BACKER_PROXY_ADMIN_ADDRESS` as keyof typeof data];
+  const DLOGOS_BACKER_IMPLEMENTATION_ADDRESS = data[`${prefix}_DLOGOS_BACKER_IMPLEMENTATION_ADDRESS` as keyof typeof data];
+  const DLOGOS_BACKER_INSTANCE_ADDRESS = data[`${prefix}_DLOGOS_BACKER_INSTANCE_ADDRESS` as keyof typeof data];
+  const DLOGOS_CORE_PROXY_ADMIN_ADDRESS = data[`${prefix}_DLOGOS_CORE_PROXY_ADMIN_ADDRESS` as keyof typeof data];
+  const DLOGOS_CORE_IMPLEMENTATION_ADDRESS = data[`${prefix}_DLOGOS_CORE_IMPLEMENTATION_ADDRESS` as keyof typeof data];
+  const DLOGOS_CORE_INSTANCE_ADDRESS = data[`${prefix}_DLOGOS_CORE_INSTANCE_ADDRESS` as keyof typeof data];
+  const LOGO_PROXY_ADMIN_ADDRESS = data[`${prefix}_LOGO_PROXY_ADMIN_ADDRESS` as keyof typeof data];
+  const LOGO_IMPLEMENTATION_ADDRESS = data[`${prefix}_LOGO_IMPLEMENTATION_ADDRESS` as keyof typeof data];
+  const LOGO_INSTANCE_ADDRESS = data[`${prefix}_LOGO_INSTANCE_ADDRESS` as keyof typeof data];
+
   // DLogosCoreHelper
   let dLogosCoreHelper = undefined;
   let dLogosCoreHelperAddr: string;
@@ -89,21 +89,21 @@ async function main(): Promise<void> {
   // DLogosBacker
   let dLogosBackerProxyAdmin = undefined;
   let dLogosBackerImpl = undefined;
-  let dLogosBackerInstance = undefined;  
+  let dLogosBackerInstance = undefined;
   let dLogosBackerProxyAdminAddr: string;
   let dLogosBackerImplAddr: string;
   let dLogosBackerInstanceAddr: string;
   // DLogosCore
   let dLogosCoreProxyAdmin = undefined;
   let dLogosCoreImpl = undefined;
-  let dLogosCoreInstance = undefined;  
+  let dLogosCoreInstance = undefined;
   let dLogosCoreProxyAdminAddr: string;
   let dLogosCoreImplAddr: string;
   let dLogosCoreInstanceAddr: string;
   // Logo
   let logoProxyAdmin = undefined;
   let logoImpl = undefined;
-  let logoInstance = undefined;  
+  let logoInstance = undefined;
   let logoProxyAdminAddr: string;
   let logoImplAddr: string;
   let logoInstanceAddr: string;
@@ -121,7 +121,7 @@ async function main(): Promise<void> {
         deployer.address,
         DLOGOS_ADDRESS,
         COMMUNITY_ADDRESS,
-      );      
+      );
       dLogosOwnerProxyAdmin = result.dLogosOwnerProxyAdmin;
       dLogosOwnerInstance = result.dLogosOwnerInstance;
     } else {
@@ -144,7 +144,7 @@ async function main(): Promise<void> {
         deployer.address,
         TRUSTED_FORWARDER_ADDRESS,
         dLogosOwnerInstanceAddr,
-      );      
+      );
       dLogosBackerProxyAdmin = result.dLogosBackerProxyAdmin;
       dLogosBackerInstance = result.dLogosBackerInstance;
     } else {
@@ -173,7 +173,7 @@ async function main(): Promise<void> {
         dLogosCoreImplAddr,
         deployer.address,
         dLogosOwnerInstanceAddr,
-      );      
+      );
       dLogosCoreProxyAdmin = result.dLogosCoreProxyAdmin;
       dLogosCoreInstance = result.dLogosCoreInstance;
     } else {
@@ -195,7 +195,7 @@ async function main(): Promise<void> {
         logoImplAddr,
         deployer.address,
         dLogosOwnerInstanceAddr,
-      );      
+      );
       logoProxyAdmin = result.logoProxyAdmin;
       logoInstance = result.logoInstance;
     } else {
