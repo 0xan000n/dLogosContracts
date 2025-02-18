@@ -1,6 +1,8 @@
 import { ethers, run, network } from "hardhat";
 import { TRANSPARENT_UPGRADEABLE_PROXY_ADMIN_SLOT } from "./constants";
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 //-----------------------Library-----------------------//
 export async function deployDLogosCoreHelperLibrary() {
 	console.log("DEPLOYING DLogosCoreHelper library");
@@ -11,6 +13,8 @@ export async function deployDLogosCoreHelperLibrary() {
 	const dLogosCoreHelper = await dLogosCoreHelperF.deploy();
 	await dLogosCoreHelper.waitForDeployment();
 	const dLogosCoreHelperAddr = await dLogosCoreHelper.getAddress();
+
+	await delay(10000); // wait for 10 seconds
 
 	// verify
 	if (network.name != "hardhat") {
@@ -37,6 +41,8 @@ export async function deployDLogosOwnerImplementation() {
 	await dLogosOwnerImpl.waitForDeployment();
 	const dLogosOwnerImplAddr = await dLogosOwnerImpl.getAddress();
 
+	await delay(10000); // wait for 10 seconds
+	
 	// verify
 	if (network.name != "hardhat") {
 		await run(`verify:verify`, {
@@ -61,6 +67,7 @@ export async function deployDLogosBackerImplementation() {
 	await dLogosBackerImpl.waitForDeployment();
 	const dLogosBackerImplAddr = await dLogosBackerImpl.getAddress();
 
+	await delay(10000); // wait for 10 seconds
 	// verify
 	if (network.name != "hardhat") {
 		await run(`verify:verify`, {
@@ -91,6 +98,8 @@ export async function deployDLogosCoreImplementation(
 	await dLogosCoreImpl.waitForDeployment();
 	const dLogosCoreImplAddr = await dLogosCoreImpl.getAddress();
 
+	await delay(10000); // wait for 10 seconds
+	
 	// verify
 	if (network.name != "hardhat") {
 		await run(`verify:verify`, {
@@ -118,6 +127,8 @@ export async function deployLogoImplementation() {
 	await logoImpl.waitForDeployment();
 	const logoImplAddr = await logoImpl.getAddress();
 
+	await delay(10000); // wait for 10 seconds
+	
 	// verify
 	if (network.name != "hardhat") {
 		await run(`verify:verify`, {
@@ -181,6 +192,8 @@ export async function deployDLogosOwnerInstance(
 	// }
 	console.log(`***DEPLOYED DLogosOwner ProxyAdmin at:${proxyAdminAddr}***`);	
 
+	await delay(10000); // wait for 10 seconds
+	
 	// verify
 	if (network.name != "hardhat") {
 		await run("verify:verify", {
@@ -252,6 +265,8 @@ export async function deployDLogosBackerInstance(
 	const dLogosBackerProxyAdmin = proxyAdminF.attach(proxyAdminAddr);
 	console.log(`***DEPLOYED DLogosBacker ProxyAdmin at:${proxyAdminAddr}***`);
 
+	await delay(10000); // wait for 10 seconds
+	
 	// verify
 	if (network.name != "hardhat") {
 		await run("verify:verify", {
@@ -326,6 +341,8 @@ export async function deployDLogosCoreInstance(
 	const dLogosCoreProxyAdmin = proxyAdminF.attach(proxyAdminAddr);
 	console.log(`***DEPLOYED DLogosCore ProxyAdmin at:${proxyAdminAddr}***`);	
 
+	await delay(10000); // wait for 10 seconds
+	
 	// verify
 	if (network.name != "hardhat") {
 		await run("verify:verify", {
@@ -395,6 +412,8 @@ export async function deployLogoInstance(
 	const logoProxyAdmin = proxyAdminF.attach(proxyAdminAddr);
 	console.log(`***DEPLOYED Logo ProxyAdmin at:${proxyAdminAddr}***`);
 
+	await delay(10000); // wait for 10 seconds
+	
 	// verify
 	if (network.name != "hardhat") {
 		await run("verify:verify", {
