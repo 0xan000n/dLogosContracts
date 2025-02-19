@@ -20,20 +20,37 @@ import {
 
 import data from "./_helpers/data";
 
-//-----------------configuration flags to select what to deploy-----------------//
-// deploy library flags are TRUE for deploy, TRUE or FALSE (whether to update library code) for upgrade
-const DEPLOY_DLOGOS_CORE_HELPER_LIBRARY = true;
-// deploy implementation flags are TRUE for deploy, TRUE for upgrade
-const DEPLOY_DLOGOS_OWNER_IMPLEMENTATION = true;
-const DEPLOY_DLOGOS_BACKER_IMPLEMENTATION = true;
-const DEPLOY_DLOGOS_CORE_IMPLEMENTATION = true;
+// //-----------------configuration flags to select what to deploy-----------------//
+// // deploy library flags are TRUE for deploy, TRUE or FALSE (whether to update library code) for upgrade
+// const DEPLOY_DLOGOS_CORE_HELPER_LIBRARY = true;
+// // deploy implementation flags are TRUE for deploy, TRUE for upgrade
+// const DEPLOY_DLOGOS_OWNER_IMPLEMENTATION = true;
+// const DEPLOY_DLOGOS_BACKER_IMPLEMENTATION = true;
+// const DEPLOY_DLOGOS_CORE_IMPLEMENTATION = true;
+// const DEPLOY_LOGO_IMPLEMENTATION = true;
+// // deploy instance flags are TRUE for deploy, FALSE for upgrade
+// const DEPLOY_DLOGOS_OWNER_INSTANCE = true;
+// const DEPLOY_DLOGOS_BACKER_INSTANCE = true;
+// const DEPLOY_DLOGOS_CORE_INSTANCE = true;
+// const DEPLOY_LOGO_INSTANCE = true;
+// // upgrade flags are FALSE for deploy, TRUE for upgrade
+// const UPGRADE_DLOGOS_OWNER = false;
+// const UPGRADE_DLOGOS_BACKER = false;
+// const UPGRADE_DLOGOS_CORE = false;
+// const UPGRADE_LOGO = false;
+
+
+
+// temporary flags to resume mainnet deployment
+const DEPLOY_DLOGOS_CORE_HELPER_LIBRARY = false;
+const DEPLOY_DLOGOS_OWNER_IMPLEMENTATION = false;
+const DEPLOY_DLOGOS_BACKER_IMPLEMENTATION = false;
+const DEPLOY_DLOGOS_CORE_IMPLEMENTATION = false;
 const DEPLOY_LOGO_IMPLEMENTATION = true;
-// deploy instance flags are TRUE for deploy, FALSE for upgrade
-const DEPLOY_DLOGOS_OWNER_INSTANCE = true;
-const DEPLOY_DLOGOS_BACKER_INSTANCE = true;
+const DEPLOY_DLOGOS_OWNER_INSTANCE = false;
+const DEPLOY_DLOGOS_BACKER_INSTANCE = false;
 const DEPLOY_DLOGOS_CORE_INSTANCE = true;
 const DEPLOY_LOGO_INSTANCE = true;
-// upgrade flags are FALSE for deploy, TRUE for upgrade
 const UPGRADE_DLOGOS_OWNER = false;
 const UPGRADE_DLOGOS_BACKER = false;
 const UPGRADE_DLOGOS_CORE = false;
