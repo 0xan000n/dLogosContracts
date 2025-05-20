@@ -43,12 +43,12 @@ contract DLogosOwner is IDLogosOwner, Ownable2StepUpgradeable {
         dLogos = _dLogos;
         community = _community;
         dLogosFee = 5 * 1e4; // 5%
-        communityFee = 5 * 1e4; // 5%
+        communityFee = 0; // 0%
         affiliateFee = 5 * 1e4; // 5%
         rejectThreshold = 5 * 1e5; // 50%
         minDuration = 3; // 3 days
         maxDuration = 60; // 60 days
-        rejectionWindow = 7; // 7 days
+        rejectionWindow = 3; // 3 days
         uploadWindow = 7; // 7 days
     }
 

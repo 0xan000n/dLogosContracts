@@ -19,6 +19,7 @@ library DLogosCoreHelper {
 
     struct GetSpeakersSplitInfoParam {
         IDLogosCore.Speaker[] speakers;
+        IDLogosCore.Beneficiary[] beneficiaries;
         address dLogos;
         address community;
         address proposer;
@@ -106,7 +107,7 @@ library DLogosCoreHelper {
         uint256 totalAllocation;
         address[] memory recipients;
         uint256[] memory allocations;
-        uint256 len = 3 + _param.speakers.length;
+        uint256 len = 3 + _param.speakers.length + _param.beneficiaries.length;
 
         unchecked {
             uint256 i;
@@ -118,6 +119,9 @@ library DLogosCoreHelper {
             recipients[2] = _param.proposer;
             for (i = 0; i < _param.speakers.length; i++) {
                 recipients[i + 3] = _param.speakers[i].addr;
+            }
+            for (i = 0; i < _param.beneficiaries.length; i++) {
+                recipients[i + 3 + _param.speakers.length] = _param.beneficiaries[i].addr;
             }
             // Assign allocations array
             if (_param.isZeroFeeProposer) {
@@ -131,6 +135,10 @@ library DLogosCoreHelper {
             for (i = 0; i < _param.speakers.length; i++) {
                 allocations[i + 3] = _param.speakers[i].fee;
                 totalAllocation += _param.speakers[i].fee;
+            }
+            for (i = 0; i < _param.beneficiaries.length; i++) {
+                allocations[i + 3 + _param.speakers.length] = _param.beneficiaries[i].fee;
+                totalAllocation += _param.beneficiaries[i].fee;
             }
         }
 
@@ -209,46 +217,30 @@ library DLogosCoreHelper {
         uint256 _logoId,
         IDLogosCore.Logo memory _logo,
         address _dLogosOwner
-    ) external view returns (bool c1, bool c2, bool c3, bool c4) {
+    ) external view returns (bool c1, bool c2, bool c3) {
         // Case 1: Proposer can refund whenever.
         c1 = _logo.proposer == msg.sender;
         if (!c1) {
-            uint8 uploadWindow = IDLogosOwner(_dLogosOwner).uploadWindow();
-            uint8 rejectionWindow = IDLogosOwner(_dLogosOwner).rejectionWindow();
-
             // Case 2: The crowdfund duration has passed and not distributed.
             c2 = 
-                _logo.crowdfundStartAt + (_logo.duration + uploadWindow + rejectionWindow) * 1 days < block.timestamp
+                _logo.crowdfundStartAt + _logo.duration * 1 days < block.timestamp
                 && 
                 _logo.splitForSpeaker == address(0);            
-            if (!c2) {
-                // Case 3: The upload window has passed since the schedule date and no asset has been uploaded.
-                // Math overflow is not possible with the current timestamp
-                unchecked {
+            if (!c2) {                
+                // Case 3: >50% of backer funds reject upload.
+                address dLogosBacker = IDLogosOwner(_dLogosOwner).dLogosBacker();
+                uint256 logoRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
+                uint256 logoRejectedFunds = IDLogosBacker(dLogosBacker).logoRejectedFunds(_logoId);
+
+                if (logoRewards > 0) {
                     c3 = 
-                        _logo.scheduledAt > 0 
-                        && 
-                        block.timestamp > _logo.scheduledAt + uploadWindow * 1 days
-                        && 
-                        bytes(_logo.mediaAssetURL).length == 0;
+                        logoRejectedFunds * PERCENTAGE_SCALE / logoRewards
+                        > 
+                        IDLogosOwner(_dLogosOwner).rejectThreshold();
                 }
-
                 if (!c3) {
-                    // Case 4: >50% of backer funds reject upload.
-                    address dLogosBacker = IDLogosOwner(_dLogosOwner).dLogosBacker();
-                    uint256 logoRewards = IDLogosBacker(dLogosBacker).logoRewards(_logoId);
-                    uint256 logoRejectedFunds = IDLogosBacker(dLogosBacker).logoRejectedFunds(_logoId);
-
-                    if (logoRewards > 0) {
-                        c4 = 
-                            logoRejectedFunds * PERCENTAGE_SCALE / logoRewards
-                            > 
-                            IDLogosOwner(_dLogosOwner).rejectThreshold();
-                    }
-                    if (!c4) {
-                        revert NoRefundConditionsMet();
-                    }
-                }                
+                    revert NoRefundConditionsMet();
+                }
             }
         }
     }

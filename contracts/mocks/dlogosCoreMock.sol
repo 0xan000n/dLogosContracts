@@ -44,7 +44,9 @@ contract DLogosCoreMock {
         rejectionDeadline: 0,
         splitForSpeaker: address(0),
         splitForAffiliate: address(0),
-        isRefunded: false
+        isRefunded: false,
+        speakerFeesSum: 0,
+        beneficiaryFeesSum: 0
     });
 
     constructor(address _dLogosOwner) {

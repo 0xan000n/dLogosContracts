@@ -80,9 +80,11 @@ contract DLogosCore is
     /// STORAGE
     address public override dLogosOwner;
     uint256 public override logoId; // Global Logo ID
+    address public override operator;
+
     mapping(uint256 => Logo) public logos; // Mapping of Logo ID to Logo info
     mapping(uint256 => Speaker[]) public logoSpeakers; // Mapping of Logo ID to list of Speakers
-    address public override operator;
+    mapping(uint256 => Beneficiary[]) public logoBeneficiaries; // Mapping of Logo ID to list of Beneficiaries
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -119,7 +121,6 @@ contract DLogosCore is
      * @dev Create a new Logo onchain.
      */
     function createLogo(
-        uint256 _proposerFee,
         string calldata _title,
         uint8 _duration
     ) external override whenNotPaused returns (uint256) {
@@ -128,11 +129,12 @@ contract DLogosCore is
         IDLogosOwner dLogosOwnerContract = IDLogosOwner(dLogosOwner);
 
         if (
+            _duration < dLogosOwnerContract.rejectionWindow() ||
             _duration < dLogosOwnerContract.minDuration() ||
             _duration > dLogosOwnerContract.maxDuration()
         ) revert InvalidCrowdfundDuration();
 
-        _validateFees(msg.sender, _proposerFee, dLogosOwnerContract);
+        _validateFees(msg.sender, 0, dLogosOwnerContract);
 
         uint256 _logoId = logoId;
 
@@ -142,7 +144,7 @@ contract DLogosCore is
                 id: _logoId,
                 title: _title,
                 proposer: msg.sender,
-                proposerFee: _proposerFee,
+                proposerFee: 0,
                 scheduledAt: 0,
                 mediaAssetURL: "",
                 minimumPledge: 10000000000000, // 0.00001 ETH
@@ -151,6 +153,8 @@ contract DLogosCore is
                 splitForAffiliate: address(0),
                 splitForSpeaker: address(0),
                 rejectionDeadline: 0,
+                speakerFeesSum: 0,
+                beneficiaryFeesSum: 0,
                 isRefunded: false
             });
         }
@@ -170,11 +174,7 @@ contract DLogosCore is
 
         if (l.proposer != msg.sender) revert Unauthorized();
         if (l.isRefunded) revert LogoRefunded();
-        if (
-            (l.scheduledAt == 0 &&
-                l.crowdfundStartAt + l.duration * 1 days < block.timestamp) ||
-            (l.scheduledAt > 0 && l.scheduledAt < block.timestamp)
-        ) revert CrowdfundEnded();
+        if (l.crowdfundStartAt + l.duration * 1 days < block.timestamp) revert CrowdfundEnded();
         if (_minimumPledge == 0) revert NotZero();
 
         logos[_logoId].minimumPledge = _minimumPledge;
@@ -194,13 +194,12 @@ contract DLogosCore is
         (
             bool c1, // Case 1: Proposer can refund whenever.
             bool c2, // Case 2: The crowdfund duration has passed and not distributed.
-            bool c3, // Case 3: The upload window has passed since the schedule date and no asset has been uploaded.
-            bool c4 // Case 4: >50% of backer funds reject upload.
+            bool c3 // Case 3: >50% of backer funds reject upload.
         ) = DLogosCoreHelper.getRefundConditions(_logoId, l, dLogosOwner);
 
         logos[_logoId].isRefunded = true;
 
-        emit RefundInitiated(_logoId, c1, c2, c3, c4);
+        emit RefundInitiated(_logoId, c1, c2, c3);
     }
 
     /**
@@ -214,7 +213,8 @@ contract DLogosCore is
 
         if (l.proposer != msg.sender) revert Unauthorized();
         if (l.isRefunded) revert LogoRefunded();
-        if (l.scheduledAt > 0) revert LogoScheduled();
+        if (_validateAcceptedSpeakers(_param.logoId)) revert AllSpeakersAccepted();
+        if (l.crowdfundStartAt + l.duration * 1 days < block.timestamp) revert CrowdfundEnded();
         if (_param.speakers.length == 0 || _param.speakers.length >= 100)
             revert InvalidSpeakerNumber();
         if (
@@ -236,31 +236,78 @@ contract DLogosCore is
                 status: SpeakerStatus.Pending
             });
             logoSpeakers[_param.logoId].push(s);
-        }
+        } 
+        
         {
-            uint256 communityFee = IDLogosOwner(dLogosOwner).communityFee();
             // Math overflow is not possible because {IDLogosOwner} sets fees
             unchecked {
-                if (IDLogosOwner(dLogosOwner).isZeroFeeProposer(msg.sender)) {
-                    if (
-                        communityFee + l.proposerFee + speakerFeesSum !=
-                        PERCENTAGE_SCALE
-                    ) revert FeeSumNotMatch();
-                } else {
-                    if (
-                        IDLogosOwner(dLogosOwner).dLogosFee() +
-                            communityFee +
-                            l.proposerFee +
-                            speakerFeesSum !=
-                        PERCENTAGE_SCALE
-                    ) revert FeeSumNotMatch();
-                }
+                if (
+                    IDLogosOwner(dLogosOwner).dLogosFee() +
+                        speakerFeesSum +
+                        l.beneficiaryFeesSum !=
+                    PERCENTAGE_SCALE
+                ) revert FeeSumNotMatch();
             }
         }
+
+        logos[_param.logoId].speakerFeesSum = speakerFeesSum;
 
         emit SpeakersSet(
             msg.sender,
             _param.speakers,
+            _param.fees,
+            _param.providers,
+            _param.handles
+        );
+    }
+
+    function setBeneficiaries(
+        SetBeneficiariesParam calldata _param
+    ) external override whenNotPaused validLogoId(_param.logoId) {
+        Logo memory l = logos[_param.logoId];
+
+        if (l.proposer != msg.sender) revert Unauthorized();
+        if (l.isRefunded) revert LogoRefunded();
+        if (l.crowdfundStartAt + l.duration * 1 days < block.timestamp) revert CrowdfundEnded();
+        if (_param.beneficiaries.length == 0 || _param.beneficiaries.length >= 100)
+            revert InvalidBeneficiaryNumber();
+        if (
+            _param.beneficiaries.length != _param.fees.length ||
+            _param.fees.length != _param.providers.length ||
+            _param.providers.length != _param.handles.length
+        ) revert InvalidArrayArguments();
+        
+        delete logoBeneficiaries[_param.logoId]; // Reset to default (no beneficiaries).
+
+        uint256 beneficiaryFeesSum;
+        for (uint256 i = 0; i < _param.beneficiaries.length; i++) {
+            beneficiaryFeesSum += _param.fees[i];
+            Beneficiary memory b = Beneficiary({
+                addr: _param.beneficiaries[i],
+                fee: _param.fees[i],
+                provider: _param.providers[i],
+                handle: _param.handles[i]
+            });
+            logoBeneficiaries[_param.logoId].push(b);
+        } 
+        
+        {
+            // Math overflow is not possible because {IDLogosOwner} sets fees
+            unchecked {
+                if (
+                    IDLogosOwner(dLogosOwner).dLogosFee() +
+                        l.speakerFeesSum +
+                        beneficiaryFeesSum !=
+                    PERCENTAGE_SCALE
+                ) revert FeeSumNotMatch();
+            }
+        }
+
+        logos[_param.logoId].beneficiaryFeesSum = beneficiaryFeesSum;
+
+        emit BeneficiariesSet(
+            msg.sender,
+            _param.beneficiaries,
             _param.fees,
             _param.providers,
             _param.handles
@@ -280,7 +327,8 @@ contract DLogosCore is
 
         Logo memory l = logos[_logoId];
         if (l.isRefunded) revert LogoRefunded();
-        if (l.scheduledAt > 0) revert LogoScheduled();
+        if (_validateAcceptedSpeakers(_logoId)) revert AllSpeakersAccepted();
+        if (l.crowdfundStartAt + l.duration * 1 days < block.timestamp) revert CrowdfundEnded();
 
         Speaker[] memory speakers = logoSpeakers[_logoId];
         uint256 i;
@@ -299,7 +347,7 @@ contract DLogosCore is
      * @dev Set address and status of speakers
      * Only `operator` can call
      */
-    function setStatusForSpeakers(
+    function setSpeakerStatusByOp(
         uint256 _logoId,
         uint8[] calldata _indexes,
         address[] calldata _addresses,
@@ -309,7 +357,8 @@ contract DLogosCore is
 
         Logo memory l = logos[_logoId];
         if (l.isRefunded) revert LogoRefunded();
-        if (l.scheduledAt > 0) revert LogoScheduled();
+        if (_validateAcceptedSpeakers(_logoId)) revert AllSpeakersAccepted();
+        if (l.crowdfundStartAt + l.duration * 1 days < block.timestamp) revert CrowdfundEnded();
         if (
             _indexes.length != _addresses.length ||
             _addresses.length != _statuses.length
@@ -341,35 +390,6 @@ contract DLogosCore is
     }
 
     /**
-     * @dev Set date for a conversation and close crowdfund.
-     */
-    function setDate(
-        uint256 _logoId,
-        uint256 _scheduledAt
-    ) external override whenNotPaused validLogoId(_logoId) {
-        Logo memory l = logos[_logoId];
-        if (l.proposer != msg.sender) revert Unauthorized();
-        if (bytes(l.mediaAssetURL).length > 0) revert LogoUploaded();
-        if (l.isRefunded) revert LogoRefunded();
-        if (
-            _scheduledAt <= block.timestamp ||
-            _scheduledAt > l.crowdfundStartAt + l.duration * 1 days
-        ) revert InvalidScheduleTime();
-
-        Speaker[] memory speakers = logoSpeakers[_logoId];
-        // Make sure the Logo has more than one speaker.
-        if (speakers.length == 0) revert InvalidSpeakerNumber();
-        // Make sure all speakers have accepted.
-        for (uint256 i = 0; i < speakers.length; i++) {
-            if (speakers[i].status != SpeakerStatus.Accepted)
-                revert NotAllSpeakersAccepted();
-        }
-
-        logos[_logoId].scheduledAt = _scheduledAt;
-        emit DateSet(msg.sender, _scheduledAt);
-    }
-
-    /**
      * @dev Sets media URL for a Logo and sets a deadline for backers to reject.
      */
     function setMediaAsset(
@@ -380,12 +400,8 @@ contract DLogosCore is
         if (ml.proposer != msg.sender) revert Unauthorized();
         if (ml.splitForSpeaker != address(0)) revert LogoDistributed();
         if (ml.isRefunded) revert LogoRefunded();
-        if (ml.scheduledAt == 0) revert LogoNotScheduled();
-        if (
-            ml.scheduledAt + IDLogosOwner(dLogosOwner).uploadWindow() * 1 days <
-            block.timestamp
-        ) revert UploadDeadlinePassed();
-
+        if (!_validateAcceptedSpeakers(_logoId)) revert NotAllSpeakersAccepted();
+        if (ml.crowdfundStartAt + ml.duration * 1 days < block.timestamp) revert CrowdfundEnded();
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
         // Math overflow is not possible with the current timestamp
@@ -410,19 +426,27 @@ contract DLogosCore is
         if (l.splitForSpeaker != address(0)) revert LogoDistributed();
         if (l.isRefunded) revert LogoRefunded();
         if (bytes(l.mediaAssetURL).length == 0) revert LogoNotUploaded();
+        if (l.crowdfundStartAt + l.duration * 1 days < block.timestamp) revert CrowdfundEnded();
         if (block.timestamp < l.rejectionDeadline)
             revert RejectionDeadlineNotPassed();
 
         Logo storage sl = logos[_logoId];
-        // Address array, 0 -> dLogosBacker, 1 -> split contract for referrers, 2 -> split contract for speakers
-        address[] memory addressVars = new address[](3);
+
+        // Address array: 
+        // [0] -> dLogosBacker, 
+        // [1] -> split contract for referrers, 
+        // [2] -> split contract for dlogos, community, speakers, and beneficiaries
+        address[] memory addressVars = new address[](4);        
         addressVars[0] = IDLogosOwner(dLogosOwner).dLogosBacker();
+
         uint256 totalRewards = IDLogosBacker(addressVars[0]).logoRewards(
             _logoId
         );
+
         IDLogosBacker.Backer[] memory backers = IDLogosBacker(addressVars[0])
             .getBackersForLogo(_logoId);
         Speaker[] memory speakers = logoSpeakers[_logoId];
+        Beneficiary[] memory beneficiaries = logoBeneficiaries[_logoId];
 
         if (totalRewards != 0) {
             SplitV2Lib.Split memory splitParam;
@@ -452,10 +476,11 @@ contract DLogosCore is
                 );
             }
 
-            // PushSplit for dlogos, community and speaker fee distribution
+            // PushSplit for dlogos, community, speakers, and beneficiaries fee distribution
             DLogosCoreHelper.GetSpeakersSplitInfoParam
                 memory param = DLogosCoreHelper.GetSpeakersSplitInfoParam({
                     speakers: speakers,
+                    beneficiaries: beneficiaries,
                     dLogos: IDLogosOwner(dLogosOwner).dLogos(),
                     community: IDLogosOwner(dLogosOwner).community(),
                     proposer: l.proposer,
@@ -540,5 +565,17 @@ contract DLogosCore is
                     revert FeeExceeded();
             }
         }
+    }
+
+    function _validateAcceptedSpeakers(uint256 _logoId) private view returns (bool) {
+        Speaker[] memory speakers = logoSpeakers[_logoId];
+        // Make sure the Logo has more than one speaker.
+        if (speakers.length == 0) return false;
+        // Make sure all speakers have accepted.
+        for (uint256 i = 0; i < speakers.length; i++) {
+            if (speakers[i].status != SpeakerStatus.Accepted)
+                return false;
+        }
+        return true;
     }
 }

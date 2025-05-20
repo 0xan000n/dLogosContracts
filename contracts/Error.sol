@@ -45,6 +45,8 @@ error EthTransferFailed();
 
 error InvalidSpeakerNumber();
 
+error InvalidBeneficiaryNumber();
+
 error InvalidArrayArguments();
 
 error InvalidScheduleTime();
@@ -63,7 +65,7 @@ error AffiliateRewardsExceeded();
 
 error RejectionDeadlineNotPassed();
 
-error LogoNotUploadedOrRejectionDeadlinePassed();
+error MediaAssetNotUploadedOrRejectionDeadlinePassed();
 
 error BackerAlreadyRejected();
 
@@ -90,3 +92,5 @@ error LogoScheduled();
 error UploadDeadlinePassed();
 
 error InvalidUploadWindow();
+
+error AllSpeakersAccepted();
