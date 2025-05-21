@@ -244,7 +244,7 @@ contract DLogosCore is
                 if (
                     IDLogosOwner(dLogosOwner).dLogosFee() +
                         speakerFeesSum +
-                        l.beneficiaryFeesSum !=
+                        l.beneficiaryFeesSum >
                     PERCENTAGE_SCALE
                 ) revert FeeSumNotMatch();
             }
@@ -297,7 +297,7 @@ contract DLogosCore is
                 if (
                     IDLogosOwner(dLogosOwner).dLogosFee() +
                         l.speakerFeesSum +
-                        beneficiaryFeesSum !=
+                        beneficiaryFeesSum >
                     PERCENTAGE_SCALE
                 ) revert FeeSumNotMatch();
             }
@@ -390,6 +390,15 @@ contract DLogosCore is
     }
 
     /**
+     * @dev Return the list of beneficiaries for a Logo.
+     */
+    function getBeneficiariesForLogo(
+        uint256 _logoId
+    ) external view override returns (Beneficiary[] memory) {
+        return logoBeneficiaries[_logoId];
+    }
+
+    /**
      * @dev Sets media URL for a Logo and sets a deadline for backers to reject.
      */
     function setMediaAsset(
@@ -429,6 +438,14 @@ contract DLogosCore is
         if (l.crowdfundStartAt + l.duration * 1 days < block.timestamp) revert CrowdfundEnded();
         if (block.timestamp < l.rejectionDeadline)
             revert RejectionDeadlineNotPassed();
+            
+        // Validate that fee percentages add up to exactly 100%
+        if (
+            IDLogosOwner(dLogosOwner).dLogosFee() +
+                l.speakerFeesSum +
+                l.beneficiaryFeesSum !=
+            PERCENTAGE_SCALE
+        ) revert FeeSumNotMatch();
 
         Logo storage sl = logos[_logoId];
 

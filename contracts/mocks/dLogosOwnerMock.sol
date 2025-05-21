@@ -66,11 +66,11 @@ contract DLogosOwnerMock {
     }
 
     function communityFee() external pure returns (uint256) {
-        return 1e5;
+        return 0;
     }
 
     function dLogosFee() external pure returns (uint256) {
-        return 1e5;
+        return 5 * 1e4;
     }
 
     function isZeroFeeProposer(address _proposer) external view returns (bool) {
@@ -78,11 +78,11 @@ contract DLogosOwnerMock {
     }
 
     function rejectThreshold() external pure returns (uint256) {
-        return 5000;
+        return 5 * 1e5;
     }
 
     function rejectionWindow() external pure returns (uint256) {
-        return 7;
+        return 3;
     }
 
     function uploadWindow() external pure returns (uint256) {

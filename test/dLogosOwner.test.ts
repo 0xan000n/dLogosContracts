@@ -28,7 +28,7 @@ describe("DLogosOwner Tests", () => {
       50000
     );
     expect(await env.dLogosOwner.communityFee()).equals(
-      50000
+      0
     );
     expect(await env.dLogosOwner.affiliateFee()).equals(
       50000
@@ -43,7 +43,7 @@ describe("DLogosOwner Tests", () => {
       60
     );
     expect(await env.dLogosOwner.rejectionWindow()).equals(
-      7
+      3
     );
     expect(await env.dLogosOwner.uploadWindow()).equals(
       7
