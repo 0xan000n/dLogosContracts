@@ -201,7 +201,7 @@ contract DLogosCore is
 
         emit RefundInitiated(_logoId, c1, c2, c3);
     }
-
+    
     /**
      * @dev Set speakers for a Logo.
      * @param _param Contains logoId, speakers, fees, providers, and handles.
@@ -261,6 +261,7 @@ contract DLogosCore is
         );
     }
 
+    // S-TODO: check if the logo is distributed
     function setBeneficiaries(
         SetBeneficiariesParam calldata _param
     ) external override whenNotPaused validLogoId(_param.logoId) {
