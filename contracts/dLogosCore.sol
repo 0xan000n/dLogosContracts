@@ -261,7 +261,6 @@ contract DLogosCore is
         );
     }
 
-    // S-TODO: check if the logo is distributed
     function setBeneficiaries(
         SetBeneficiariesParam calldata _param
     ) external override whenNotPaused validLogoId(_param.logoId) {
@@ -269,6 +268,7 @@ contract DLogosCore is
 
         if (l.proposer != msg.sender) revert Unauthorized();
         if (l.isRefunded) revert LogoRefunded();
+        if (l.splitForSpeaker != address(0)) revert LogoDistributed();
         if (l.crowdfundStartAt + l.duration * 1 days < block.timestamp) revert CrowdfundEnded();
         if (_param.beneficiaries.length == 0 || _param.beneficiaries.length >= 100)
             revert InvalidBeneficiaryNumber();
@@ -399,7 +399,6 @@ contract DLogosCore is
         return logoBeneficiaries[_logoId];
     }
 
-    // S-TODO: update MediaAssetAset event to emit the new rejection deadline
     /**
      * @dev Sets media URL for a Logo and sets a deadline for backers to reject.
      */
@@ -415,15 +414,16 @@ contract DLogosCore is
         if (ml.crowdfundStartAt + ml.duration * 1 days < block.timestamp) revert CrowdfundEnded();
         Logo storage sl = logos[_logoId];
         sl.mediaAssetURL = _mediaAssetURL;
+        uint256 rejectionDeadline;
         // Math overflow is not possible with the current timestamp
         unchecked {
-            sl.rejectionDeadline =
-                block.timestamp +
+            rejectionDeadline = block.timestamp +
                 IDLogosOwner(dLogosOwner).rejectionWindow() *
                 1 days;
+            sl.rejectionDeadline = rejectionDeadline;
         }
 
-        emit MediaAssetSet(msg.sender, _mediaAssetURL);
+        emit MediaAssetSet(msg.sender, _mediaAssetURL, rejectionDeadline);
     }
 
     /**

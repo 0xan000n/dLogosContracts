@@ -873,6 +873,19 @@ describe("DLogosCore Testing", () => {
         );
       });
 
+      it("Should revert when logo is distributed", async () => {
+        const env = await loadFixture(prepEnvWithDistributeRewards);
+
+        await expect(
+          env.dLogosCore
+            .connect(env.proposer1)
+            .setBeneficiaries(dummyParam)
+        ).to.be.revertedWithCustomError(
+          env.dLogosCore,
+          "LogoDistributed()"
+        );
+      });
+
       it("Should revert when logo crowdfund deadline is passed", async () => {
         const env = await loadFixture(prepEnvWithSetBeneficiaries);
 
@@ -1358,6 +1371,7 @@ describe("DLogosCore Testing", () => {
         .withArgs(
           env.proposer1.address,
           env.logo1MediaAssetURL,
+          BigInt(await time.latest()) + await env.dLogosOwner.rejectionWindow() * ONE_DAY,
         );
     });
 

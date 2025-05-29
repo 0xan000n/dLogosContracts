@@ -87,7 +87,7 @@ interface IDLogosCore {
         string[] _providers,
         string[] _handles
     );
-    event MediaAssetSet(address indexed _owner, string indexed _mediaAssetURL);
+    event MediaAssetSet(address indexed _owner, string _mediaAssetURL, uint256 _rejectionDeadline);
     event RewardsDistributed(
         uint256 indexed _logoId,
         address indexed _proposer, 
