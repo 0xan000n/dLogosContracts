@@ -399,6 +399,7 @@ contract DLogosCore is
         return logoBeneficiaries[_logoId];
     }
 
+    // S-TODO: update MediaAssetAset event to emit the new rejection deadline
     /**
      * @dev Sets media URL for a Logo and sets a deadline for backers to reject.
      */
