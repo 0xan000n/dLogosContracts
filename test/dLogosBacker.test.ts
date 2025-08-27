@@ -111,7 +111,7 @@ describe("DLogosBacker Tests", () => {
           env.dLogosBacker
             .connect(env.backer1)
             .crowdfund(
-              3,
+              2,
               env.referrer1
             )
         ).to.be.revertedWithCustomError(
@@ -145,7 +145,7 @@ describe("DLogosBacker Tests", () => {
           env.dLogosBacker
             .connect(env.backer1)
             .crowdfund(
-              6,
+              5,
               env.referrer1
             )
         ).to.be.revertedWithCustomError(
@@ -154,41 +154,22 @@ describe("DLogosBacker Tests", () => {
         );
       });
 
-      describe("Should revert when crowdfund ended", async () => {
-        it("logo is scheduled", async () => {
-          const env = await loadFixture(prepEnv);
-  
-          await expect(
-            env.dLogosBacker
-              .connect(env.backer1)
-              .crowdfund(
-                2,
-                env.referrer1
-              )
-          ).to.be.revertedWithCustomError(
-            env.dLogosBacker,
-            "CrowdfundEnded()"
-          );
-        });
+      it("Should revert when logo crowdfund deadline is passed", async () => {
+        const env = await loadFixture(prepEnv);
 
-        it("logo is not scheduled", async () => {
-          const env = await loadFixture(prepEnv);
-  
-          await expect(
-            env.dLogosBacker
-              .connect(env.backer1)
-              .crowdfund(
-                7,
-                env.referrer1
-              )
-          ).to.be.revertedWithCustomError(
-            env.dLogosBacker,
-            "CrowdfundEnded()"
-          );
-        });
+        await expect(
+          env.dLogosBacker
+            .connect(env.backer1)
+            .crowdfund(
+              6,
+              env.referrer1
+            )
+        ).to.be.revertedWithCustomError(
+          env.dLogosBacker,
+          "CrowdfundEnded()"
+        );
       });
       
-
       it("Should revert when pledge < {minimumPledge}", async () => {
         const env = await loadFixture(prepEnvWithCrowdfund);
 
@@ -260,7 +241,7 @@ describe("DLogosBacker Tests", () => {
           env.dLogosBacker
             .connect(env.backer1)
             .withdrawFunds(
-              3
+              2
             )
         ).to.be.revertedWithCustomError(
           env.dLogosBacker,
@@ -268,7 +249,9 @@ describe("DLogosBacker Tests", () => {
         );
       });
 
-      it("Should revert when logo is uploaded and not refunded", async () => {
+      // TODO: if (_validateAcceptedSpeakers(_logoId)) revert AllSpeakersAccepted();
+
+      it("Should revert when logo is distributed", async () => {
         const env = await loadFixture(prepEnvWithWithdrawFunds);
 
         await expect(
@@ -279,22 +262,7 @@ describe("DLogosBacker Tests", () => {
             )
         ).to.be.revertedWithCustomError(
           env.dLogosBacker,
-          "LogoFundsCannotBeWithdrawn()"
-        );
-      });
-
-      it("Should revert when logo is distributed", async () => {
-        const env = await loadFixture(prepEnvWithWithdrawFunds);
-
-        await expect(
-          env.dLogosBacker
-            .connect(env.backer1)
-            .withdrawFunds(
-              5
-            )
-        ).to.be.revertedWithCustomError(
-          env.dLogosBacker,
-          "LogoFundsCannotBeWithdrawn()"
+          "LogoDistributed()"
         );
       });
 
@@ -363,7 +331,7 @@ describe("DLogosBacker Tests", () => {
         await expect(
           env.dLogosBacker
             .connect(env.backer1)
-            .reject(3)
+            .reject(2)
         ).to.be.revertedWithCustomError(
           env.dLogosBacker,
           "InvalidLogoId()"
@@ -376,7 +344,7 @@ describe("DLogosBacker Tests", () => {
         await expect(
           env.dLogosBacker
             .connect(env.backer1)
-            .reject(6)
+            .reject(5)
         ).to.be.revertedWithCustomError(
           env.dLogosBacker,
           "LogoRefunded()"
@@ -389,10 +357,10 @@ describe("DLogosBacker Tests", () => {
         await expect(
           env.dLogosBacker
             .connect(env.backer1)
-            .reject(2)
+            .reject(6)
         ).to.be.revertedWithCustomError(
           env.dLogosBacker,
-          "LogoNotUploadedOrRejectionDeadlinePassed()"
+          "MediaAssetNotUploadedOrRejectionDeadlinePassed()"
         );
       });
 
@@ -618,8 +586,8 @@ async function prepEnvWithWithdrawFunds() {
 async function prepEnvWithReject() {
   const prevEnv = await loadFixture(prepEnvWithCrowdfund);
 
-  // advance time by 4 days
-  await time.increase(ONE_DAY * 4n);
+  // advance time by 1 days
+  await time.increase(ONE_DAY * 1n);
 
   const rejectTx = await prevEnv.dLogosBacker
     .connect(prevEnv.backer1)

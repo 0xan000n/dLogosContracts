@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - allowed backers to pledge even after the logo has been scheduled
 - removed isCrowdfunding, isUploaded, isDistributed states from the logo structure
 - updated C2 and C3 in the refund condition check
+- upgraded solidity compiler version to 0.8.30
+- set logo rejection window to 3 days
+- set community fee and proposer fee to 0
+- ignored scheduledAt in the timeline conditions
+- removed setDate()
+- removed C3 in the refund condition check
+- crowdfunding ends after all speakers accept
+
 ### Added
 - logoRewards variable to avoid loops in DLogos
 - logoRejectedFunds variable to avoid loops in DLogos
@@ -37,6 +45,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - rename DLogosSplitsHelper
 - setStatusForSpeakers() function in DLogosCore
 - uploadWindow constraint to the setMediaAsset function
+- logo beneficiaries
+
 ## [2.0.1] - 2024-06-03
 ### Added
 - hardhat env

@@ -66,10 +66,8 @@ contract DLogosBacker is
         IDLogosCore.Logo memory l = _getValidLogo(_logoId);
 
         if (l.isRefunded) revert LogoRefunded();
-        if (
-            (l.scheduledAt == 0 && l.crowdfundStartAt + l.duration * 1 days < block.timestamp) ||
-            (l.scheduledAt > 0 && l.scheduledAt < block.timestamp)
-        ) revert CrowdfundEnded();
+        if (l.splitForSpeaker != address(0)) revert LogoDistributed();
+        if (l.crowdfundStartAt + l.duration * 1 days < block.timestamp) revert CrowdfundEnded();
         if (msg.value < l.minimumPledge) revert InsufficientFunds();
 
         address msgSender = _msgSender();
@@ -115,11 +113,9 @@ contract DLogosBacker is
         uint256 _logoId
     ) external override nonReentrant whenNotPaused {
         IDLogosCore.Logo memory l = _getValidLogo(_logoId);
-        if (
-            (l.scheduledAt > 0 && !l.isRefunded) ||
-            l.splitForSpeaker != address(0)
-        ) revert LogoFundsCannotBeWithdrawn();
-
+        if (_validateAcceptedSpeakers(_logoId)) revert AllSpeakersAccepted();
+        if (l.splitForSpeaker != address(0)) revert LogoDistributed();
+        
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
         if (!isBacker) revert Unauthorized();
@@ -155,7 +151,7 @@ contract DLogosBacker is
 
         if (l.isRefunded) revert LogoRefunded();
         if (block.timestamp > l.rejectionDeadline)
-            revert LogoNotUploadedOrRejectionDeadlinePassed();
+            revert MediaAssetNotUploadedOrRejectionDeadlinePassed();
 
         address msgSender = _msgSender();
         bool isBacker = _logoBackerAddresses[_logoId].contains(msgSender);
@@ -234,6 +230,19 @@ contract DLogosBacker is
             (bool success, ) = payable(_to).call{value: _amount}("");
             if (!success) revert EthTransferFailed();
         }
+    }
+
+    function _validateAcceptedSpeakers(uint256 _logoId) private view returns (bool) {
+        IDLogosCore.Speaker[] memory speakers = IDLogosCore(IDLogosOwner(dLogosOwner).dLogosCore())
+            .getSpeakersForLogo(_logoId);
+        // Make sure the Logo has more than one speaker.
+        if (speakers.length == 0) return false;
+        // Make sure all speakers have accepted.
+        for (uint256 i = 0; i < speakers.length; i++) {
+            if (speakers[i].status != IDLogosCore.SpeakerStatus.Accepted)
+                return false;
+        }
+        return true;
     }
 
     // ----------------------------------------------Meta tx helpers----------------------------------------------

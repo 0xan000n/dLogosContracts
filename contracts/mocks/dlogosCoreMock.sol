@@ -44,7 +44,9 @@ contract DLogosCoreMock {
         rejectionDeadline: 0,
         splitForSpeaker: address(0),
         splitForAffiliate: address(0),
-        isRefunded: false
+        isRefunded: false,
+        speakerFeesSum: 0,
+        beneficiaryFeesSum: 0
     });
 
     constructor(address _dLogosOwner) {
@@ -57,34 +59,28 @@ contract DLogosCoreMock {
         
         // 1st logo is default
         IDLogosCore.Logo memory l1 = sl;
-        l1.rejectionDeadline = block.timestamp + 7 days;
+        l1.rejectionDeadline = block.timestamp + 3 days;
         logos[1] = l1;
-        // 2nd logo is scheduled
+        // 2nd logo is not created
         IDLogosCore.Logo memory l2 = sl;
-        l2.scheduledAt = 12345678;
+        l2.proposer = address(0);
         logos[2] = l2;
-        // 3rd logo is not created
+        // 3rd logo is uploaded and not refunded
         IDLogosCore.Logo memory l3 = sl;
-        l3.proposer = address(0);
+        l3.mediaAssetURL = "http://x.com/dlogos-xyz-1";
         logos[3] = l3;
-        // 4th logo is uploaded and not refunded
+        // 4th logo is distributed
         IDLogosCore.Logo memory l4 = sl;
-        l4.scheduledAt = 12345678; // dummy timestamp
-        // l4.mediaAssetURL = "http://x.com/dlogos-xyz-1";
+        l4.splitForSpeaker = 0xaDC87646f736d6A82e9a6539cddC488b2aA07f38; // random address
         logos[4] = l4;
-        // 5th logo is distributed
+        // 5th logo is refunded
         IDLogosCore.Logo memory l5 = sl;
-        // l5.status.isDistributed = true;
-        l5.splitForSpeaker = 0xaDC87646f736d6A82e9a6539cddC488b2aA07f38; // random address
+        l5.isRefunded = true;
         logos[5] = l5;
-        // 6th logo is default
+        // 6th logo is not scheduled and crowdfund duration passed
         IDLogosCore.Logo memory l6 = sl;
-        l6.isRefunded = true;
+        l6.duration = 0;
         logos[6] = l6;
-        // 7th logo is not scheduled and crowdfund duration passed
-        IDLogosCore.Logo memory l7 = sl;
-        l7.duration = 0;
-        logos[7] = l7;
     }
     
     function getLogo(uint256 _logoId) external view returns (IDLogosCore.Logo memory l) {

@@ -918,7 +918,7 @@ async function prepEnv() {
   );
   const logo = logoF.attach(await logoProxy.getAddress());
 
-  const logoId5 = 5;
+  const logoId5 = 4;
   const l5Backer0 = await dLogosBacker.backerAddrs(0);
   const l5Backer1 = await dLogosBacker.backerAddrs(1);
   const l5Speaker = await dLogosCore.speaker();

@@ -19,6 +19,13 @@ interface IDLogosCore {
         SpeakerStatus status;
     }
 
+    struct Beneficiary {
+        address addr;
+        uint256 fee;
+        string provider; // e.g. X, Discord etc.
+        string handle;
+    }
+
     /// @notice All onchain information for a Logo.
     struct Logo {
         uint256 id;
@@ -30,7 +37,9 @@ interface IDLogosCore {
         uint256 minimumPledge;
         uint256 crowdfundStartAt;        
         uint256 rejectionDeadline;
-        address splitForSpeaker; // PushSplit address for dlogos, community, speakers
+        uint256 speakerFeesSum;
+        uint256 beneficiaryFeesSum;
+        address splitForSpeaker; // PushSplit address for dlogos, community, speakers, and beneficiaries
         address splitForAffiliate; // PushSplit address for affiliates
         uint8 duration;
         bool isRefunded;
@@ -39,6 +48,14 @@ interface IDLogosCore {
     struct SetSpeakersParam {
         uint256 logoId;
         address[] speakers;
+        uint256[] fees;
+        string[] providers;
+        string[] handles;
+    }
+
+    struct SetBeneficiariesParam {
+        uint256 logoId;
+        address[] beneficiaries;
         uint256[] fees;
         string[] providers;
         string[] handles;
@@ -63,8 +80,14 @@ interface IDLogosCore {
         string[] _providers,
         string[] _handles
     );
-    event DateSet(address indexed _owner, uint256 indexed _scheduledAt);
-    event MediaAssetSet(address indexed _owner, string indexed _mediaAssetURL);
+    event BeneficiariesSet(
+        address indexed _owner,
+        address[] _beneficiaries,
+        uint256[] _fees,
+        string[] _providers,
+        string[] _handles
+    );
+    event MediaAssetSet(address indexed _owner, string _mediaAssetURL, uint256 _rejectionDeadline);
     event RewardsDistributed(
         uint256 indexed _logoId,
         address indexed _proposer, 
@@ -83,8 +106,7 @@ interface IDLogosCore {
         uint256 indexed _logoId, 
         bool _case1,
         bool _case2,
-        bool _case3,
-        bool _case4
+        bool _case3
     );
     event SplitForAffiliateCreated(
         address indexed _split, 
@@ -105,15 +127,16 @@ interface IDLogosCore {
     function operator() external view returns (address);
     function logoId() external view returns (uint256);
     function getLogo(uint256) external view returns (Logo memory);
-    function createLogo(uint256, string calldata, uint8) external returns (uint256);  
+    function createLogo(string calldata, uint8) external returns (uint256);  
     // function toggleCrowdfund(uint256) external;
     function setMinimumPledge(uint256, uint256) external;
     function refund(uint256) external;
     function setSpeakers(SetSpeakersParam calldata) external;
+    function setBeneficiaries(SetBeneficiariesParam calldata) external;
     function setSpeakerStatus(uint256, uint8) external;
-    function setStatusForSpeakers(uint256, uint8[] calldata, address[] calldata, uint8[] calldata) external;
+    function setSpeakerStatusByOp(uint256, uint8[] calldata, address[] calldata, uint8[] calldata) external;
     function getSpeakersForLogo(uint256) external view returns (Speaker[] memory);
-    function setDate(uint256, uint256) external;
+    function getBeneficiariesForLogo(uint256) external view returns (Beneficiary[] memory);
     function setMediaAsset(uint256, string calldata) external;
     function distributeRewards(uint256, bool) external;
     function pauseOrUnpause(bool) external;
